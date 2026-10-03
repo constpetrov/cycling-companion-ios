@@ -1,0 +1,48 @@
+name: CyclingCompanion
+options:
+  bundleIdPrefix: com.cyclingcompanion
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+
+targets:
+  CyclingCompanion:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Sources/CyclingCompanion
+    info:
+      path: Sources/CyclingCompanion/App/Info.plist
+      properties:
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cyclingcompanion.app
+        TARGETED_DEVICE_FAMILY: "1"
+    scheme:
+      testTargets:
+        - CyclingCompanionTests
+      commandLineArguments: {}
+
+  CyclingCompanionTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Tests/CyclingCompanionTests
+    dependencies:
+      - target: CyclingCompanion
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES

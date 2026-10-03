@@ -1,0 +1,467 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		6EB17A9C7585E7732F6AB26E /* AuthStubClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */; };
+		6F9B86D03C119AC1C2DD2CA7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70987000F6057937B7350102 /* ContentView.swift */; };
+		9124478F8CAFD5729AD5A491 /* RouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509591745ADB52A8A7AEFA8A /* RouteStore.swift */; };
+		9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414779F64E8D9536C42316E7 /* AuthStubClient.swift */; };
+		A48F750D8C2A4B46BDA44A30 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */; };
+		C57264055270FF68970C3A44 /* CyclingCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */; };
+		C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 715933033BE0C1E6E0E0834A /* CorridorMapView.swift */; };
+		E57D4DEF68C2788B4A3868E9 /* RouteImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C067FB0E523B79B8F25DD9 /* RouteImporter.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D3F864EEDA35D43B0E3E1C82 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1168A5B03FD1907EC2D6A7D3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4171FF9EB7C55D4BED0AC29C;
+			remoteInfo = CyclingCompanion;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		11C067FB0E523B79B8F25DD9 /* RouteImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteImporter.swift; sourceTree = "<group>"; };
+		16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingCompanionApp.swift; sourceTree = "<group>"; };
+		175B70AD3495B7E73B97BEA0 /* CyclingCompanionTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CyclingCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		414779F64E8D9536C42316E7 /* AuthStubClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubClient.swift; sourceTree = "<group>"; };
+		509591745ADB52A8A7AEFA8A /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
+		5293269AF912AAC92F4A41DD /* CyclingCompanion.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CyclingCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
+		70987000F6057937B7350102 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		715933033BE0C1E6E0E0834A /* CorridorMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorMapView.swift; sourceTree = "<group>"; };
+		B81D7F9F4933773427941D7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubClientTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0CEFA649E9401D93D5B34DC1 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				70987000F6057937B7350102 /* ContentView.swift */,
+				16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */,
+				B81D7F9F4933773427941D7C /* Info.plist */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		240351F64488CF5B9447461B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5293269AF912AAC92F4A41DD /* CyclingCompanion.app */,
+				175B70AD3495B7E73B97BEA0 /* CyclingCompanionTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		66FACDE0C30B4AA5765C6C19 /* RouteStore */ = {
+			isa = PBXGroup;
+			children = (
+				509591745ADB52A8A7AEFA8A /* RouteStore.swift */,
+			);
+			path = RouteStore;
+			sourceTree = "<group>";
+		};
+		A96F0DFB9F4AB5901935C472 /* CorridorMap */ = {
+			isa = PBXGroup;
+			children = (
+				715933033BE0C1E6E0E0834A /* CorridorMapView.swift */,
+			);
+			path = CorridorMap;
+			sourceTree = "<group>";
+		};
+		A9E11D2E485050A597C12C8D /* CyclingCompanionTests */ = {
+			isa = PBXGroup;
+			children = (
+				E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */,
+				6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */,
+			);
+			path = CyclingCompanionTests;
+			sourceTree = "<group>";
+		};
+		AE589183D431803E6D3E244D = {
+			isa = PBXGroup;
+			children = (
+				ECF71ED1E2FBA3FFB275B864 /* Sources */,
+				F4C42593D65DAD3D1882A791 /* Tests */,
+				240351F64488CF5B9447461B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D518D0D889F150BCDC0C9FE5 /* CyclingCompanion */ = {
+			isa = PBXGroup;
+			children = (
+				0CEFA649E9401D93D5B34DC1 /* App */,
+				EB68657936EEE72DAAC295DA /* AuthStubClient */,
+				A96F0DFB9F4AB5901935C472 /* CorridorMap */,
+				DAF09FF53EEFFF7E558F0FB9 /* RouteImporter */,
+				66FACDE0C30B4AA5765C6C19 /* RouteStore */,
+			);
+			path = CyclingCompanion;
+			sourceTree = "<group>";
+		};
+		DAF09FF53EEFFF7E558F0FB9 /* RouteImporter */ = {
+			isa = PBXGroup;
+			children = (
+				11C067FB0E523B79B8F25DD9 /* RouteImporter.swift */,
+			);
+			path = RouteImporter;
+			sourceTree = "<group>";
+		};
+		EB68657936EEE72DAAC295DA /* AuthStubClient */ = {
+			isa = PBXGroup;
+			children = (
+				414779F64E8D9536C42316E7 /* AuthStubClient.swift */,
+			);
+			path = AuthStubClient;
+			sourceTree = "<group>";
+		};
+		ECF71ED1E2FBA3FFB275B864 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				D518D0D889F150BCDC0C9FE5 /* CyclingCompanion */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		F4C42593D65DAD3D1882A791 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				A9E11D2E485050A597C12C8D /* CyclingCompanionTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4171FF9EB7C55D4BED0AC29C /* CyclingCompanion */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 70B3FDD833669C2E5B0225F7 /* Build configuration list for PBXNativeTarget "CyclingCompanion" */;
+			buildPhases = (
+				DEF22026C9BA8750F78CB3A8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CyclingCompanion;
+			packageProductDependencies = (
+			);
+			productName = CyclingCompanion;
+			productReference = 5293269AF912AAC92F4A41DD /* CyclingCompanion.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9417A7B24E241D9A1CF90741 /* CyclingCompanionTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E4CA1C418570CE49401D306C /* Build configuration list for PBXNativeTarget "CyclingCompanionTests" */;
+			buildPhases = (
+				971928491D875B2E487CE3A8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4DC7BBDA812F2945CB2E62A8 /* PBXTargetDependency */,
+			);
+			name = CyclingCompanionTests;
+			packageProductDependencies = (
+			);
+			productName = CyclingCompanionTests;
+			productReference = 175B70AD3495B7E73B97BEA0 /* CyclingCompanionTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1168A5B03FD1907EC2D6A7D3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = F7E0F261FA706E5F7569BFC8 /* Build configuration list for PBXProject "CyclingCompanion" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = AE589183D431803E6D3E244D;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 240351F64488CF5B9447461B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4171FF9EB7C55D4BED0AC29C /* CyclingCompanion */,
+				9417A7B24E241D9A1CF90741 /* CyclingCompanionTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		971928491D875B2E487CE3A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6EB17A9C7585E7732F6AB26E /* AuthStubClientTests.swift in Sources */,
+				A48F750D8C2A4B46BDA44A30 /* SmokeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DEF22026C9BA8750F78CB3A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */,
+				6F9B86D03C119AC1C2DD2CA7 /* ContentView.swift in Sources */,
+				C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */,
+				C57264055270FF68970C3A44 /* CyclingCompanionApp.swift in Sources */,
+				E57D4DEF68C2788B4A3868E9 /* RouteImporter.swift in Sources */,
+				9124478F8CAFD5729AD5A491 /* RouteStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4DC7BBDA812F2945CB2E62A8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4171FF9EB7C55D4BED0AC29C /* CyclingCompanion */;
+			targetProxy = D3F864EEDA35D43B0E3E1C82 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		61F747B71054D9960DEBD105 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		6EA19EDC7A5307716B87963D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Sources/CyclingCompanion/App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyclingcompanion.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		768F62E9EEA254D9237C1401 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Sources/CyclingCompanion/App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyclingcompanion.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		8DF4B63D866F6483D412D32F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		BFF93483E2F88F2F0BF9B572 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyclingcompanion.CyclingCompanionTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CyclingCompanion.app/CyclingCompanion";
+			};
+			name = Debug;
+		};
+		D525879AD2FEA803BFE57BE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyclingcompanion.CyclingCompanionTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CyclingCompanion.app/CyclingCompanion";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		70B3FDD833669C2E5B0225F7 /* Build configuration list for PBXNativeTarget "CyclingCompanion" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6EA19EDC7A5307716B87963D /* Debug */,
+				768F62E9EEA254D9237C1401 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E4CA1C418570CE49401D306C /* Build configuration list for PBXNativeTarget "CyclingCompanionTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BFF93483E2F88F2F0BF9B572 /* Debug */,
+				D525879AD2FEA803BFE57BE0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F7E0F261FA706E5F7569BFC8 /* Build configuration list for PBXProject "CyclingCompanion" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				61F747B71054D9960DEBD105 /* Debug */,
+				8DF4B63D866F6483D412D32F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1168A5B03FD1907EC2D6A7D3 /* Project object */;
+}
