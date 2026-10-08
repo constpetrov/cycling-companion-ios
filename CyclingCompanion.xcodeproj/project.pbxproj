@@ -7,13 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		36CBACD52958BA64E4E1880A /* RoutePersistence in Frameworks */ = {isa = PBXBuildFile; productRef = F639BC04097118BC52023627 /* RoutePersistence */; };
+		3B0A521CC21DFD24C1EFF00F /* CorridorPollingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1502BA8AA6B5C75A534CFDC /* CorridorPollingServiceTests.swift */; };
+		3C67A9CCE7EA39EAB374C762 /* Simplifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1056D05E51D8D586E77386AF /* Simplifier.swift */; };
+		5807730CC1A27ACFA48A633C /* Resampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83267C30F394E3718EF975B4 /* Resampler.swift */; };
 		6EB17A9C7585E7732F6AB26E /* AuthStubClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */; };
 		6F9B86D03C119AC1C2DD2CA7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70987000F6057937B7350102 /* ContentView.swift */; };
-		9124478F8CAFD5729AD5A491 /* RouteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509591745ADB52A8A7AEFA8A /* RouteStore.swift */; };
+		824B52903D649C5128FB0754 /* RouteAPIPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BF3B6B5B6A50418FEAB9B42 /* RouteAPIPayloads.swift */; };
+		84673DF6841135ADE676CEC9 /* TrackPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = F117007FA9445EE22B8AE4A0 /* TrackPoint.swift */; };
+		86F3B6782F8723AA1239244F /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDDAB72ADA483C9D8EBF94BE /* Clock.swift */; };
 		9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414779F64E8D9536C42316E7 /* AuthStubClient.swift */; };
 		A48F750D8C2A4B46BDA44A30 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */; };
+		B38F8E00991F747791A69D43 /* CorridorPollingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F4F32ACAB6777564621067 /* CorridorPollingService.swift */; };
+		B893FBED4036ED77BD5B100C /* RouteHasher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E64494E0DECEB59D6D6566 /* RouteHasher.swift */; };
+		B9E2B48B85C5FBE9315C84AF /* RouteImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3724F00CDC6BCD4101B6847A /* RouteImporterTests.swift */; };
+		C177297C7CD5146401DCA046 /* CorridorMapViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C2A04B34847B7621B5C7F0 /* CorridorMapViewTests.swift */; };
 		C57264055270FF68970C3A44 /* CyclingCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */; };
 		C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 715933033BE0C1E6E0E0834A /* CorridorMapView.swift */; };
+		CFB8A1C47D0B891DDDE24F5F /* GeoMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB16B67589609C1C188DEDF /* GeoMath.swift */; };
+		DE71E9FA6E3D16502E7C3791 /* RoutePersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 94A3A32850DA1873E7CC0DEA /* RoutePersistence */; };
+		E4F54DCA1C6B255260B31EB9 /* GPXTrackPointParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B335029C629B4DE464E8F1 /* GPXTrackPointParser.swift */; };
 		E57D4DEF68C2788B4A3868E9 /* RouteImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C067FB0E523B79B8F25DD9 /* RouteImporter.swift */; };
 /* End PBXBuildFile section */
 
@@ -28,18 +41,49 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1056D05E51D8D586E77386AF /* Simplifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Simplifier.swift; sourceTree = "<group>"; };
+		11B335029C629B4DE464E8F1 /* GPXTrackPointParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPXTrackPointParser.swift; sourceTree = "<group>"; };
 		11C067FB0E523B79B8F25DD9 /* RouteImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteImporter.swift; sourceTree = "<group>"; };
 		16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingCompanionApp.swift; sourceTree = "<group>"; };
 		175B70AD3495B7E73B97BEA0 /* CyclingCompanionTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CyclingCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1BF3B6B5B6A50418FEAB9B42 /* RouteAPIPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteAPIPayloads.swift; sourceTree = "<group>"; };
+		1BFACAAE6FC2C84153FA74E6 /* RoutePersistence */ = {isa = PBXFileReference; lastKnownFileType = folder; name = RoutePersistence; path = Packages/RoutePersistence; sourceTree = SOURCE_ROOT; };
+		2AB16B67589609C1C188DEDF /* GeoMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoMath.swift; sourceTree = "<group>"; };
+		3724F00CDC6BCD4101B6847A /* RouteImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteImporterTests.swift; sourceTree = "<group>"; };
 		414779F64E8D9536C42316E7 /* AuthStubClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubClient.swift; sourceTree = "<group>"; };
-		509591745ADB52A8A7AEFA8A /* RouteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteStore.swift; sourceTree = "<group>"; };
+		51C2A04B34847B7621B5C7F0 /* CorridorMapViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorMapViewTests.swift; sourceTree = "<group>"; };
 		5293269AF912AAC92F4A41DD /* CyclingCompanion.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CyclingCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		63E64494E0DECEB59D6D6566 /* RouteHasher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHasher.swift; sourceTree = "<group>"; };
 		6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		70987000F6057937B7350102 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		715933033BE0C1E6E0E0834A /* CorridorMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorMapView.swift; sourceTree = "<group>"; };
+		83267C30F394E3718EF975B4 /* Resampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resampler.swift; sourceTree = "<group>"; };
+		99F4F32ACAB6777564621067 /* CorridorPollingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorPollingService.swift; sourceTree = "<group>"; };
+		A1502BA8AA6B5C75A534CFDC /* CorridorPollingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorPollingServiceTests.swift; sourceTree = "<group>"; };
 		B81D7F9F4933773427941D7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubClientTests.swift; sourceTree = "<group>"; };
+		EDDAB72ADA483C9D8EBF94BE /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
+		F117007FA9445EE22B8AE4A0 /* TrackPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPoint.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		277280C7377E67CD737D4EC6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				36CBACD52958BA64E4E1880A /* RoutePersistence in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC81FC21AA29244B0D678AB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DE71E9FA6E3D16502E7C3791 /* RoutePersistence in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0CEFA649E9401D93D5B34DC1 /* App */ = {
@@ -61,18 +105,21 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		66FACDE0C30B4AA5765C6C19 /* RouteStore */ = {
+		57B470C102A3B1EF0AB9112A /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				509591745ADB52A8A7AEFA8A /* RouteStore.swift */,
+				1BFACAAE6FC2C84153FA74E6 /* RoutePersistence */,
 			);
-			path = RouteStore;
+			path = Packages;
 			sourceTree = "<group>";
 		};
 		A96F0DFB9F4AB5901935C472 /* CorridorMap */ = {
 			isa = PBXGroup;
 			children = (
+				EDDAB72ADA483C9D8EBF94BE /* Clock.swift */,
 				715933033BE0C1E6E0E0834A /* CorridorMapView.swift */,
+				99F4F32ACAB6777564621067 /* CorridorPollingService.swift */,
+				1BF3B6B5B6A50418FEAB9B42 /* RouteAPIPayloads.swift */,
 			);
 			path = CorridorMap;
 			sourceTree = "<group>";
@@ -81,6 +128,9 @@
 			isa = PBXGroup;
 			children = (
 				E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */,
+				51C2A04B34847B7621B5C7F0 /* CorridorMapViewTests.swift */,
+				A1502BA8AA6B5C75A534CFDC /* CorridorPollingServiceTests.swift */,
+				3724F00CDC6BCD4101B6847A /* RouteImporterTests.swift */,
 				6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */,
 			);
 			path = CyclingCompanionTests;
@@ -89,6 +139,7 @@
 		AE589183D431803E6D3E244D = {
 			isa = PBXGroup;
 			children = (
+				57B470C102A3B1EF0AB9112A /* Packages */,
 				ECF71ED1E2FBA3FFB275B864 /* Sources */,
 				F4C42593D65DAD3D1882A791 /* Tests */,
 				240351F64488CF5B9447461B /* Products */,
@@ -102,7 +153,6 @@
 				EB68657936EEE72DAAC295DA /* AuthStubClient */,
 				A96F0DFB9F4AB5901935C472 /* CorridorMap */,
 				DAF09FF53EEFFF7E558F0FB9 /* RouteImporter */,
-				66FACDE0C30B4AA5765C6C19 /* RouteStore */,
 			);
 			path = CyclingCompanion;
 			sourceTree = "<group>";
@@ -110,7 +160,13 @@
 		DAF09FF53EEFFF7E558F0FB9 /* RouteImporter */ = {
 			isa = PBXGroup;
 			children = (
+				2AB16B67589609C1C188DEDF /* GeoMath.swift */,
+				11B335029C629B4DE464E8F1 /* GPXTrackPointParser.swift */,
+				83267C30F394E3718EF975B4 /* Resampler.swift */,
+				63E64494E0DECEB59D6D6566 /* RouteHasher.swift */,
 				11C067FB0E523B79B8F25DD9 /* RouteImporter.swift */,
+				1056D05E51D8D586E77386AF /* Simplifier.swift */,
+				F117007FA9445EE22B8AE4A0 /* TrackPoint.swift */,
 			);
 			path = RouteImporter;
 			sourceTree = "<group>";
@@ -147,6 +203,7 @@
 			buildConfigurationList = 70B3FDD833669C2E5B0225F7 /* Build configuration list for PBXNativeTarget "CyclingCompanion" */;
 			buildPhases = (
 				DEF22026C9BA8750F78CB3A8 /* Sources */,
+				CC81FC21AA29244B0D678AB3 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -154,6 +211,7 @@
 			);
 			name = CyclingCompanion;
 			packageProductDependencies = (
+				94A3A32850DA1873E7CC0DEA /* RoutePersistence */,
 			);
 			productName = CyclingCompanion;
 			productReference = 5293269AF912AAC92F4A41DD /* CyclingCompanion.app */;
@@ -164,6 +222,7 @@
 			buildConfigurationList = E4CA1C418570CE49401D306C /* Build configuration list for PBXNativeTarget "CyclingCompanionTests" */;
 			buildPhases = (
 				971928491D875B2E487CE3A8 /* Sources */,
+				277280C7377E67CD737D4EC6 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -172,6 +231,7 @@
 			);
 			name = CyclingCompanionTests;
 			packageProductDependencies = (
+				F639BC04097118BC52023627 /* RoutePersistence */,
 			);
 			productName = CyclingCompanionTests;
 			productReference = 175B70AD3495B7E73B97BEA0 /* CyclingCompanionTests.xctest */;
@@ -197,6 +257,9 @@
 			);
 			mainGroup = AE589183D431803E6D3E244D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B86BAD6D4E14E0929CBC1E48 /* XCLocalSwiftPackageReference "Packages/RoutePersistence" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 240351F64488CF5B9447461B /* Products */;
 			projectDirPath = "";
@@ -214,6 +277,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				6EB17A9C7585E7732F6AB26E /* AuthStubClientTests.swift in Sources */,
+				C177297C7CD5146401DCA046 /* CorridorMapViewTests.swift in Sources */,
+				3B0A521CC21DFD24C1EFF00F /* CorridorPollingServiceTests.swift in Sources */,
+				B9E2B48B85C5FBE9315C84AF /* RouteImporterTests.swift in Sources */,
 				A48F750D8C2A4B46BDA44A30 /* SmokeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -223,11 +289,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */,
+				86F3B6782F8723AA1239244F /* Clock.swift in Sources */,
 				6F9B86D03C119AC1C2DD2CA7 /* ContentView.swift in Sources */,
 				C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */,
+				B38F8E00991F747791A69D43 /* CorridorPollingService.swift in Sources */,
 				C57264055270FF68970C3A44 /* CyclingCompanionApp.swift in Sources */,
+				E4F54DCA1C6B255260B31EB9 /* GPXTrackPointParser.swift in Sources */,
+				CFB8A1C47D0B891DDDE24F5F /* GeoMath.swift in Sources */,
+				5807730CC1A27ACFA48A633C /* Resampler.swift in Sources */,
+				824B52903D649C5128FB0754 /* RouteAPIPayloads.swift in Sources */,
+				B893FBED4036ED77BD5B100C /* RouteHasher.swift in Sources */,
 				E57D4DEF68C2788B4A3868E9 /* RouteImporter.swift in Sources */,
-				9124478F8CAFD5729AD5A491 /* RouteStore.swift in Sources */,
+				3C67A9CCE7EA39EAB374C762 /* Simplifier.swift in Sources */,
+				84673DF6841135ADE676CEC9 /* TrackPoint.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,7 +367,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -311,7 +385,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = Sources/CyclingCompanion/App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -328,7 +402,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = Sources/CyclingCompanion/App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -384,7 +458,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -400,7 +474,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -418,7 +492,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -462,6 +536,24 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B86BAD6D4E14E0929CBC1E48 /* XCLocalSwiftPackageReference "Packages/RoutePersistence" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/RoutePersistence;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		94A3A32850DA1873E7CC0DEA /* RoutePersistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RoutePersistence;
+		};
+		F639BC04097118BC52023627 /* RoutePersistence */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RoutePersistence;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1168A5B03FD1907EC2D6A7D3 /* Project object */;
 }

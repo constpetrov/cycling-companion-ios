@@ -2,21 +2,27 @@ name: CyclingCompanion
 options:
   bundleIdPrefix: com.cyclingcompanion
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "17.0"
   createIntermediateGroups: true
 
 settings:
   base:
     SWIFT_VERSION: 6.0
-    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+
+packages:
+  RoutePersistence:
+    path: Packages/RoutePersistence
 
 targets:
   CyclingCompanion:
     type: application
     platform: iOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "17.0"
     sources:
       - path: Sources/CyclingCompanion
+    dependencies:
+      - package: RoutePersistence
     info:
       path: Sources/CyclingCompanion/App/Info.plist
       properties:
@@ -38,11 +44,12 @@ targets:
   CyclingCompanionTests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "17.0"
     sources:
       - path: Tests/CyclingCompanionTests
     dependencies:
       - target: CyclingCompanion
+      - package: RoutePersistence
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
