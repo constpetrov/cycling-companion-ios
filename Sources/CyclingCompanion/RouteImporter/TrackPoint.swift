@@ -26,4 +26,5 @@ struct ImportedRoute: Equatable {
 enum RouteImporterError: Error, Equatable {
     case malformedGPX
     case insufficientTrackPoints
+    case fileTooLarge
 }

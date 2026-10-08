@@ -1,12 +1,23 @@
 import Foundation
 
 /// Parses, simplifies, resamples, and hashes GPX routes (RULE-22/24 in spec/rules.md,
-/// AC-2/3/5/6/7/8/9/10 in spec/criteria.md). The 20 MB size-cap check (RULE-23) and the
-/// malformed/under-minimum rejection UX land in task-4.1; the underlying error cases are
-/// already raised here since the parser inherently needs to detect them.
+/// AC-2/3/5/6/7/8/9/10 in spec/criteria.md).
 enum RouteImporter {
     static let simplifyToleranceMeters = 5.0
     static let resampleStepMeters = 50.0
+    static let maxFileSizeBytes = 20 * 1024 * 1024
+
+    /// Entry point for a locally-picked file (AC-42/43/44, RULE-23): checks the file's size via
+    /// file-system metadata — not `Data.count` — before ever opening it with `XMLParser`, so an
+    /// oversized file is rejected without reading its contents into memory at all.
+    static func importGPX(fileURL: URL) throws -> ImportedRoute {
+        let resourceValues = try fileURL.resourceValues(forKeys: [.fileSizeKey])
+        guard let fileSizeBytes = resourceValues.fileSize, fileSizeBytes <= maxFileSizeBytes else {
+            throw RouteImporterError.fileTooLarge
+        }
+        let data = try Data(contentsOf: fileURL)
+        return try importGPX(data: data)
+    }
 
     static func importGPX(data: Data) throws -> ImportedRoute {
         let rawPoints = try GPXTrackPointParser().parse(data: data)

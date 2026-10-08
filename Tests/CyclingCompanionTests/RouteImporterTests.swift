@@ -133,12 +133,92 @@ final class RouteImporterTests: XCTestCase {
         XCTAssertEqual(route.hash, expectedHash)
     }
 
-    // MARK: - Boundary coverage used by later tasks (not yet asserted here; see task-4.1)
+    // MARK: - AC-4: malformed/under-minimum GPX rejected (task-4.1)
+    //
+    // "Nothing persisted" isn't separately asserted here: RouteImporter never persists
+    // anything itself (that's a separate call site entirely), so a thrown error with no
+    // returned ImportedRoute is already the whole story — there's no partial state to leave
+    // behind.
 
     func testFewerThanTwoTrackPointsThrows() {
         let data = gpx(trackPoints: [(lat: 52.0, lon: 13.0, ele: 100.0)])
         XCTAssertThrowsError(try RouteImporter.importGPX(data: data)) { error in
             XCTAssertEqual(error as? RouteImporterError, .insufficientTrackPoints)
+        }
+    }
+
+    func testZeroTrackPointsThrows() {
+        let data = gpx(trackPoints: [])
+        XCTAssertThrowsError(try RouteImporter.importGPX(data: data)) { error in
+            XCTAssertEqual(error as? RouteImporterError, .insufficientTrackPoints)
+        }
+    }
+
+    func testMalformedGPXThrows() {
+        let data = Data(#"<gpx><trk><trkseg><trkpt lat="52.0" lon="13.0""#.utf8) // unclosed tag
+        XCTAssertThrowsError(try RouteImporter.importGPX(data: data)) { error in
+            XCTAssertEqual(error as? RouteImporterError, .malformedGPX)
+        }
+    }
+
+    // MARK: - AC-42/43/44: 20 MB size cap via file-system metadata (task-4.1)
+
+    /// Writes a temp file of exactly `byteCount` bytes. When `validGPX` is true, it's a real
+    /// 2-point GPX document padded to size with many small self-closing elements — not one
+    /// giant text/comment node, which libxml2 rejects outright ("Comment too big found") well
+    /// under 20 MB — so a successful parse proves the size check let it through. When false,
+    /// it's padded with non-UTF8 bytes that would fail `XMLParser` outright — so an over-cap
+    /// test asserting `.fileTooLarge` (rather than `.malformedGPX`) proves the size check ran
+    /// *before* any attempt to parse.
+    private func writeTempGPXFile(byteCount: Int, validGPX: Bool) throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".gpx")
+        if validGPX {
+            let prefix = Data("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <gpx version="1.1"><trk><trkseg>
+                <trkpt lat="52.0" lon="13.0"></trkpt>
+                <trkpt lat="52.00009" lon="13.0"></trkpt>
+                """.utf8)
+            let suffix = Data("</trkseg></trk></gpx>".utf8)
+            let chunk = "<p/>"
+            let targetPaddingBytes = max(0, byteCount - prefix.count - suffix.count)
+            let repeatCount = targetPaddingBytes / chunk.utf8.count
+            let remainder = targetPaddingBytes % chunk.utf8.count
+            var content = prefix
+            content.append(Data(String(repeating: chunk, count: repeatCount).utf8))
+            content.append(Data(repeating: UInt8(ascii: "p"), count: remainder))
+            content.append(suffix)
+            try content.write(to: url)
+        } else {
+            try Data(repeating: 0xFF, count: byteCount).write(to: url)
+        }
+        return url
+    }
+
+    func testFileJustUnderSizeCapProceedsToParsing() throws {
+        let url = try writeTempGPXFile(byteCount: RouteImporter.maxFileSizeBytes - 1, validGPX: true)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let route = try RouteImporter.importGPX(fileURL: url)
+
+        XCTAssertEqual(route.points.count, 2)
+    }
+
+    func testFileExactlyAtSizeCapProceedsToParsing() throws {
+        let url = try writeTempGPXFile(byteCount: RouteImporter.maxFileSizeBytes, validGPX: true)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let route = try RouteImporter.importGPX(fileURL: url)
+
+        XCTAssertEqual(route.points.count, 2)
+    }
+
+    func testFileOverSizeCapIsRejectedBeforeParsing() throws {
+        let url = try writeTempGPXFile(byteCount: RouteImporter.maxFileSizeBytes + 1, validGPX: false)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        XCTAssertThrowsError(try RouteImporter.importGPX(fileURL: url)) { error in
+            XCTAssertEqual(error as? RouteImporterError, .fileTooLarge)
         }
     }
 }
