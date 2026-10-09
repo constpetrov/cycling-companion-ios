@@ -18,6 +18,16 @@ Going forward, this project targets iOS 17.0 as its minimum deployment target (a
 should run tests against an iOS 17–26 Simulator runtime, not iOS 27, until Apple ships a fixed point
 release). The investigation below is kept for reference in case iOS 27 needs revisiting later.
 
+**Follow-up (2026-10-09):** this crash reproduced again on GitHub Actions even after the above fix,
+because lowering `IPHONEOS_DEPLOYMENT_TARGET` only gates compile-time API availability — it does
+not control which Simulator *runtime* actually executes the tests. `.github/workflows/ci.yml`'s
+destination-selection step picked a device by name only (no `OS=` qualifier), so `xcodebuild` ran
+against whatever runtime that name happened to resolve to on the hosted runner, independent of the
+deployment target. Fixed by having that step explicitly enumerate available runtimes and select
+the oldest one `>= 17.0`, then pass both `name=` and `OS=` in the `-destination` string. Local/CI
+verification must pin the runtime explicitly, every time — the deployment target alone is not
+sufficient.
+
 ## Symptom
 
 Any `@Model` class with certain property shapes crashes on first real use (insert → save →
