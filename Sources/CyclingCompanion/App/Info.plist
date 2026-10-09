@@ -20,6 +20,14 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Cycling Companion uses your location in the background to keep tracking your ride while your phone is pocketed or mounted.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Cycling Companion uses your location to track your ride against the planned route.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

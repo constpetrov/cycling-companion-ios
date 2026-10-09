@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		082A2ACFD56B5B87614C9D2E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3E90750A92DFCB77548D0C /* AppDelegate.swift */; };
 		0B0D87938CEF695390FEE9E5 /* SensorSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */; };
 		102B80B39E3F7555FE206371 /* ReplayLocationSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3047D291390907DD68CA1CCC /* ReplayLocationSource.swift */; };
 		278B0FEA3046C6D8FC447F1B /* RideTrackerMovingTimeETATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D170D792A0495158BAB2240 /* RideTrackerMovingTimeETATests.swift */; };
@@ -44,9 +45,11 @@
 		C7305DBE2B08F782EABA364E /* RideTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A612A2D5C1A437EAE300EF /* RideTrackerTests.swift */; };
 		C7BE9CBD63D67C36CB087398 /* GeoMathClosestPointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4E726A8FE044B0EAC762D64 /* GeoMathClosestPointTests.swift */; };
 		C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 715933033BE0C1E6E0E0834A /* CorridorMapView.swift */; };
+		C8AB4483A46674691D3BF985 /* RideTrackerResumeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0AE4A397596CB6E859BD776 /* RideTrackerResumeTests.swift */; };
 		CFB8A1C47D0B891DDDE24F5F /* GeoMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB16B67589609C1C188DEDF /* GeoMath.swift */; };
 		D78CB7CF796D0D5BF7368F0C /* simple_ride.json in Resources */ = {isa = PBXBuildFile; fileRef = A5804762F03CB6D4F56B741B /* simple_ride.json */; };
 		DE71E9FA6E3D16502E7C3791 /* RoutePersistence in Frameworks */ = {isa = PBXBuildFile; productRef = 94A3A32850DA1873E7CC0DEA /* RoutePersistence */; };
+		E1D94F4FA4163133C09FC7AB /* CoreLocationSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7887F7A499503C316827CCB /* CoreLocationSource.swift */; };
 		E4F54DCA1C6B255260B31EB9 /* GPXTrackPointParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11B335029C629B4DE464E8F1 /* GPXTrackPointParser.swift */; };
 		E57D4DEF68C2788B4A3868E9 /* RouteImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C067FB0E523B79B8F25DD9 /* RouteImporter.swift */; };
 		F6173D50EFA2AB6A5B8E77E0 /* LocationSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5409D239CA1A15FD28611FCF /* LocationSourceTests.swift */; };
@@ -100,11 +103,14 @@
 		99F4F32ACAB6777564621067 /* CorridorPollingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorPollingService.swift; sourceTree = "<group>"; };
 		A1502BA8AA6B5C75A534CFDC /* CorridorPollingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorPollingServiceTests.swift; sourceTree = "<group>"; };
 		A5804762F03CB6D4F56B741B /* simple_ride.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = simple_ride.json; sourceTree = "<group>"; };
+		AA3E90750A92DFCB77548D0C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorSource.swift; sourceTree = "<group>"; };
 		B81D7F9F4933773427941D7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C01994D8F0BD971103A34719 /* ReplaySensorSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaySensorSource.swift; sourceTree = "<group>"; };
+		C0AE4A397596CB6E859BD776 /* RideTrackerResumeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerResumeTests.swift; sourceTree = "<group>"; };
 		C74D40AFE0CA1114C8710C2A /* RideFixtureEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFixtureEntry.swift; sourceTree = "<group>"; };
 		D27561EE28639C382F2E248A /* RideFixtureReplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFixtureReplayTests.swift; sourceTree = "<group>"; };
+		D7887F7A499503C316827CCB /* CoreLocationSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreLocationSource.swift; sourceTree = "<group>"; };
 		E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubClientTests.swift; sourceTree = "<group>"; };
 		E4E726A8FE044B0EAC762D64 /* GeoMathClosestPointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoMathClosestPointTests.swift; sourceTree = "<group>"; };
 		ECABEE239029D96B2B8C36BE /* LocationSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSource.swift; sourceTree = "<group>"; };
@@ -135,6 +141,7 @@
 		0CEFA649E9401D93D5B34DC1 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				AA3E90750A92DFCB77548D0C /* AppDelegate.swift */,
 				70987000F6057937B7350102 /* ContentView.swift */,
 				16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */,
 				B81D7F9F4933773427941D7C /* Info.plist */,
@@ -206,6 +213,7 @@
 				354DF3EC3FF6B3D1939FE197 /* RideTrackerCheckpointingTests.swift */,
 				25C02EB1257804AFA498C979 /* RideTrackerMapMatchingTests.swift */,
 				5D170D792A0495158BAB2240 /* RideTrackerMovingTimeETATests.swift */,
+				C0AE4A397596CB6E859BD776 /* RideTrackerResumeTests.swift */,
 				32A612A2D5C1A437EAE300EF /* RideTrackerTests.swift */,
 				3724F00CDC6BCD4101B6847A /* RouteImporterTests.swift */,
 				8923868F2DD35090602E316A /* SensorSourceTests.swift */,
@@ -229,6 +237,7 @@
 		B88487FDF5EF5ECC7B24AEB3 /* RideTracking */ = {
 			isa = PBXGroup;
 			children = (
+				D7887F7A499503C316827CCB /* CoreLocationSource.swift */,
 				ECABEE239029D96B2B8C36BE /* LocationSource.swift */,
 				370F4B9D9BE47A8DF5BBED3D /* RideProgressView.swift */,
 				462524783D5BDC642FD8D88B /* RideRecorder.swift */,
@@ -398,6 +407,7 @@
 				F7728854BDE6EABF8A6D3F9A /* RideTrackerCheckpointingTests.swift in Sources */,
 				49D6E66C4E2369C97029B3B4 /* RideTrackerMapMatchingTests.swift in Sources */,
 				278B0FEA3046C6D8FC447F1B /* RideTrackerMovingTimeETATests.swift in Sources */,
+				C8AB4483A46674691D3BF985 /* RideTrackerResumeTests.swift in Sources */,
 				C7305DBE2B08F782EABA364E /* RideTrackerTests.swift in Sources */,
 				B9E2B48B85C5FBE9315C84AF /* RouteImporterTests.swift in Sources */,
 				868A6148AAA092FA3CC275DF /* ScaledRealClock.swift in Sources */,
@@ -410,9 +420,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				082A2ACFD56B5B87614C9D2E /* AppDelegate.swift in Sources */,
 				9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */,
 				86F3B6782F8723AA1239244F /* Clock.swift in Sources */,
 				6F9B86D03C119AC1C2DD2CA7 /* ContentView.swift in Sources */,
+				E1D94F4FA4163133C09FC7AB /* CoreLocationSource.swift in Sources */,
 				C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */,
 				B38F8E00991F747791A69D43 /* CorridorPollingService.swift in Sources */,
 				C57264055270FF68970C3A44 /* CyclingCompanionApp.swift in Sources */,

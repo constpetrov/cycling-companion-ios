@@ -69,6 +69,23 @@ final class RideTracker {
         self.rideStore = rideStore
     }
 
+    /// AC-20, RULE-13: looks up `store`'s single unfinished checkpoint — a `PersistedRide`
+    /// with no `endTime` — and re-hydrates `distanceAlongRouteMeters`/`movingTimeSeconds`/
+    /// `track` from it; a no-op if none is found. There's no UI to start a second ride while
+    /// one is already active, so at most one unfinished checkpoint can ever exist and no
+    /// selection logic is needed. Deliberately leaves `previousFixTimestamp` as `nil`: treating
+    /// the first post-resume fix as if it had no predecessor avoids inventing a bogus moving-
+    /// time interval spanning however long the app was actually terminated for.
+    func resumeIfNeeded(from store: RideStore) async throws {
+        guard let checkpoint = try await store.fetchAll().first(where: { $0.endTime == nil }) else {
+            return
+        }
+        distanceAlongRouteMeters = checkpoint.totalDistanceMeters
+        movingTimeSeconds = checkpoint.totalMovingTimeSeconds
+        track = checkpoint.track
+        etaSeconds = computeETA()
+    }
+
     /// AC-1: begins consuming position updates; also consumes sensor updates, publishing each
     /// source's latest reading as it arrives. Awaits full consumption of both streams — for
     /// the fakes used in tests, that means until the scripted sequence is exhausted; the

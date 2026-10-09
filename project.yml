@@ -32,6 +32,10 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        NSLocationWhenInUseUsageDescription: "Cycling Companion uses your location to track your ride against the planned route."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Cycling Companion uses your location in the background to keep tracking your ride while your phone is pocketed or mounted."
+        UIBackgroundModes:
+          - location
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cyclingcompanion.app
