@@ -27,4 +27,58 @@ enum GeoMath {
         let h = sinDLat * sinDLat + cos(lat1) * cos(lat2) * sinDLon * sinDLon
         return 2 * earthRadiusMeters * asin(min(1, sqrt(h)))
     }
+
+    /// Result of projecting a point onto the nearest spot on a route's polyline.
+    struct ClosestPointResult {
+        let distanceAlongRouteMeters: Double
+        let offRouteMeters: Double
+    }
+
+    /// Finds the closest point on the route polyline to (latitude, longitude), returning that
+    /// point's cumulative distance along the route and the straight-line distance from the
+    /// query point to it (RULE-9 in spec/rules.md) — ported from the backend's
+    /// `GeoMath.closestPointOnRoute` (Java), same equirectangular-projection approach.
+    static func closestPointOnRoute(
+        latitude: Double, longitude: Double, route: [ResampledPoint]
+    ) -> ClosestPointResult {
+        let queryPoint = TrackPoint(latitude: latitude, longitude: longitude, elevationMeters: nil)
+
+        if route.count <= 1 {
+            guard let only = route.first else {
+                return ClosestPointResult(distanceAlongRouteMeters: 0, offRouteMeters: 0)
+            }
+            let onlyPoint = TrackPoint(latitude: only.latitude, longitude: only.longitude, elevationMeters: nil)
+            return ClosestPointResult(
+                distanceAlongRouteMeters: only.cumulativeDistanceMeters,
+                offRouteMeters: haversineDistanceMeters(queryPoint, onlyPoint))
+        }
+
+        var bestOffRoute = Double.greatestFiniteMagnitude
+        var bestDistanceAlongRoute = 0.0
+
+        for i in 0..<(route.count - 1) {
+            let a = route[i]
+            let b = route[i + 1]
+            let aPoint = TrackPoint(latitude: a.latitude, longitude: a.longitude, elevationMeters: nil)
+            let bPoint = TrackPoint(latitude: b.latitude, longitude: b.longitude, elevationMeters: nil)
+
+            let (bx, by) = flatMeters(bPoint, relativeTo: aPoint)
+            let (px, py) = flatMeters(queryPoint, relativeTo: aPoint)
+
+            let lengthSquared = bx * bx + by * by
+            let t = lengthSquared > 0 ? (px * bx + py * by) / lengthSquared : 0
+            let clampedT = max(0, min(1, t))
+
+            let offRoute = hypot(px - clampedT * bx, py - clampedT * by)
+            let segmentLength = b.cumulativeDistanceMeters - a.cumulativeDistanceMeters
+            let distanceAlongRoute = a.cumulativeDistanceMeters + clampedT * segmentLength
+
+            if offRoute < bestOffRoute {
+                bestOffRoute = offRoute
+                bestDistanceAlongRoute = distanceAlongRoute
+            }
+        }
+
+        return ClosestPointResult(distanceAlongRouteMeters: bestDistanceAlongRoute, offRouteMeters: bestOffRoute)
+    }
 }
