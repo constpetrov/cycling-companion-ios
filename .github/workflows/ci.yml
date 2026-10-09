@@ -22,13 +22,45 @@ jobs:
       - name: Select simulator destination
         id: destination
         run: |
-          DEVICE=$(xcrun simctl list devices available | grep -m1 'iPhone' | sed -E 's/^[[:space:]]*([^(]+) \(.*/\1/' | sed -E 's/[[:space:]]+$//')
-          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
+          python3 - <<'PYEOF' >> "$GITHUB_OUTPUT"
+          import json, re, subprocess
+
+          # Picks the OLDEST available iOS >=17.0 runtime (our deployment target), not just
+          # "any iPhone" — a bare device *name* is ambiguous across runtimes and ignores our
+          # deployment target entirely, so xcodebuild can silently run tests against whatever
+          # simulator the runner happens to default to. That previously reproduced a SwiftData
+          # crash ("Could not cast value of type '__NSCFNumber' to 'NSString'") specific to a
+          # very new iOS SDK (confirmed iOS 17.0 doesn't have it) even though this project's
+          # deployment target was already 17.0 — the deployment target only gates compile-time
+          # API availability, not which runtime actually executes the tests.
+          runtimes = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "runtimes", "--json"]))["runtimes"]
+          candidates = []
+          for r in runtimes:
+              if not r.get("isAvailable", True):
+                  continue
+              m = re.match(r"iOS (\d+)\.(\d+)", r.get("name", ""))
+              if m and (int(m.group(1)), int(m.group(2))) >= (17, 0):
+                  candidates.append(((int(m.group(1)), int(m.group(2))), r["identifier"]))
+          if not candidates:
+              raise SystemExit("No iOS >=17.0 simulator runtime available on this runner")
+          candidates.sort()
+          version, runtime_id = candidates[0]
+
+          devices = json.loads(subprocess.check_output(
+              ["xcrun", "simctl", "list", "devices", "available", "--json"]))["devices"]
+          device_name = next((d["name"] for d in devices.get(runtime_id, []) if "iPhone" in d["name"]), None)
+          if device_name is None:
+              raise SystemExit(f"No iPhone device found for runtime {runtime_id}")
+
+          print(f"device={device_name}")
+          print(f"os_version={version[0]}.{version[1]}")
+          PYEOF
 
       - name: Build and test
         run: |
           xcodebuild \
             -project CyclingCompanion.xcodeproj \
             -scheme CyclingCompanion \
-            -destination "platform=iOS Simulator,name=${{ steps.destination.outputs.device }}" \
+            -destination "platform=iOS Simulator,name=${{ steps.destination.outputs.device }},OS=${{ steps.destination.outputs.os_version }}" \
             test
