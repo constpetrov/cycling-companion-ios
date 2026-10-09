@@ -39,6 +39,12 @@ final class RideTracker {
     private(set) var etaSeconds: Double?
     private(set) var track: [PersistedRideSample] = []
 
+    /// AC-14: the progress screen's "distance remaining" needs the route's total; exposed here
+    /// rather than making the view read `route` directly, since `route` stays private.
+    var totalRouteDistanceMeters: Double {
+        route.last?.cumulativeDistanceMeters ?? 0
+    }
+
     private let rideId: String
     private let routeId: String
     private let startTime: Date
@@ -128,7 +134,6 @@ final class RideTracker {
         guard movingTimeSeconds >= Self.minimumMovingTimeSecondsForETA, distanceAlongRouteMeters > 0 else {
             return nil
         }
-        let totalRouteDistanceMeters = route.last?.cumulativeDistanceMeters ?? 0
         let remainingMeters = max(totalRouteDistanceMeters - distanceAlongRouteMeters, 0)
         let secondsPerMeter = movingTimeSeconds / distanceAlongRouteMeters
         return remainingMeters * secondsPerMeter
