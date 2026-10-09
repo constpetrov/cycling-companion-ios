@@ -6,9 +6,7 @@ import XCTest
 /// AC-30, AC-31 in spec/criteria.md.
 ///
 /// Tests only the `points:`/`pois:` initializer, which maps plain `Codable` structs to map
-/// coordinates/pins with no `ModelContext` involved. This deliberately avoids exercising the
-/// SwiftData insert->save->fetch cycle, which is the part of the stack blocked by the known
-/// issue in docs/known-issues/swiftdata-xcode27-model-crash.md (task-2.6).
+/// coordinates/pins.
 final class CorridorMapViewTests: XCTestCase {
 
     func testMapsRoutePointsToPolylineCoordinates() {

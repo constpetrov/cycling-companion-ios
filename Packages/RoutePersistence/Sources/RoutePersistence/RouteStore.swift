@@ -1,38 +1,35 @@
 import Foundation
-import SwiftData
 
-/// SwiftData persistence for Route and CorridorPOI records (AC-29 in spec/criteria.md).
+/// File-backed JSON persistence for Route and CorridorPOI records (AC-29 in spec/criteria.md).
 ///
-/// Lives in its own local Swift Package, not the main app module (see the earlier cross-module
-/// investigation in spec/status.md, task-2.6 notes). Points and POIs are stored as JSON-encoded
-/// `Data` on a single flat `RouteModel` rather than as separate `@Model` classes linked via
-/// `@Relationship`: on this Xcode 27/iOS 27 SDK, populating a `@Relationship` array with real
-/// child objects and then reading it back after a fetch reproducibly crashes
-/// ("Could not cast value of type '__NSCFNumber' to 'NSString'"), independent of the
-/// plain-string-count issue also present on this SDK (worked around separately by keeping
-/// `RouteModel`'s own stored properties to 2 plain strings). A flat model with no relationships
-/// avoids the relationship-fault-resolution code path entirely. Revisit if a future SDK fixes
-/// this; a normalized schema is the more natural long-term shape once querying individual
-/// points/POIs independently is ever needed.
-public enum CorridorStatusRaw: Int, Sendable {
-    case building = 0
-    case ready = 1
-    case failed = 2
+/// Was SwiftData-backed; replaced after a SwiftData crash
+/// ("Could not cast value of type '__NSCFNumber' to 'NSString'") reproduced on multiple recent
+/// iOS SDKs (27.0 locally, then 26.2 on GitHub's hosted CI runner — see
+/// docs/known-issues/swiftdata-xcode27-model-crash.md) with no code-level workaround found
+/// after extensive investigation, and GitHub-hosted runners don't offer a pinned-old-enough
+/// simulator runtime to dodge it going forward. This is just a flat local cache of a handful of
+/// routes and their POIs, with no relational querying need, so a single JSON file is a better
+/// fit than fighting a persistence framework's own bugs.
+public struct PersistedRoute: Codable, Sendable {
+    public let id: String
+    public let hash: String
+    public let totalDistanceMeters: Double
+    public let totalClimbingMeters: Double?
+    public let status: String
+    public let points: [PersistedPointInput]
+    public let pois: [PersistedPoiInput]
 
-    public init(_ value: String) {
-        switch value {
-        case "ready": self = .ready
-        case "failed": self = .failed
-        default: self = .building
-        }
-    }
-
-    public var stringValue: String {
-        switch self {
-        case .building: "building"
-        case .ready: "ready"
-        case .failed: "failed"
-        }
+    public init(
+        id: String, hash: String, totalDistanceMeters: Double, totalClimbingMeters: Double?, status: String,
+        points: [PersistedPointInput], pois: [PersistedPoiInput]
+    ) {
+        self.id = id
+        self.hash = hash
+        self.totalDistanceMeters = totalDistanceMeters
+        self.totalClimbingMeters = totalClimbingMeters
+        self.status = status
+        self.points = points
+        self.pois = pois
     }
 }
 
@@ -75,52 +72,47 @@ public struct PersistedPoiInput: Codable, Sendable {
     }
 }
 
-@Model
-public final class RouteModel {
-    @Attribute(.unique) public var id: String
-    public var hash: String
-    public var totalDistanceMeters: Double
-    public var totalClimbingMeters: Double?
-    public var statusRaw: Int
-    public var pointsData: Data
-    public var poisData: Data
+/// Serializes access to its backing JSON file (an actor, not a static utility) so concurrent
+/// persist/fetch calls can't interleave reads and writes of the same file.
+public actor RouteStore {
+    private let fileURL: URL
 
-    public var status: String {
-        (CorridorStatusRaw(rawValue: statusRaw) ?? .building).stringValue
+    public init(fileURL: URL) {
+        self.fileURL = fileURL
     }
 
-    public var points: [PersistedPointInput] {
-        (try? JSONDecoder().decode([PersistedPointInput].self, from: pointsData)) ?? []
+    /// The real app's default store location, under Application Support.
+    public static func defaultFileURL() throws -> URL {
+        let directory = try FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        return directory.appendingPathComponent("routes.json")
     }
 
-    public var pois: [PersistedPoiInput] {
-        (try? JSONDecoder().decode([PersistedPoiInput].self, from: poisData)) ?? []
-    }
-
-    public init(
-        id: String, hash: String, totalDistanceMeters: Double, totalClimbingMeters: Double?, status: String,
-        points: [PersistedPointInput], pois: [PersistedPoiInput]
-    ) {
-        self.id = id
-        self.hash = hash
-        self.totalDistanceMeters = totalDistanceMeters
-        self.totalClimbingMeters = totalClimbingMeters
-        self.statusRaw = CorridorStatusRaw(status).rawValue
-        self.pointsData = (try? JSONEncoder().encode(points)) ?? Data()
-        self.poisData = (try? JSONEncoder().encode(pois)) ?? Data()
-    }
-}
-
-@MainActor
-public enum RouteStore {
-    public static func persist(
+    public func persist(
         routeId: String, hash: String, totalDistanceMeters: Double, totalClimbingMeters: Double?,
-        points: [PersistedPointInput], pois: [PersistedPoiInput], status: String, context: ModelContext
+        points: [PersistedPointInput], pois: [PersistedPoiInput], status: String
     ) throws {
-        let route = RouteModel(
+        var routesById = try loadAll()
+        routesById[routeId] = PersistedRoute(
             id: routeId, hash: hash, totalDistanceMeters: totalDistanceMeters,
             totalClimbingMeters: totalClimbingMeters, status: status, points: points, pois: pois)
-        context.insert(route)
-        try context.save()
+        let data = try JSONEncoder().encode(routesById)
+        try data.write(to: fileURL, options: .atomic)
+    }
+
+    public func fetch(routeId: String) throws -> PersistedRoute? {
+        try loadAll()[routeId]
+    }
+
+    public func fetchAll() throws -> [PersistedRoute] {
+        Array(try loadAll().values)
+    }
+
+    private func loadAll() throws -> [String: PersistedRoute] {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return [:]
+        }
+        let data = try Data(contentsOf: fileURL)
+        return try JSONDecoder().decode([String: PersistedRoute].self, from: data)
     }
 }

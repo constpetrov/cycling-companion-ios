@@ -11,9 +11,8 @@ struct CorridorMapPin: Identifiable {
 }
 
 /// Renders the imported route's polyline and all of its corridor POI pins (AC-30/AC-31 in
-/// spec/criteria.md). Takes plain data rather than a `ModelContext` directly, so it can be
-/// rendered/tested independently of however the caller sourced the data (SwiftData's Route
-/// Store, in the normal app flow).
+/// spec/criteria.md). Takes plain data rather than reading the Route Store directly, so it can
+/// be rendered/tested independently of however the caller sourced it.
 struct CorridorMapView: View {
     let routeCoordinates: [CLLocationCoordinate2D]
     let pins: [CorridorMapPin]
@@ -29,7 +28,7 @@ struct CorridorMapView: View {
         }
     }
 
-    init(route: RouteModel) {
+    init(route: PersistedRoute) {
         self.init(points: route.points, pois: route.pois)
     }
 

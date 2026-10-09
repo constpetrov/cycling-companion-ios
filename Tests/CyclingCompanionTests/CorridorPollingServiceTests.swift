@@ -1,5 +1,4 @@
 import RoutePersistence
-import SwiftData
 import XCTest
 
 @testable import CyclingCompanion
@@ -116,11 +115,10 @@ final class CorridorPollingServiceTests: XCTestCase {
         let calls = await transport.numberOfCalls
         XCTAssertEqual(calls, 2)
 
-        // AC-29: persist Route + CorridorPOI into SwiftData once ready.
-        let schema = Schema([RouteModel.self])
-        let container = try ModelContainer(
-            for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
-        let context = ModelContext(container)
+        // AC-29: persist Route + CorridorPOI once ready.
+        let storeFileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: storeFileURL) }
+        let store = RouteStore(fileURL: storeFileURL)
 
         let points = [
             PersistedPointInput(latitude: 52.0, longitude: 13.0, elevationMeters: 100.0, cumulativeDistanceMeters: 0)
@@ -130,11 +128,11 @@ final class CorridorPollingServiceTests: XCTestCase {
                 osmId: $0.osmId, type: $0.type, name: $0.name, latitude: $0.latitude, longitude: $0.longitude,
                 kmMarkMeters: $0.kmMarkMeters, detourMeters: $0.detourMeters, openingHours: $0.openingHours)
         }
-        try RouteStore.persist(
+        try await store.persist(
             routeId: "route-123", hash: "hash-abc", totalDistanceMeters: 111.2, totalClimbingMeters: 10.0,
-            points: points, pois: pois, status: finalStatus.status, context: context)
+            points: points, pois: pois, status: finalStatus.status)
 
-        let fetched = try context.fetch(FetchDescriptor<RouteModel>())
+        let fetched = try await store.fetchAll()
         XCTAssertEqual(fetched.count, 1)
         XCTAssertEqual(fetched.first?.pois.count, 1)
         XCTAssertEqual(fetched.first?.pois.first?.osmId, 42)

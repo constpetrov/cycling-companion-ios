@@ -1,6 +1,8 @@
-# Known Issue: SwiftData crash on Xcode 27 / iOS 27
+# Known Issue: SwiftData crash on Xcode 27 / iOS 27 (and 26.2)
 
-**Status:** RESOLVED (confirmed 2026-10-08). Was blocking the persistence half of task-2.6 (AC-29).
+**Status:** ABANDONED SwiftData for this persistence need (2026-10-09). Was blocking the
+persistence half of task-2.6 (AC-29); `RouteStore` is now a plain JSON-file-backed store (see
+`RouteStore.swift`), not SwiftData, so this bug class no longer applies to this project at all.
 **Environment (crashing):** Xcode 27.0 (27A266a), iOS 27.0 SDK/Simulator runtime, Swift 6.4, macOS (Darwin 27.0.0).
 **Environment (fixed):** Same Xcode/toolchain, app + test deployment target lowered to iOS 17.0, run against the iOS 17.0 Simulator runtime.
 
@@ -18,15 +20,23 @@ Going forward, this project targets iOS 17.0 as its minimum deployment target (a
 should run tests against an iOS 17–26 Simulator runtime, not iOS 27, until Apple ships a fixed point
 release). The investigation below is kept for reference in case iOS 27 needs revisiting later.
 
-**Follow-up (2026-10-09):** this crash reproduced again on GitHub Actions even after the above fix,
-because lowering `IPHONEOS_DEPLOYMENT_TARGET` only gates compile-time API availability — it does
-not control which Simulator *runtime* actually executes the tests. `.github/workflows/ci.yml`'s
-destination-selection step picked a device by name only (no `OS=` qualifier), so `xcodebuild` ran
-against whatever runtime that name happened to resolve to on the hosted runner, independent of the
-deployment target. Fixed by having that step explicitly enumerate available runtimes and select
-the oldest one `>= 17.0`, then pass both `name=` and `OS=` in the `-destination` string. Local/CI
-verification must pin the runtime explicitly, every time — the deployment target alone is not
-sufficient.
+**Follow-up (2026-10-09, attempt 1 — superseded):** this crash reproduced again on GitHub Actions
+even after the deployment-target fix, because lowering `IPHONEOS_DEPLOYMENT_TARGET` only gates
+compile-time API availability — it does not control which Simulator *runtime* actually executes
+the tests. Pinned `.github/workflows/ci.yml`'s destination selection to the oldest available iOS
+runtime `>= 17.0` instead of picking a device by name alone.
+
+**Follow-up (2026-10-09, attempt 2 — the actual fix):** that CI pin immediately exposed a bigger
+problem: GitHub's hosted runner only had iOS 26.2 available at all (no 17.x), and the identical
+crash reproduced there too — so this was never an iOS-27-only regression; it spans at least
+26.x–27.x, and that range will only grow as Apple ships more versions while GitHub ages out old
+runtimes. Chasing "find a runtime old enough" was a losing strategy. Since `RouteStore` is just a
+flat local cache of a handful of routes and their POIs with no relational querying need,
+**replaced SwiftData entirely** with a plain `Codable` struct (`PersistedRoute`) written as JSON
+to a single file via `FileManager`, wrapped in an actor for serialized access. This sidesteps the
+bug class entirely rather than continuing to track which SDK versions happen to be safe. The
+investigation below is kept for historical reference only — SwiftData is no longer part of this
+project's persistence stack, so none of it is actionable anymore.
 
 ## Symptom
 
