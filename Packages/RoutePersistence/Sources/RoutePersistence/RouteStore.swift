@@ -47,6 +47,33 @@ public struct PersistedPointInput: Codable, Sendable {
     }
 }
 
+/// One concrete weekly open window (RULE-32 in spec/rules.md), mirroring the backend's
+/// `WeeklyOpenInterval` record field-for-field. `dayOfWeek` is ISO-8601 (1 = Monday..7 = Sunday).
+public struct PersistedWeeklyOpenInterval: Codable, Sendable {
+    public let dayOfWeek: Int
+    public let startMinuteOfDay: Int
+    public let endMinuteOfDay: Int
+
+    public init(dayOfWeek: Int, startMinuteOfDay: Int, endMinuteOfDay: Int) {
+        self.dayOfWeek = dayOfWeek
+        self.startMinuteOfDay = startMinuteOfDay
+        self.endMinuteOfDay = endMinuteOfDay
+    }
+}
+
+/// Mirrors the backend's `NormalizedOpeningHours` record field-for-field (RULE-32).
+public struct PersistedNormalizedOpeningHours: Codable, Sendable {
+    public let alwaysOpen: Bool
+    public let unknown: Bool
+    public let intervals: [PersistedWeeklyOpenInterval]
+
+    public init(alwaysOpen: Bool, unknown: Bool, intervals: [PersistedWeeklyOpenInterval]) {
+        self.alwaysOpen = alwaysOpen
+        self.unknown = unknown
+        self.intervals = intervals
+    }
+}
+
 public struct PersistedPoiInput: Codable, Sendable {
     public let osmId: Int64
     public let type: String
@@ -56,10 +83,16 @@ public struct PersistedPoiInput: Codable, Sendable {
     public let kmMarkMeters: Double
     public let detourMeters: Double
     public let openingHours: String?
+    /// Optional, unlike the wire DTO it's sourced from: `RouteStore.fetchAll()` decodes
+    /// whatever is already on disk, and a route cached before this field existed has no such
+    /// key. `nil` is treated as "unknown" by POI Lookahead's lookup (RULE-17), consistent with
+    /// the fail-open default for anything unparseable.
+    public let normalizedOpeningHours: PersistedNormalizedOpeningHours?
 
     public init(
         osmId: Int64, type: String, name: String?, latitude: Double, longitude: Double,
-        kmMarkMeters: Double, detourMeters: Double, openingHours: String?
+        kmMarkMeters: Double, detourMeters: Double, openingHours: String?,
+        normalizedOpeningHours: PersistedNormalizedOpeningHours? = nil
     ) {
         self.osmId = osmId
         self.type = type
@@ -69,6 +102,7 @@ public struct PersistedPoiInput: Codable, Sendable {
         self.kmMarkMeters = kmMarkMeters
         self.detourMeters = detourMeters
         self.openingHours = openingHours
+        self.normalizedOpeningHours = normalizedOpeningHours
     }
 }
 

@@ -93,7 +93,7 @@ final class CorridorPollingServiceTests: XCTestCase {
 
         let buildingBody = #"{"status":"building","pois":null}"#.data(using: .utf8)!
         let readyBody = """
-            {"status":"ready","pois":[{"osmId":42,"type":"WATER","name":null,"latitude":52.0005,"longitude":13.0,"kmMarkMeters":55.6,"detourMeters":12.0,"openingHours":"unknown"}]}
+            {"status":"ready","pois":[{"osmId":42,"type":"WATER","name":null,"latitude":52.0005,"longitude":13.0,"kmMarkMeters":55.6,"detourMeters":12.0,"openingHours":"unknown","normalizedOpeningHours":{"alwaysOpen":false,"unknown":true,"intervals":[]}}]}
             """.data(using: .utf8)!
 
         let transport = SequencedStubTransport(responses: [
@@ -126,7 +126,14 @@ final class CorridorPollingServiceTests: XCTestCase {
         let pois = (finalStatus.pois ?? []).map {
             PersistedPoiInput(
                 osmId: $0.osmId, type: $0.type, name: $0.name, latitude: $0.latitude, longitude: $0.longitude,
-                kmMarkMeters: $0.kmMarkMeters, detourMeters: $0.detourMeters, openingHours: $0.openingHours)
+                kmMarkMeters: $0.kmMarkMeters, detourMeters: $0.detourMeters, openingHours: $0.openingHours,
+                normalizedOpeningHours: PersistedNormalizedOpeningHours(
+                    alwaysOpen: $0.normalizedOpeningHours.alwaysOpen, unknown: $0.normalizedOpeningHours.unknown,
+                    intervals: $0.normalizedOpeningHours.intervals.map {
+                        PersistedWeeklyOpenInterval(
+                            dayOfWeek: $0.dayOfWeek, startMinuteOfDay: $0.startMinuteOfDay,
+                            endMinuteOfDay: $0.endMinuteOfDay)
+                    }))
         }
         try await store.persist(
             routeId: "route-123", hash: "hash-abc", totalDistanceMeters: 111.2, totalClimbingMeters: 10.0,
@@ -136,6 +143,7 @@ final class CorridorPollingServiceTests: XCTestCase {
         XCTAssertEqual(fetched.count, 1)
         XCTAssertEqual(fetched.first?.pois.count, 1)
         XCTAssertEqual(fetched.first?.pois.first?.osmId, 42)
+        XCTAssertEqual(fetched.first?.pois.first?.normalizedOpeningHours?.unknown, true)
     }
 
     /// AC-38/AC-39/AC-40 in spec/criteria.md: the full stuck-build flow through one service
