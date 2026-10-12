@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="cycling-companion debug harness" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Debug Route (matches ContentView's hardcoded lat 52.0, lon 13.0-13.1 line)</name>
+    <trkseg>
+      <trkpt lat="52.0" lon="13.00000"><time>2024-01-01T00:00:00Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.00833"><time>2024-01-01T00:00:10Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.01667"><time>2024-01-01T00:00:20Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.02500"><time>2024-01-01T00:00:30Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.03333"><time>2024-01-01T00:00:40Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.04167"><time>2024-01-01T00:00:50Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.05000"><time>2024-01-01T00:01:00Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.05833"><time>2024-01-01T00:01:10Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.06667"><time>2024-01-01T00:01:20Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.07500"><time>2024-01-01T00:01:30Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.08333"><time>2024-01-01T00:01:40Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.09167"><time>2024-01-01T00:01:50Z</time></trkpt>
+      <trkpt lat="52.0" lon="13.10000"><time>2024-01-01T00:02:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

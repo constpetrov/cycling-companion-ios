@@ -4,6 +4,13 @@
 /// configured for the `.fitness` activity type — not `.automotiveNavigation`,
 /// `.otherNavigation`, or continuous best-accuracy — and requesting "Always" authorization,
 /// since reliable background recording while the phone is pocketed mid-ride needs it (AC-20).
+/// `allowsBackgroundLocationUpdates` is a separate requirement from "Always" authorization and
+/// the `UIBackgroundModes: [location]` Info.plist key (both already in place) — without it,
+/// iOS silently pauses delivery the moment the app leaves the foreground, confirmed by manual
+/// testing (docs/manual-testing/milestone-2-location-and-resume.md): checkpointing stopped
+/// dead the instant the debug harness was backgrounded, with no error, until this was set.
+/// `pausesLocationUpdatesAutomatically = false` for the same reason: a ride-tracking app can't
+/// let iOS decide the rider "stopped" and pause on its own.
 /// `@unchecked Sendable`: `CLLocationManagerDelegate` is an Objective-C delegate protocol
 /// bridging an inherently non-Sendable framework boundary; delivery happens on the run loop
 /// `startUpdatingLocation()` was called from, same as every other `CLLocationManagerDelegate`
@@ -17,6 +24,8 @@ final class CoreLocationSource: NSObject, LocationSource, CLLocationManagerDeleg
         super.init()
         manager.delegate = self
         manager.activityType = .fitness
+        manager.allowsBackgroundLocationUpdates = true
+        manager.pausesLocationUpdatesAutomatically = false
         manager.requestAlwaysAuthorization()
     }
 
