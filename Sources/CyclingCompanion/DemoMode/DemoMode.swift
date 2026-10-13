@@ -1,5 +1,22 @@
 import Foundation
 
+/// `RideSession`'s cadence-gating predicate (RULE-3 in spec/rules.md, AC-12/AC-24): proceed if
+/// forced OR the cadence has elapsed, the same bypass idiom `LocalTrigger.shouldProceed`'s
+/// fallback-interval check already uses for "don't wait out the cadence." Needed in every
+/// build — a live ride's cadence check calls it too, always with `forceRequested: false`, since
+/// there's no way to request a force check outside Debug. Originally lived inside Demo Mode's
+/// own `#if DEBUG` block (Milestone 3); relocated here (Milestone 4) once a live-driving loop
+/// existed to actually call it for every ride, not just a demo one — same logic, same existing
+/// test assertions, only where it's compiled changed.
+enum AdvisorCheckCadence {
+    /// AC-52: a forced check always proceeds immediately.
+    static func shouldCheckNow(forceRequested: Bool, secondsSinceLastCheck: TimeInterval, cadenceSeconds: TimeInterval)
+        -> Bool
+    {
+        forceRequested || secondsSinceLastCheck >= cadenceSeconds
+    }
+}
+
 /// Internal demo/showcase harness (B-18/B-19/B-20 in spec/spec.md; RULE-27/RULE-28 in
 /// spec/rules.md): replays a recorded ride fixture at an adjustable speed and can force the
 /// next advisor check immediately. Compiled out of Release builds entirely via `#if DEBUG`
@@ -11,15 +28,6 @@ enum DemoMode {
     /// AC-47 through AC-51: clamps a requested replay speed into `speedRange`.
     static func clampSpeed(_ requested: Double) -> Double {
         min(max(requested, speedRange.lowerBound), speedRange.upperBound)
-    }
-
-    /// AC-52: a forced check always proceeds immediately, the same bypass idiom
-    /// `LocalTrigger.shouldProceed`'s fallback-interval check already uses for "don't wait out
-    /// the cadence."
-    static func shouldCheckNow(forceRequested: Bool, secondsSinceLastCheck: TimeInterval, cadenceSeconds: TimeInterval)
-        -> Bool
-    {
-        forceRequested || secondsSinceLastCheck >= cadenceSeconds
     }
 }
 

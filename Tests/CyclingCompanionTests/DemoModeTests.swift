@@ -30,21 +30,21 @@ final class DemoModeTests: XCTestCase {
     // MARK: - Debug force-check control (AC-52)
 
     func testForceRequestedRunsTheCheckImmediatelyRegardlessOfCadence() {
-        let shouldCheck = DemoMode.shouldCheckNow(
+        let shouldCheck = AdvisorCheckCadence.shouldCheckNow(
             forceRequested: true, secondsSinceLastCheck: 0, cadenceSeconds: 60)
 
         XCTAssertTrue(shouldCheck)
     }
 
     func testWithoutForceTheCheckWaitsOutTheCadence() {
-        let shouldCheck = DemoMode.shouldCheckNow(
+        let shouldCheck = AdvisorCheckCadence.shouldCheckNow(
             forceRequested: false, secondsSinceLastCheck: 10, cadenceSeconds: 60)
 
         XCTAssertFalse(shouldCheck)
     }
 
     func testWithoutForceTheCheckStillRunsOnceTheCadenceElapses() {
-        let shouldCheck = DemoMode.shouldCheckNow(
+        let shouldCheck = AdvisorCheckCadence.shouldCheckNow(
             forceRequested: false, secondsSinceLastCheck: 60, cadenceSeconds: 60)
 
         XCTAssertTrue(shouldCheck)

@@ -51,6 +51,17 @@ actor FeatureEngine {
         try await clock.sleep(for: snapshotIntervalSeconds)
     }
 
+    /// Compute + append only, no sleep (RULE-2 in spec/rules.md) — `RideSession` (Milestone 4)
+    /// owns its own cadence/force-check loop and needs to run the advisor chain between a
+    /// snapshot and the next wait, which `tick()`'s bundled compute+append+sleep shape doesn't
+    /// allow. A pure addition: `tick()`/`run()` keep their exact Milestone 3 behavior.
+    @discardableResult
+    func computeAndAppendSnapshot() async -> FeatureSnapshot {
+        let snapshot = await computeSnapshot()
+        snapshots.append(snapshot)
+        return snapshot
+    }
+
     /// AC-1: the production entry point — runs `tick()` for the duration of a ride. Never
     /// returns in production (no injected source ever finishes mid-ride); tests call `tick()`
     /// directly instead of this.

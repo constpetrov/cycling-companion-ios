@@ -68,6 +68,33 @@ final class FeatureEngineTests: XCTestCase {
         XCTAssertEqual(sleepCalls, [30.0])
     }
 
+    // MARK: - Compute + append, no sleep (task-1.1, Milestone 4)
+
+    @MainActor
+    func testComputeAndAppendSnapshotAppendsOneSnapshotWithNoSleep() async {
+        let clock = ReplayClock()
+        let tracker = freshRideTracker(route: flatRoute(), fixes: [])
+        let engine = FeatureEngine(rideTracker: tracker, route: flatRoute(), clock: clock)
+
+        _ = await engine.computeAndAppendSnapshot()
+
+        let snapshots = await engine.snapshots
+        XCTAssertEqual(snapshots.count, 1)
+        let sleepCalls = await clock.sleepCalls
+        XCTAssertTrue(sleepCalls.isEmpty)
+    }
+
+    @MainActor
+    func testComputeAndAppendSnapshotReturnsTheSameSnapshotItAppended() async {
+        let tracker = freshRideTracker(route: flatRoute(), fixes: [])
+        let engine = FeatureEngine(rideTracker: tracker, route: flatRoute(), clock: ReplayClock())
+
+        let returned = await engine.computeAndAppendSnapshot()
+
+        let snapshots = await engine.snapshots
+        XCTAssertEqual(snapshots.last?.timestamp, returned.timestamp)
+    }
+
     // MARK: - Grade-adjusted speed trend (task-2.3)
 
     /// A route climbing steadily: 100m elevation gain over the full 10,000m span (1% grade

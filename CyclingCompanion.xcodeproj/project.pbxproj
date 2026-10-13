@@ -47,9 +47,11 @@
 		89F678BBFC6822AFACCB9DBF /* LocalTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8E7C1BDF2DB4EBD70F8EC0 /* LocalTrigger.swift */; };
 		9A91BB6DA81B243559AD4D16 /* RideRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462524783D5BDC642FD8D88B /* RideRecorder.swift */; };
 		9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414779F64E8D9536C42316E7 /* AuthStubClient.swift */; };
+		9E33A29BB1B950B6F8CECBEE /* RideSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9FAD063DD355C94FF353A28 /* RideSessionTests.swift */; };
 		A48559D3384BC2C9B8684AC0 /* RideFixtureEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C74D40AFE0CA1114C8710C2A /* RideFixtureEntry.swift */; };
 		A48F750D8C2A4B46BDA44A30 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */; };
 		A4D043E89328EFA3AD6635CC /* RideFixtureReplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D27561EE28639C382F2E248A /* RideFixtureReplayTests.swift */; };
+		A74AD7E9FA56193455642A14 /* RideSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A920A0A6E04CAF8B65ACA8A /* RideSession.swift */; };
 		A87A34D17EC64E4E43D68ACC /* RideProgressViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94CF24EC2734A19A73D1B86F /* RideProgressViewTests.swift */; };
 		B025A908248B8FA5A9D68FA6 /* FakeNotificationSchedulingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239F1E1CBE9A72D205B8DF22 /* FakeNotificationSchedulingTests.swift */; };
 		B02D1AC1E915F36E872051E9 /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEDAEA5C9488AE4B789715C5 /* Notifier.swift */; };
@@ -126,6 +128,7 @@
 		63E64494E0DECEB59D6D6566 /* RouteHasher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHasher.swift; sourceTree = "<group>"; };
 		6549B1F2094861FD1A33D295 /* RideStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideStoreTests.swift; sourceTree = "<group>"; };
 		67937FEA2AA921FE28D2BECD /* DecisionLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionLog.swift; sourceTree = "<group>"; };
+		6A920A0A6E04CAF8B65ACA8A /* RideSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSession.swift; sourceTree = "<group>"; };
 		6D7F1427329F36441D4196B6 /* ReplayLocationSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplayLocationSource.swift; sourceTree = "<group>"; };
 		6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		70987000F6057937B7350102 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -156,6 +159,7 @@
 		D27561EE28639C382F2E248A /* RideFixtureReplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFixtureReplayTests.swift; sourceTree = "<group>"; };
 		D4F5466C09CE53E53614EEDF /* NotificationScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduling.swift; sourceTree = "<group>"; };
 		D7887F7A499503C316827CCB /* CoreLocationSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreLocationSource.swift; sourceTree = "<group>"; };
+		D9FAD063DD355C94FF353A28 /* RideSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSessionTests.swift; sourceTree = "<group>"; };
 		DC53996CA4BDD9C1F6974084 /* DecisionLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionLogTests.swift; sourceTree = "<group>"; };
 		DD2B28EE20780FB25674A4AF /* NormalizedOpeningHoursPayloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NormalizedOpeningHoursPayloadTests.swift; sourceTree = "<group>"; };
 		E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStubClientTests.swift; sourceTree = "<group>"; };
@@ -319,6 +323,7 @@
 				D27561EE28639C382F2E248A /* RideFixtureReplayTests.swift */,
 				94CF24EC2734A19A73D1B86F /* RideProgressViewTests.swift */,
 				45665B1BF4F1EDBBD1B81E52 /* RideRecorderTests.swift */,
+				D9FAD063DD355C94FF353A28 /* RideSessionTests.swift */,
 				6549B1F2094861FD1A33D295 /* RideStoreTests.swift */,
 				354DF3EC3FF6B3D1939FE197 /* RideTrackerCheckpointingTests.swift */,
 				25C02EB1257804AFA498C979 /* RideTrackerMapMatchingTests.swift */,
@@ -368,10 +373,19 @@
 				95059F8DB1E0B575D45DCE81 /* FeatureEngine */,
 				96A4EA636370FFC525FC98AF /* Notifier */,
 				118339DA305F7F7955841ABD /* POILookahead */,
+				DA8DA16168D67A4D5D592B74 /* RideSession */,
 				B88487FDF5EF5ECC7B24AEB3 /* RideTracking */,
 				DAF09FF53EEFFF7E558F0FB9 /* RouteImporter */,
 			);
 			path = CyclingCompanion;
+			sourceTree = "<group>";
+		};
+		DA8DA16168D67A4D5D592B74 /* RideSession */ = {
+			isa = PBXGroup;
+			children = (
+				6A920A0A6E04CAF8B65ACA8A /* RideSession.swift */,
+			);
+			path = RideSession;
 			sourceTree = "<group>";
 		};
 		DAF09FF53EEFFF7E558F0FB9 /* RouteImporter */ = {
@@ -530,6 +544,7 @@
 				A4D043E89328EFA3AD6635CC /* RideFixtureReplayTests.swift in Sources */,
 				A87A34D17EC64E4E43D68ACC /* RideProgressViewTests.swift in Sources */,
 				3336C7A56AD63E0A3A37879A /* RideRecorderTests.swift in Sources */,
+				9E33A29BB1B950B6F8CECBEE /* RideSessionTests.swift in Sources */,
 				35BA298F4DBF54CF57151736 /* RideStoreTests.swift in Sources */,
 				F7728854BDE6EABF8A6D3F9A /* RideTrackerCheckpointingTests.swift in Sources */,
 				49D6E66C4E2369C97029B3B4 /* RideTrackerMapMatchingTests.swift in Sources */,
@@ -574,6 +589,7 @@
 				5807730CC1A27ACFA48A633C /* Resampler.swift in Sources */,
 				BFA646CB25EBF00D98D5B606 /* RideProgressView.swift in Sources */,
 				9A91BB6DA81B243559AD4D16 /* RideRecorder.swift in Sources */,
+				A74AD7E9FA56193455642A14 /* RideSession.swift in Sources */,
 				B0610CE5382580E76572EE69 /* RideTracker.swift in Sources */,
 				824B52903D649C5128FB0754 /* RouteAPIPayloads.swift in Sources */,
 				B893FBED4036ED77BD5B100C /* RouteHasher.swift in Sources */,
