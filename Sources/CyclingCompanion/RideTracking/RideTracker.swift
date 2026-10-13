@@ -45,9 +45,13 @@ final class RideTracker {
         route.last?.cumulativeDistanceMeters ?? 0
     }
 
-    private let rideId: String
-    private let routeId: String
-    private let startTime: Date
+    /// Not `private` (Milestone 4, RULE-9/AC-16): `RideRecorder.finalize` needs these to
+    /// identify which ride it's closing out — `LiveRideScreen`'s Finish Ride reads them
+    /// directly rather than threading a second copy through `AppRouter`. Still `let`: nothing
+    /// outside this type ever needs to change them.
+    let rideId: String
+    let routeId: String
+    let startTime: Date
     private let route: [ResampledPoint]
     private let locationSource: LocationSource
     private let sensorSource: SensorSource

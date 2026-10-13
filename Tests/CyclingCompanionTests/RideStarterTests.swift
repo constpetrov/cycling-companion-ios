@@ -43,11 +43,13 @@ final class RideStarterTests: XCTestCase {
 
         await starter.startRide()
 
-        guard case .liveRide(let tracker) = appRouter.currentScreen else {
+        guard case .liveRide(let liveRide) = appRouter.currentScreen else {
             XCTFail("expected the live ride screen")
             return
         }
-        XCTAssertNotNil(tracker)
+        XCTAssertNotNil(liveRide?.tracker)
+        liveRide?.trackingTask.cancel()
+        liveRide?.sessionTask.cancel()
     }
 
     @MainActor
@@ -67,11 +69,13 @@ final class RideStarterTests: XCTestCase {
 
         await starter.startRide()
 
-        guard case .liveRide(let tracker) = appRouter.currentScreen else {
+        guard case .liveRide(let liveRide) = appRouter.currentScreen else {
             XCTFail("expected the live ride screen")
             return
         }
-        XCTAssertNotNil(tracker)
+        XCTAssertNotNil(liveRide?.tracker)
+        liveRide?.trackingTask.cancel()
+        liveRide?.sessionTask.cancel()
     }
 
     @MainActor

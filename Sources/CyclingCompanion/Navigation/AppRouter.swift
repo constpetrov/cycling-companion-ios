@@ -8,13 +8,13 @@ import RoutePersistence
 @MainActor
 @Observable
 final class AppRouter {
-    /// `.liveRide`'s `RideTracker?` is `nil` only in the brief window between detecting an
+    /// `.liveRide`'s `LiveRide?` is `nil` only in the brief window between detecting an
     /// unfinished ride (task-2.1) and task-3.2 actually resuming its `RideTracker`/`RideSession`
     /// pair; every other producer of `.liveRide` (Start Ride, task-2.6) always supplies one.
     enum Screen {
         case home
         case corridorMap
-        case liveRide(RideTracker?)
+        case liveRide(LiveRide?)
     }
 
     private(set) var currentScreen: Screen = .home
@@ -38,8 +38,8 @@ extension AppRouter.Screen: Equatable {
         switch (lhs, rhs) {
         case (.home, .home), (.corridorMap, .corridorMap):
             return true
-        case (.liveRide(let lhsTracker), .liveRide(let rhsTracker)):
-            return lhsTracker === rhsTracker
+        case (.liveRide(let lhsRide), .liveRide(let rhsRide)):
+            return lhsRide?.tracker === rhsRide?.tracker
         default:
             return false
         }
