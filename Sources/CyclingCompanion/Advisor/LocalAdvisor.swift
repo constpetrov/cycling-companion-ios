@@ -12,7 +12,7 @@ enum LocalAdvisor {
     /// regardless of fatigue signals, even one the trigger itself fired on).
     static func decide(
         snapshot: FeatureSnapshot, candidates: [PersistedPoiInput], hasQualifyingStopAhead: Bool,
-        secondsSinceLastCheckThatProceeded: TimeInterval
+        secondsSinceLastCheckThatProceeded: TimeInterval, log: DecisionLog
     ) -> AdvisorDecision {
         guard
             LocalTrigger.shouldProceed(
@@ -20,13 +20,16 @@ enum LocalAdvisor {
                 secondsSinceLastCheckThatProceeded: secondsSinceLastCheckThatProceeded),
             let bestCandidate = candidates.first
         else {
+            log.recordAdvisorDecision(noSuggestion)
             return noSuggestion
         }
 
         let feature = LocalTrigger.crossedFeature(snapshot)
-        return AdvisorDecision(
+        let decision = AdvisorDecision(
             suggest: true, stopId: String(bestCandidate.osmId), urgency: Self.urgency, reason: feature?.rawValue,
             message: message(for: feature, stop: bestCandidate))
+        log.recordAdvisorDecision(decision)
+        return decision
     }
 
     private static var noSuggestion: AdvisorDecision {

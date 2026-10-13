@@ -6,6 +6,8 @@ import XCTest
 /// task-3.2 validation (RULE-19/RULE-20/RULE-21 in spec/rules.md, AC-25/AC-26).
 final class LocalAdvisorTests: XCTestCase {
 
+    private let log = DecisionLog()
+
     private func candidate(osmId: Int64 = 1, name: String = "Café Sample", detourMeters: Double = 300) -> PersistedPoiInput {
         PersistedPoiInput(
             osmId: osmId, type: "CAFE_BAKERY_RESTAURANT", name: name, latitude: 52.0, longitude: 13.0,
@@ -21,7 +23,7 @@ final class LocalAdvisorTests: XCTestCase {
     func testFreshRiderSnapshotYieldsNoSuggestion() {
         let decision = LocalAdvisor.decide(
             snapshot: emptySnapshot(), candidates: [candidate()], hasQualifyingStopAhead: false,
-            secondsSinceLastCheckThatProceeded: 0)
+            secondsSinceLastCheckThatProceeded: 0, log: log)
 
         XCTAssertFalse(decision.suggest)
         XCTAssertNil(decision.stopId)
@@ -37,7 +39,7 @@ final class LocalAdvisorTests: XCTestCase {
 
         let decision = LocalAdvisor.decide(
             snapshot: snapshot, candidates: [candidate()], hasQualifyingStopAhead: false,
-            secondsSinceLastCheckThatProceeded: 0)
+            secondsSinceLastCheckThatProceeded: 0, log: log)
 
         XCTAssertEqual(decision.reason, FatigueFeature.hrDrift.rawValue)
     }
@@ -49,7 +51,7 @@ final class LocalAdvisorTests: XCTestCase {
 
         let decision = LocalAdvisor.decide(
             snapshot: snapshot, candidates: [candidate(osmId: 42, name: "Bakery")], hasQualifyingStopAhead: false,
-            secondsSinceLastCheckThatProceeded: 0)
+            secondsSinceLastCheckThatProceeded: 0, log: log)
 
         XCTAssertTrue(decision.suggest)
         XCTAssertEqual(decision.stopId, "42")
@@ -63,7 +65,8 @@ final class LocalAdvisorTests: XCTestCase {
         let snapshot = FeatureSnapshot(timestamp: Date(timeIntervalSince1970: 0), hrDrift: 0.5)
 
         let decision = LocalAdvisor.decide(
-            snapshot: snapshot, candidates: [], hasQualifyingStopAhead: false, secondsSinceLastCheckThatProceeded: 0)
+            snapshot: snapshot, candidates: [], hasQualifyingStopAhead: false, secondsSinceLastCheckThatProceeded: 0,
+            log: log)
 
         XCTAssertFalse(decision.suggest)
         XCTAssertNil(decision.stopId)
@@ -75,7 +78,7 @@ final class LocalAdvisorTests: XCTestCase {
     func testQualifyingStopAheadWithNoFatigueSignalStillSuggestsWithAGenericMessage() {
         let decision = LocalAdvisor.decide(
             snapshot: emptySnapshot(), candidates: [candidate()], hasQualifyingStopAhead: true,
-            secondsSinceLastCheckThatProceeded: 0)
+            secondsSinceLastCheckThatProceeded: 0, log: log)
 
         XCTAssertTrue(decision.suggest)
         XCTAssertNil(decision.reason, "no feature crossed its threshold — the trigger fired on the stop-ahead branch alone")
@@ -90,8 +93,21 @@ final class LocalAdvisorTests: XCTestCase {
 
         let decision = LocalAdvisor.decide(
             snapshot: snapshot, candidates: [best, worse], hasQualifyingStopAhead: false,
-            secondsSinceLastCheckThatProceeded: 0)
+            secondsSinceLastCheckThatProceeded: 0, log: log)
 
         XCTAssertEqual(decision.stopId, "1")
+    }
+
+    // MARK: - Every decision is recorded (AC-43)
+
+    func testEveryDecisionIsRecordedInTheDecisionLog() {
+        _ = LocalAdvisor.decide(
+            snapshot: emptySnapshot(), candidates: [candidate()], hasQualifyingStopAhead: false,
+            secondsSinceLastCheckThatProceeded: 0, log: log)
+        _ = LocalAdvisor.decide(
+            snapshot: emptySnapshot(), candidates: [candidate()], hasQualifyingStopAhead: true,
+            secondsSinceLastCheckThatProceeded: 0, log: log)
+
+        XCTAssertEqual(log.advisorDecisions.count, 2)
     }
 }

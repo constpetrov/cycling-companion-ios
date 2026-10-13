@@ -7,6 +7,7 @@ import XCTest
 final class GuardrailGateTests: XCTestCase {
 
     private let now = Date(timeIntervalSince1970: 1_000_000)
+    private let log = DecisionLog()
 
     private func candidate(osmId: Int64 = 1, detourMeters: Double = 300) -> PersistedPoiInput {
         PersistedPoiInput(
@@ -28,7 +29,8 @@ final class GuardrailGateTests: XCTestCase {
     ) -> AdvisorDecision {
         GuardrailGate.evaluate(
             decision: decision, candidates: candidates, now: now,
-            lastApprovedSuggestionTimestamp: lastApprovedSuggestionTimestamp, lastStopTimestamp: lastStopTimestamp)
+            lastApprovedSuggestionTimestamp: lastApprovedSuggestionTimestamp, lastStopTimestamp: lastStopTimestamp,
+            log: log)
     }
 
     // MARK: - Non-suggesting decision passes through unchanged
@@ -152,5 +154,14 @@ final class GuardrailGateTests: XCTestCase {
             decision: approved(stopId: "1"), candidates: [candidate(osmId: 1)], lastStopTimestamp: nil)
 
         XCTAssertTrue(result.suggest)
+    }
+
+    // MARK: - Every verdict is recorded (AC-44)
+
+    func testEveryVerdictIsRecordedInTheDecisionLog() {
+        _ = evaluate(decision: approved(stopId: "1"), candidates: [candidate(osmId: 1)])
+        _ = evaluate(decision: approved(stopId: "999"), candidates: [candidate(osmId: 1)])
+
+        XCTAssertEqual(log.guardrailVerdicts.count, 2)
     }
 }

@@ -145,6 +145,23 @@ final class POILookaheadTests: XCTestCase {
         XCTAssertEqual(result.map(\.osmId), [1])
     }
 
+    func testAllCandidatesClosedAtETAYieldsNoCandidatesAtAll() {
+        // E2E scenario 4 (design.md): every POI closed at ETA -> no suggestion for any of them.
+        let closedHours = PersistedNormalizedOpeningHours(
+            alwaysOpen: false, unknown: false,
+            intervals: [PersistedWeeklyOpenInterval(dayOfWeek: 1, startMinuteOfDay: 720, endMinuteOfDay: 1080)])
+        let candidates = [
+            poi(osmId: 1, kmMarkMeters: 1_000, normalizedOpeningHours: closedHours),
+            poi(osmId: 2, kmMarkMeters: 2_000, normalizedOpeningHours: closedHours),
+        ]
+
+        let result = POILookahead.candidates(
+            pois: candidates, currentKmMarkMeters: 0, etaDayOfWeek: mondayTenAM.dayOfWeek,
+            etaMinuteOfDay: mondayTenAM.minuteOfDay)
+
+        XCTAssertTrue(result.isEmpty)
+    }
+
     func testAClosedStopDoesNotOccupyACapSlot() {
         // 6 candidates: 1 confirmed closed, 5 open — the cap must return exactly the 5 open
         // ones, not 4 open + the closed one, proving exclusion runs before the cap applies.

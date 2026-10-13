@@ -19,6 +19,17 @@ enum GuardrailGate {
 
     static func evaluate(
         decision: AdvisorDecision, candidates: [PersistedPoiInput], now: Date,
+        lastApprovedSuggestionTimestamp: Date?, lastStopTimestamp: Date?, log: DecisionLog
+    ) -> AdvisorDecision {
+        let verdict = verdict(
+            decision: decision, candidates: candidates, now: now,
+            lastApprovedSuggestionTimestamp: lastApprovedSuggestionTimestamp, lastStopTimestamp: lastStopTimestamp)
+        log.recordGuardrailVerdict(verdict)
+        return verdict
+    }
+
+    private static func verdict(
+        decision: AdvisorDecision, candidates: [PersistedPoiInput], now: Date,
         lastApprovedSuggestionTimestamp: Date?, lastStopTimestamp: Date?
     ) -> AdvisorDecision {
         guard decision.suggest, let stopId = decision.stopId else {
