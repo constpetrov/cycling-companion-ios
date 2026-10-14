@@ -22,12 +22,23 @@ final class RideFinisherTests: XCTestCase {
     }
 
     @MainActor
+    private func freshSession(tracker: RideTracker, routeStore: RouteStore) -> RideSession {
+        RideSession(
+            rideTracker: tracker, featureEngine: FeatureEngine(rideTracker: tracker, route: [], clock: ReplayClock()),
+            clock: ReplayClock(), routeId: "route-1", routeStore: routeStore, decisionLog: DecisionLog(),
+            notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: DecisionLog()))
+    }
+
+    @MainActor
     func testFinishRideCancelsBothBackgroundTasks() async {
         let rideStore = freshRideStore()
         let tracker = freshTracker(rideStore: rideStore)
+        let session = freshSession(
+            tracker: tracker,
+            routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
         let trackingTask = Task<Void, Never> { try? await Task.sleep(nanoseconds: .max) }
         let sessionTask = Task<Void, Never> { try? await Task.sleep(nanoseconds: .max) }
-        let liveRide = LiveRide(tracker: tracker, trackingTask: trackingTask, sessionTask: sessionTask)
+        let liveRide = LiveRide(tracker: tracker, session: session, trackingTask: trackingTask, sessionTask: sessionTask)
         let appRouter = AppRouter()
         let finisher = RideFinisher(rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter)
 
@@ -41,9 +52,12 @@ final class RideFinisherTests: XCTestCase {
     func testFinishRidePersistsTheFinalRideAndNavigatesHome() async throws {
         let rideStore = freshRideStore()
         let tracker = freshTracker(rideStore: rideStore)
+        let session = freshSession(
+            tracker: tracker,
+            routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
         let trackingTask = Task<Void, Never> {}
         let sessionTask = Task<Void, Never> {}
-        let liveRide = LiveRide(tracker: tracker, trackingTask: trackingTask, sessionTask: sessionTask)
+        let liveRide = LiveRide(tracker: tracker, session: session, trackingTask: trackingTask, sessionTask: sessionTask)
         let appRouter = AppRouter()
         let finisher = RideFinisher(rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter)
 

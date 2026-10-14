@@ -3,7 +3,8 @@ import RoutePersistence
 import SwiftUI
 
 /// A live ride's running state (RULE-9 in spec/rules.md) — bundles the `RideTracker`
-/// `LiveRideScreen`/Finish Ride read from with the two background `Task`s that must be
+/// `LiveRideScreen`/Finish Ride read from, the `RideSession` the debug-only force-check
+/// control (task-4.4) needs a live reference to, and the two background `Task`s that must be
 /// cancelled to actually stop tracking. `Task.cancel()` on `trackingTask` propagates into
 /// `locationSource.locationUpdates()`'s `for await` loop, which is what makes
 /// `CoreLocationSource`'s `AsyncStream.Continuation.onTermination` fire and call
@@ -11,16 +12,21 @@ import SwiftUI
 /// the only thing that actually stops GPS.
 struct LiveRide {
     let tracker: RideTracker
+    let session: RideSession
     let trackingTask: Task<Void, Never>
     let sessionTask: Task<Void, Never>
 }
 
-/// Shared by `RideStarter` and `RideResumer`: builds the `RideTracker`/`FeatureEngine`/
-/// `RideSession` trio against `route`'s geometry, real sources, a real clock.
+/// Shared by `RideStarter`, `RideResumer`, and (Demo Mode) `DemoRideStarter`: builds the
+/// `RideTracker`/`FeatureEngine`/`RideSession` trio against `route`'s geometry. Takes its
+/// sources and clock as parameters — never names `DemoModeReplayDriver` itself (RULE-15: that
+/// type only exists inside `#if DEBUG`, so this always-compiled function must stay generic
+/// over `LocationSource`/`SensorSource`/`Clock` to let a `#if DEBUG`-gated caller pass one in).
 @MainActor
-private func makeTrackerAndSession(
-    rideId: String, routeId: String, startTime: Date, route: PersistedRoute, rideStore: RideStore,
-    routeStore: RouteStore, decisionLog: DecisionLog, notifier: Notifier
+func makeTrackerAndSession(
+    rideId: String, routeId: String, startTime: Date, route: PersistedRoute, locationSource: LocationSource,
+    sensorSource: SensorSource, clock: Clock, rideStore: RideStore, routeStore: RouteStore,
+    decisionLog: DecisionLog, notifier: Notifier
 ) -> (tracker: RideTracker, session: RideSession) {
     let resampledPoints = route.points.map {
         ResampledPoint(
@@ -29,11 +35,10 @@ private func makeTrackerAndSession(
     }
     let tracker = RideTracker(
         rideId: rideId, routeId: routeId, startTime: startTime, route: resampledPoints,
-        locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
-        rideStore: rideStore)
-    let engine = FeatureEngine(rideTracker: tracker, route: resampledPoints, clock: SystemClock())
+        locationSource: locationSource, sensorSource: sensorSource, clock: clock, rideStore: rideStore)
+    let engine = FeatureEngine(rideTracker: tracker, route: resampledPoints, clock: clock)
     let session = RideSession(
-        rideTracker: tracker, featureEngine: engine, clock: SystemClock(), routeId: routeId, routeStore: routeStore,
+        rideTracker: tracker, featureEngine: engine, clock: clock, routeId: routeId, routeStore: routeStore,
         decisionLog: decisionLog, notifier: notifier)
     return (tracker, session)
 }
@@ -41,12 +46,12 @@ private func makeTrackerAndSession(
 /// Fires both of `LiveRide`'s background `Task`s — unbounded for real sources, so this returns
 /// immediately rather than ever awaiting either.
 @MainActor
-private func startLiveRideTasks(tracker: RideTracker, session: RideSession) -> LiveRide {
+func startLiveRideTasks(tracker: RideTracker, session: RideSession) -> LiveRide {
     let trackingTask = Task { await tracker.start() }
     let sessionTask = Task<Void, Never> {
         _ = try? await session.run()
     }
-    return LiveRide(tracker: tracker, trackingTask: trackingTask, sessionTask: sessionTask)
+    return LiveRide(tracker: tracker, session: session, trackingTask: trackingTask, sessionTask: sessionTask)
 }
 
 /// Constructs a real `RideTracker`/`RideSession` pair for the current route and navigates to
@@ -70,8 +75,9 @@ struct RideStarter {
         }
         let rideStore = RideStore(fileURL: rideStoreURL)
         let (tracker, session) = makeTrackerAndSession(
-            rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route, rideStore: rideStore,
-            routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)
+            rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route,
+            locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
+            rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)
 
         appRouter.show(.liveRide(startLiveRideTasks(tracker: tracker, session: session)))
     }
@@ -102,6 +108,7 @@ struct RideResumer {
         }
         let (tracker, session) = makeTrackerAndSession(
             rideId: checkpoint.id, routeId: checkpoint.routeId, startTime: checkpoint.startTime, route: route,
+            locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)
         try? await tracker.resumeIfNeeded(from: rideStore)
 

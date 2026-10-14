@@ -49,6 +49,14 @@ struct HomeView: View {
         self.appRouter = appRouter
     }
 
+    #if DEBUG
+    /// AC-20/AC-25 (RULE-14 in spec/rules.md): always true in a Debug build — the entry point
+    /// itself is unconditional; AC-25's Release exclusion comes entirely from this whole
+    /// property (and the `NavigationLink` below) being compiled out via `#if DEBUG`, not from
+    /// any runtime check.
+    var showsDemoModeEntryPoint: Bool { true }
+    #endif
+
     var body: some View {
         VStack(spacing: 16) {
             if viewModel.showsImportPrompt {
@@ -57,6 +65,11 @@ struct HomeView: View {
                 Text("Route: \(route.id)")
                 Button("Start Ride") {}
             }
+            #if DEBUG
+            NavigationLink("Demo Mode") {
+                DemoModeScreen(onStart: { _ in nil })
+            }
+            #endif
         }
         .padding()
         .task { await viewModel.refresh() }

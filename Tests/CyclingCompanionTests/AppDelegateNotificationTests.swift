@@ -50,9 +50,16 @@ final class AppDelegateNotificationTests: XCTestCase {
     func testTapWhileAlreadyOnARealLiveRideDoesNotDiscardTheTracker() {
         let appRouter = AppRouter()
         let tracker = freshRideTracker()
+        let routeStore = RouteStore(
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        let session = RideSession(
+            rideTracker: tracker, featureEngine: FeatureEngine(rideTracker: tracker, route: [], clock: ReplayClock()),
+            clock: ReplayClock(), routeId: "route-1", routeStore: routeStore, decisionLog: DecisionLog(),
+            notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: DecisionLog()))
         let trackingTask = Task<Void, Never> {}
         let sessionTask = Task<Void, Never> {}
-        appRouter.show(.liveRide(LiveRide(tracker: tracker, trackingTask: trackingTask, sessionTask: sessionTask)))
+        appRouter.show(
+            .liveRide(LiveRide(tracker: tracker, session: session, trackingTask: trackingTask, sessionTask: sessionTask)))
         let delegate = AppDelegate()
         delegate.appRouter = appRouter
 
