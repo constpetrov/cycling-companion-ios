@@ -7,7 +7,6 @@ import SwiftUI
 /// with pins after). Start Ride is never disabled or hidden regardless of settle state
 /// (RULE-13) — `startRideIsEnabled` is unconditionally `true`, not gated on anything.
 struct CorridorMapScreen: View {
-    let points: [PersistedPointInput]
     let coordinator: CorridorImportCoordinator
     let onStartRide: () -> Void
 
@@ -16,7 +15,7 @@ struct CorridorMapScreen: View {
 
     var body: some View {
         VStack {
-            CorridorMapView(points: points, pois: coordinator.pois)
+            CorridorMapView(points: coordinator.points, pois: coordinator.pois)
             Button("Start Ride", action: onStartRide)
                 .disabled(!startRideIsEnabled)
         }

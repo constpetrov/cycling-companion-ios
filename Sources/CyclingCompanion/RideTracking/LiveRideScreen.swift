@@ -86,7 +86,10 @@ struct RideStarter {
 /// Resumes an unfinished ride at launch (RULE-9 in spec/rules.md, AC-17) — extends
 /// `AppRouter.determineInitialScreen`'s detection (task-2.1) by actually reconstructing the
 /// `RideTracker`/`RideSession` pair, matching `AppDelegate`'s existing `resumeIfNeeded` path
-/// (Milestone 2), and upgrading the screen to carry it.
+/// (Milestone 2), and upgrading the screen to carry it. If reconstruction fails for any reason
+/// (missing/corrupted checkpoint, route no longer in `RouteStore`), falls back to `.home`
+/// rather than leaving the screen stuck on `.liveRide(nil)`'s placeholder spinner forever —
+/// same "never a stuck loading state" rule `HomeViewModel.refresh()` already follows.
 @MainActor
 struct RideResumer {
     let rideStore: RideStore
@@ -101,9 +104,11 @@ struct RideResumer {
             return
         }
         guard let checkpoint = try? await rideStore.fetchAll().first(where: { $0.endTime == nil }) else {
+            appRouter.show(.home)
             return
         }
         guard let route = try? await routeStore.fetch(routeId: checkpoint.routeId) else {
+            appRouter.show(.home)
             return
         }
         let (tracker, session) = makeTrackerAndSession(

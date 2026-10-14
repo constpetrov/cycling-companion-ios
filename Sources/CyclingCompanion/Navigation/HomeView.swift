@@ -1,5 +1,6 @@
 import RoutePersistence
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Backs `HomeView`'s observable state (RULE-16 in spec/rules.md): resolves the current route
 /// from `CurrentRoutePointer` + `RouteStore`. A missing pointer, or a pointer `RouteStore` no
@@ -38,15 +39,29 @@ final class HomeViewModel {
 }
 
 /// The app's root screen (RULE-9 in spec/rules.md, AC-2/AC-3) — shows an "Import a route"
-/// prompt or the current route with a Start Ride button. The import flow (task-2.4) and
-/// Start Ride's `RideSession` construction (task-2.6) extend this same view.
+/// prompt or the current route with a Start Ride button. `coordinator` drives the actual
+/// import flow (task-2.4); `onStartRide` is `RideStarter.startRide` (or an equivalent).
 struct HomeView: View {
     @State private var viewModel: HomeViewModel
-    private let appRouter: AppRouter
+    @State private var isImporterPresented = false
+    private let coordinator: CorridorImportCoordinator
+    private let onStartRide: () -> Void
+    private let onStartDemoRide: (Double) async -> RideSession?
 
-    init(routeStore: RouteStore, appRouter: AppRouter) {
+    private static let gpxContentType = UTType(filenameExtension: "gpx") ?? .xml
+
+    /// `onStartDemoRide` is a plain closure, not a `DemoRideStarter` reference — `DemoRideStarter`
+    /// only exists inside `#if DEBUG` (RULE-15), but this file is always compiled, so it can
+    /// only ever hold the type-erased closure shape, never the concrete type itself. Defaults
+    /// to a no-op so every existing call site keeps compiling unchanged.
+    init(
+        routeStore: RouteStore, coordinator: CorridorImportCoordinator, onStartRide: @escaping () -> Void,
+        onStartDemoRide: @escaping (Double) async -> RideSession? = { _ in nil }
+    ) {
         _viewModel = State(initialValue: HomeViewModel(routeStore: routeStore))
-        self.appRouter = appRouter
+        self.coordinator = coordinator
+        self.onStartRide = onStartRide
+        self.onStartDemoRide = onStartDemoRide
     }
 
     #if DEBUG
@@ -61,17 +76,36 @@ struct HomeView: View {
         VStack(spacing: 16) {
             if viewModel.showsImportPrompt {
                 Text("Import a route")
+                Button("Choose GPX File") { isImporterPresented = true }
             } else if let route = viewModel.currentRoute {
                 Text("Route: \(route.id)")
-                Button("Start Ride") {}
+                Button("Start Ride", action: onStartRide)
+                Button("Choose GPX File") { isImporterPresented = true }
+            }
+            if let importErrorMessage = coordinator.importErrorMessage {
+                Text(importErrorMessage)
             }
             #if DEBUG
             NavigationLink("Demo Mode") {
-                DemoModeScreen(onStart: { _ in nil })
+                DemoModeScreen(onStart: onStartDemoRide)
             }
             #endif
         }
         .padding()
         .task { await viewModel.refresh() }
+        .fileImporter(isPresented: $isImporterPresented, allowedContentTypes: [Self.gpxContentType]) { result in
+            guard case .success(let fileURL) = result else {
+                return
+            }
+            Task {
+                let accessing = fileURL.startAccessingSecurityScopedResource()
+                defer { if accessing { fileURL.stopAccessingSecurityScopedResource() } }
+                guard let imported = try? RouteImporter.importGPX(fileURL: fileURL) else {
+                    return
+                }
+                await coordinator.importRoute(imported)
+                await viewModel.refresh()
+            }
+        }
     }
 }

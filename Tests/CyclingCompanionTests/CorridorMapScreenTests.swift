@@ -72,7 +72,7 @@ final class CorridorMapScreenTests: XCTestCase {
         let coordinator = await makeCoordinator(readyImmediately: false)
         XCTAssertTrue(coordinator.pois.isEmpty)
 
-        let screen = CorridorMapScreen(points: [], coordinator: coordinator, onStartRide: {})
+        let screen = CorridorMapScreen(coordinator: coordinator, onStartRide: {})
 
         XCTAssertTrue(screen.startRideIsEnabled)
     }
@@ -82,7 +82,7 @@ final class CorridorMapScreenTests: XCTestCase {
         let coordinator = await makeCoordinator(readyImmediately: true)
         XCTAssertFalse(coordinator.pois.isEmpty)
 
-        let screen = CorridorMapScreen(points: [], coordinator: coordinator, onStartRide: {})
+        let screen = CorridorMapScreen(coordinator: coordinator, onStartRide: {})
 
         XCTAssertTrue(screen.startRideIsEnabled)
     }
@@ -98,7 +98,7 @@ final class CorridorMapScreenTests: XCTestCase {
             pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!), appRouter: AppRouter(),
             lazySignIn: LazySignIn(
                 authClient: AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)))
-        let screen = CorridorMapScreen(points: [], coordinator: coordinator, onStartRide: { tapped = true })
+        let screen = CorridorMapScreen(coordinator: coordinator, onStartRide: { tapped = true })
 
         screen.onStartRide()
 

@@ -9,10 +9,13 @@ import RoutePersistence
 /// pointer, and navigates to the corridor map screen — before `pollUntilSettled` ever resolves.
 /// Second, once `pollUntilSettled` succeeds in a background `Task`, persists the same `routeId`
 /// again with the real `pois`/status and updates its own observed `pois` once. A failed import
-/// leaves the pointer and `RouteStore` both untouched and surfaces an error instead.
+/// leaves the pointer and `RouteStore` both untouched and surfaces an error instead. `points`
+/// is set alongside `pois` at both moments — the app's wiring (not a formal milestone task)
+/// needs it to actually render `CorridorMapScreen`'s polyline.
 @MainActor
 @Observable
 final class CorridorImportCoordinator {
+    private(set) var points: [PersistedPointInput] = []
     private(set) var pois: [PersistedPoiInput] = []
     private(set) var importErrorMessage: String?
 
@@ -42,10 +45,13 @@ final class CorridorImportCoordinator {
         do {
             try await lazySignIn.ensureSignedIn()
             let response = try await corridorPollingService.importRoute(route)
+            let persistedPoints = route.points.map(Self.persistedPoint)
             try await routeStore.persist(
                 routeId: response.routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
-                totalClimbingMeters: route.totalClimbingMeters, points: route.points.map(Self.persistedPoint),
-                pois: [], status: response.status)
+                totalClimbingMeters: route.totalClimbingMeters, points: persistedPoints, pois: [],
+                status: response.status)
+            points = persistedPoints
+            pois = []
             pointer.routeId = response.routeId
             appRouter.show(.corridorMap)
             return pollAndUpdate(routeId: response.routeId)

@@ -71,4 +71,22 @@ final class RideResumerTests: XCTestCase {
         liveRide?.trackingTask.cancel()
         liveRide?.sessionTask.cancel()
     }
+
+    @MainActor
+    func testAnUnfinishedRideWithNoMatchingRouteFallsBackToHomeInsteadOfStickingOnTheSpinner() async throws {
+        let rideStore = freshRideStore()
+        let routeStore = freshRouteStore() // deliberately empty: no "route-1" persisted
+        try await rideStore.persist(
+            PersistedRide(
+                id: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), endTime: nil,
+                totalDistanceMeters: 0, totalMovingTimeSeconds: 0, track: []))
+        let appRouter = AppRouter()
+        let resumer = makeResumer(rideStore: rideStore, routeStore: routeStore, appRouter: appRouter)
+
+        await resumer.resumeIfNeeded()
+
+        XCTAssertEqual(
+            appRouter.currentScreen, .home,
+            "an unresolvable checkpoint must fall back to Home, not strand the screen on .liveRide(nil)'s spinner")
+    }
 }
