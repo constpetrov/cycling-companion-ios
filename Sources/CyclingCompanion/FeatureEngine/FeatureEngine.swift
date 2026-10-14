@@ -29,17 +29,21 @@ actor FeatureEngine {
     private let route: [ResampledPoint]
     private let clock: Clock
     private let snapshotIntervalSeconds: TimeInterval
+    /// RULE-2 in spec/rules.md: computed once (by the caller, via `BaselineCalculator`) rather
+    /// than re-read from `RideStore` on every tick — the baseline doesn't change mid-ride.
+    private let baselines: PersonalBaselines?
 
     private(set) var snapshots: [FeatureSnapshot] = []
 
     init(
         rideTracker: RideTracker, route: [ResampledPoint], clock: Clock,
-        snapshotIntervalSeconds: TimeInterval = 60.0
+        snapshotIntervalSeconds: TimeInterval = 60.0, baselines: PersonalBaselines? = nil
     ) {
         self.rideTracker = rideTracker
         self.route = route
         self.clock = clock
         self.snapshotIntervalSeconds = snapshotIntervalSeconds
+        self.baselines = baselines
     }
 
     /// Computes one snapshot, appends it, then sleeps for the snapshot interval. Exposed
@@ -89,6 +93,8 @@ actor FeatureEngine {
 
         return FeatureSnapshot(
             timestamp: latestFix.timestamp,
+            speedVsBaseline: speedVsBaseline(currentGradeAdjustedSpeed: currentGradeAdjustedSpeed),
+            rideSoFarVsLongest: rideSoFarVsLongest(distanceAlongRouteMeters: distanceAlongRouteMeters),
             speedTrend: speedTrend(
                 track: track, now: latestFix.timestamp, currentGradeAdjustedSpeed: currentGradeAdjustedSpeed),
             hrDrift: hrDrift(
@@ -97,6 +103,26 @@ actor FeatureEngine {
             cadenceDrop: cadenceDrop(track: track, currentCadenceRPM: currentCadenceRPM),
             timeSinceLastStopSeconds: timeSinceLastStopSeconds(track: track, now: latestFix.timestamp),
             remainingEffortMeters: totalRouteDistanceMeters - distanceAlongRouteMeters)
+    }
+
+    /// AC-1/AC-2/AC-3 (RULE-3): `nil` below the 5-ride floor (no `baselines` injected);
+    /// otherwise the current grade-adjusted speed against the rider's own historical average
+    /// moving speed, as a ratio. `nil` if that average is zero (shouldn't happen in practice,
+    /// but avoids a division by zero).
+    private func speedVsBaseline(currentGradeAdjustedSpeed: Double) -> Double? {
+        guard let baselines, baselines.averageMovingSpeedMetersPerSecond != 0 else {
+            return nil
+        }
+        return currentGradeAdjustedSpeed / baselines.averageMovingSpeedMetersPerSecond - 1
+    }
+
+    /// AC-1/AC-2/AC-3 (RULE-4): `nil` below the 5-ride floor; otherwise distance covered so far
+    /// against the rider's own historical longest ride, as a ratio.
+    private func rideSoFarVsLongest(distanceAlongRouteMeters: Double) -> Double? {
+        guard let baselines, baselines.maximumDistanceMeters != 0 else {
+            return nil
+        }
+        return distanceAlongRouteMeters / baselines.maximumDistanceMeters - 1
     }
 
     /// AC-9 (RULE-12): elapsed time since the end of the most recent qualifying stop

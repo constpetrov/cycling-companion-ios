@@ -27,7 +27,7 @@ func makeTrackerAndSession(
     rideId: String, routeId: String, startTime: Date, route: PersistedRoute, locationSource: LocationSource,
     sensorSource: SensorSource, clock: Clock, rideStore: RideStore, routeStore: RouteStore,
     decisionLog: DecisionLog, notifier: Notifier
-) -> (tracker: RideTracker, session: RideSession) {
+) async -> (tracker: RideTracker, session: RideSession) {
     let resampledPoints = route.points.map {
         ResampledPoint(
             latitude: $0.latitude, longitude: $0.longitude, elevationMeters: $0.elevationMeters,
@@ -36,7 +36,9 @@ func makeTrackerAndSession(
     let tracker = RideTracker(
         rideId: rideId, routeId: routeId, startTime: startTime, route: resampledPoints,
         locationSource: locationSource, sensorSource: sensorSource, clock: clock, rideStore: rideStore)
-    let engine = FeatureEngine(rideTracker: tracker, route: resampledPoints, clock: clock)
+    // RULE-2: computed once here, not re-read on every FeatureEngine tick.
+    let baselines = await BaselineCalculator.compute(from: rideStore)
+    let engine = FeatureEngine(rideTracker: tracker, route: resampledPoints, clock: clock, baselines: baselines)
     let session = RideSession(
         rideTracker: tracker, featureEngine: engine, clock: clock, routeId: routeId, routeStore: routeStore,
         decisionLog: decisionLog, notifier: notifier)
@@ -74,7 +76,7 @@ struct RideStarter {
             return
         }
         let rideStore = RideStore(fileURL: rideStoreURL)
-        let (tracker, session) = makeTrackerAndSession(
+        let (tracker, session) = await makeTrackerAndSession(
             rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route,
             locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)
@@ -111,7 +113,7 @@ struct RideResumer {
             appRouter.show(.home)
             return
         }
-        let (tracker, session) = makeTrackerAndSession(
+        let (tracker, session) = await makeTrackerAndSession(
             rideId: checkpoint.id, routeId: checkpoint.routeId, startTime: checkpoint.startTime, route: route,
             locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)

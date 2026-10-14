@@ -66,7 +66,7 @@ struct DemoRideStarter {
             locationFixes: locationFixes, sensorSamples: sensorSamples, clock: SystemClock(), speed: clampedSpeed)
         let demoClock = SpeedScaledClock(base: SystemClock(), speed: clampedSpeed)
 
-        let (tracker, session) = makeTrackerAndSession(
+        let (tracker, session) = await makeTrackerAndSession(
             rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route, locationSource: driver,
             sensorSource: driver, clock: demoClock, rideStore: rideStore, routeStore: routeStore,
             decisionLog: decisionLog, notifier: notifier)

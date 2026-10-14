@@ -160,4 +160,53 @@ final class FeatureEngineTests: XCTestCase {
         let snapshot = await engine.snapshots.last
         XCTAssertNil(snapshot?.speedTrend)
     }
+
+    // MARK: - Personal baselines (task-1.2, Milestone 6)
+
+    @MainActor
+    func testWithNoBaselinesInjectedSpeedVsBaselineAndRideSoFarVsLongestStayNil() async {
+        let fixes = [fix(fractionAlongRoute: 0.1, speed: 5, time: 0)]
+        let tracker = freshRideTracker(route: climbingRoute(), fixes: fixes)
+        await tracker.start()
+        let engine = FeatureEngine(rideTracker: tracker, route: climbingRoute(), clock: ReplayClock())
+
+        _ = await engine.computeAndAppendSnapshot()
+
+        let snapshot = await engine.snapshots.last
+        XCTAssertNil(snapshot?.speedVsBaseline)
+        XCTAssertNil(snapshot?.rideSoFarVsLongest)
+    }
+
+    @MainActor
+    func testWithBaselinesInjectedSpeedVsBaselineIsComputedAsARatio() async {
+        // fix at fraction 0.1 on the 1%-grade climb: grade-adjusted speed = 5 + 0.1 = 5.1 m/s.
+        let fixes = [fix(fractionAlongRoute: 0.1, speed: 5, time: 0)]
+        let tracker = freshRideTracker(route: climbingRoute(), fixes: fixes)
+        await tracker.start()
+        let baselines = PersonalBaselines(averageMovingSpeedMetersPerSecond: 5.1, maximumDistanceMeters: 50_000)
+        let engine = FeatureEngine(
+            rideTracker: tracker, route: climbingRoute(), clock: ReplayClock(), baselines: baselines)
+
+        _ = await engine.computeAndAppendSnapshot()
+
+        let snapshot = await engine.snapshots.last
+        XCTAssertEqual(snapshot?.speedVsBaseline ?? -99, 0.0, accuracy: 0.001, "equal to baseline must be a 0 ratio")
+    }
+
+    @MainActor
+    func testWithBaselinesInjectedRideSoFarVsLongestIsComputedAsARatio() async {
+        let fixes = [fix(fractionAlongRoute: 0.1, speed: 5, time: 0)]
+        let tracker = freshRideTracker(route: climbingRoute(), fixes: fixes)
+        await tracker.start()
+        let baselines = PersonalBaselines(averageMovingSpeedMetersPerSecond: 5.1, maximumDistanceMeters: 2_000)
+        let engine = FeatureEngine(
+            rideTracker: tracker, route: climbingRoute(), clock: ReplayClock(), baselines: baselines)
+
+        _ = await engine.computeAndAppendSnapshot()
+
+        // Distance so far is 1,000m (fraction 0.1 of the 10,000m route); longest is 2,000m ->
+        // ratio = 1000/2000 - 1 = -0.5.
+        let snapshot = await engine.snapshots.last
+        XCTAssertEqual(snapshot?.rideSoFarVsLongest ?? 99, -0.5, accuracy: 0.001)
+    }
 }
