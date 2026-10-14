@@ -58,6 +58,13 @@ struct ContentView: View {
         rideFinisher: RideFinisher(
             rideRecorder: RideRecorder(
                 rideStore: RideStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-rides.json"))),
-            appRouter: AppRouter()),
+            appRouter: AppRouter(), decisionLog: DecisionLog(),
+            rideStore: RideStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-rides.json")),
+            rideIngestClient: RideIngestClient(
+                baseURL: URL(string: "http://localhost:8080")!,
+                authClient: AuthStubClient(baseURL: URL(string: "http://localhost:8080")!),
+                lazySignIn: LazySignIn(authClient: AuthStubClient(baseURL: URL(string: "http://localhost:8080")!))),
+            pendingUploadQueue: PendingRideUploadQueue(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-pending-uploads.json"))),
         onStartDemoRide: { _ in nil })
 }

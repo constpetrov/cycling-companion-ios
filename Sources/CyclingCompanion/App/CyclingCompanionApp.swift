@@ -23,10 +23,16 @@ struct CyclingCompanionApp: App {
     private let coordinator: CorridorImportCoordinator
     private let rideStarter: RideStarter
     private let rideFinisher: RideFinisher
+    private let rideIngestClient: RideIngestClient
+    private let pendingUploadQueue: PendingRideUploadQueue
 
     init() {
         let routeStore = RouteStore(fileURL: (try? RouteStore.defaultFileURL()) ?? FileManager.default.temporaryDirectory.appendingPathComponent("routes.json"))
         let rideStore = RideStore(fileURL: (try? RideStore.defaultFileURL()) ?? FileManager.default.temporaryDirectory.appendingPathComponent("rides.json"))
+        let pendingUploadsFileURL =
+            ((try? FileManager.default.url(
+                for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
+                ?? FileManager.default.temporaryDirectory).appendingPathComponent("pending_ride_uploads.json")
         let decisionLog = DecisionLog()
         let notifier = Notifier(scheduling: UNUserNotificationCenter.current(), log: decisionLog)
         let authClient = AuthStubClient(baseURL: Self.backendBaseURL)
@@ -48,7 +54,11 @@ struct CyclingCompanionApp: App {
         self.rideStarter = RideStarter(
             routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: decisionLog,
             notifier: notifier)
-        self.rideFinisher = RideFinisher(rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter)
+        self.rideIngestClient = RideIngestClient(baseURL: Self.backendBaseURL, authClient: authClient, lazySignIn: lazySignIn)
+        self.pendingUploadQueue = PendingRideUploadQueue(fileURL: pendingUploadsFileURL)
+        self.rideFinisher = RideFinisher(
+            rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, decisionLog: decisionLog,
+            rideStore: rideStore, rideIngestClient: rideIngestClient, pendingUploadQueue: pendingUploadQueue)
 
         appDelegate.appRouter = appRouter
     }
@@ -64,6 +74,8 @@ struct CyclingCompanionApp: App {
                     rideStore: rideStore, routeStore: routeStore, appRouter: appRouter, decisionLog: decisionLog,
                     notifier: notifier
                 ).resumeIfNeeded()
+                await PendingRideUploadRetrier(pendingUploadQueue: pendingUploadQueue, rideIngestClient: rideIngestClient)
+                    .retryPendingUploads()
             }
         }
     }

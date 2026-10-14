@@ -85,6 +85,13 @@ actor RideSession {
     }
     #endif
 
+    /// The ride's full feature-snapshot timeline so far (RULE-16 in spec/rules.md, Milestone 6)
+    /// — a thin forwarder so `RideFinisher` can read it for Ride Ingest without `featureEngine`
+    /// itself ever leaking outside this actor.
+    func featureSnapshots() async -> [FeatureSnapshot] {
+        await featureEngine.snapshots
+    }
+
     /// RULE-1/RULE-4/RULE-5/RULE-6: computes a snapshot, evaluates the Local Trigger/Local
     /// Advisor/Guardrail Gate chain, and calls the Notifier for an approved verdict. Never
     /// throws and never lets a rejected verdict or a no-suggestion decision stop the loop —

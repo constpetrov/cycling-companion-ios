@@ -131,6 +131,10 @@ struct RideResumer {
 struct RideFinisher {
     let rideRecorder: RideRecorder
     let appRouter: AppRouter
+    let decisionLog: DecisionLog
+    let rideStore: RideStore
+    let rideIngestClient: RideIngestClient
+    let pendingUploadQueue: PendingRideUploadQueue
 
     /// `endTime` is the one deliberate exception to this project's "never `Date()` directly"
     /// convention: every other use of that rule is about *computing a ride-data-derived
@@ -141,12 +145,58 @@ struct RideFinisher {
         liveRide.sessionTask.cancel()
 
         let tracker = liveRide.tracker
+        let endTime = Date()
         try? await rideRecorder.finalize(
-            rideId: tracker.rideId, routeId: tracker.routeId, startTime: tracker.startTime, endTime: Date(),
+            rideId: tracker.rideId, routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
             totalDistanceMeters: tracker.distanceAlongRouteMeters, totalMovingTimeSeconds: tracker.movingTimeSeconds,
             track: tracker.track)
 
+        await uploadRide(tracker: tracker, session: liveRide.session, endTime: endTime)
+
         appRouter.show(.home)
+    }
+
+    /// RULE-5/RULE-7/RULE-8/RULE-10/RULE-11 in spec/rules.md (AC-4 through AC-13): computes
+    /// `stopsTaken`/`outcome` on-device, uploads immediately, and queues for retry at the next
+    /// launch on any failure — never blocks `finishRide` on the network.
+    private func uploadRide(tracker: RideTracker, session: RideSession, endTime: Date) async {
+        let historicalRides = (try? await rideStore.fetchAll()) ?? []
+        let stopsTaken = RideOutcomeCalculator.stopsTaken(
+            postedNotifications: decisionLog.postedNotifications, track: tracker.track)
+        let outcome = RideOutcomeCalculator.outcome(
+            thisRideDistanceMeters: tracker.distanceAlongRouteMeters, historicalRides: historicalRides)
+        let snapshots = await session.featureSnapshots()
+
+        let payload = RideIngestRequestPayload(
+            routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
+            totalDistanceMeters: tracker.distanceAlongRouteMeters, totalMovingTimeSeconds: tracker.movingTimeSeconds,
+            stopsTaken: stopsTaken, outcome: outcome.rawValue, featureSnapshots: snapshots.map(FeatureSnapshotPayload.init))
+
+        let succeeded = await rideIngestClient.ingest(payload)
+        if !succeeded {
+            try? await pendingUploadQueue.enqueue(payload)
+        }
+    }
+}
+
+/// RULE-7 in spec/rules.md (AC-5/AC-6, Risk Hotspot 5 in spec/review.md): retries queued Ride
+/// Ingest uploads at launch, bounded to a small batch so a long offline streak can't delay the
+/// app becoming responsive. Mirrors `RideResumer`'s own launch-time pattern.
+struct PendingRideUploadRetrier {
+    static let maxUploadsPerLaunch = 5
+
+    let pendingUploadQueue: PendingRideUploadQueue
+    let rideIngestClient: RideIngestClient
+
+    func retryPendingUploads() async {
+        guard let pending = try? await pendingUploadQueue.fetchAllOldestFirst() else {
+            return
+        }
+        for upload in pending.prefix(Self.maxUploadsPerLaunch) {
+            if await rideIngestClient.ingest(upload.payload) {
+                try? await pendingUploadQueue.remove(id: upload.id)
+            }
+        }
     }
 }
 
