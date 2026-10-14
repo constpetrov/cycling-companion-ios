@@ -42,6 +42,25 @@ final class LazySignInTests: XCTestCase {
         XCTAssertEqual(callCount, 1)
     }
 
+    /// task-1.4 validation (Risk Hotspot 5 in spec/review.md): this milestone adds
+    /// `AdvisorClient` as a second caller of `LazySignIn.ensureSignedIn()` alongside the
+    /// existing `CorridorImportCoordinator`, the first time two call sites can plausibly race
+    /// — e.g. a ride starting immediately after import, before sign-in has settled. Confirms
+    /// the actor's isolation makes concurrent calls safe rather than assuming it from the
+    /// single-caller tests above.
+    func testConcurrentEnsureSignedInCallsResultInExactlyOneSignIn() async throws {
+        let transport = CountingTransport()
+        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
+        let lazySignIn = LazySignIn(authClient: authClient)
+
+        async let first: Void = lazySignIn.ensureSignedIn()
+        async let second: Void = lazySignIn.ensureSignedIn()
+        _ = try await (first, second)
+
+        let callCount = await transport.callCountSoFar()
+        XCTAssertEqual(callCount, 1, "two concurrent callers must still only trigger one sign-in network call")
+    }
+
     func testAuthorizeSucceedsAfterEnsureSignedIn() async throws {
         let transport = CountingTransport()
         let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)

@@ -18,6 +18,7 @@ actor RideSession {
     private let pollGranularitySeconds: TimeInterval
     private let decisionLog: DecisionLog
     private let notifier: Notifier
+    private let advisorClient: AdvisorClient?
 
     private let routeId: String
     private let routeStore: RouteStore
@@ -33,7 +34,7 @@ actor RideSession {
     init(
         rideTracker: RideTracker, featureEngine: FeatureEngine, clock: Clock, routeId: String, routeStore: RouteStore,
         decisionLog: DecisionLog, notifier: Notifier, snapshotIntervalSeconds: TimeInterval = 60.0,
-        pollGranularitySeconds: TimeInterval = 1.0
+        pollGranularitySeconds: TimeInterval = 1.0, advisorClient: AdvisorClient? = nil
     ) {
         self.rideTracker = rideTracker
         self.featureEngine = featureEngine
@@ -44,6 +45,7 @@ actor RideSession {
         self.notifier = notifier
         self.snapshotIntervalSeconds = snapshotIntervalSeconds
         self.pollGranularitySeconds = pollGranularitySeconds
+        self.advisorClient = advisorClient
     }
 
     /// One polling step: sleeps `pollGranularitySeconds`, then runs a cycle if the cadence has
@@ -115,16 +117,34 @@ actor RideSession {
 
         let rideStart = track.first?.timestamp ?? now
         let secondsSinceLastCheckThatProceeded = now.timeIntervalSince(lastAdvisorProceedTimestamp ?? rideStart)
-        if LocalTrigger.shouldProceed(
+        let triggerProceeds = LocalTrigger.shouldProceed(
             snapshot: snapshot, hasQualifyingStopAhead: hasQualifyingStopAhead,
             secondsSinceLastCheckThatProceeded: secondsSinceLastCheckThatProceeded)
-        {
+        if triggerProceeds {
             lastAdvisorProceedTimestamp = now
         }
 
-        let decision = LocalAdvisor.decide(
-            snapshot: snapshot, candidates: candidates, hasQualifyingStopAhead: hasQualifyingStopAhead,
-            secondsSinceLastCheckThatProceeded: secondsSinceLastCheckThatProceeded, log: decisionLog)
+        // RULE-12: the remote Advisor is attempted only when the trigger proceeds and there's
+        // at least one candidate — LocalAdvisor.decide already short-circuits to "no
+        // suggestion" on an empty candidate list, so attempting the remote call first would
+        // spend it on an already-known outcome. RULE-15: a non-nil remote decision (including
+        // a well-formed suggest:false) is used as-is, without also asking Local Advisor.
+        var remoteDecision: AdvisorDecision?
+        if triggerProceeds, !candidates.isEmpty, let advisorClient {
+            remoteDecision = await advisorClient.requestDecision(
+                rideId: rideTracker.rideId, routeId: routeId, snapshot: snapshot, candidates: candidates)
+            if let remoteDecision {
+                // RULE-16: exactly one decisionLog entry per cycle regardless of source —
+                // LocalAdvisor.decide logs its own decision internally; this mirrors that for
+                // the remote path rather than logging twice or not at all.
+                decisionLog.recordAdvisorDecision(remoteDecision)
+            }
+        }
+        let decision =
+            remoteDecision
+            ?? LocalAdvisor.decide(
+                snapshot: snapshot, candidates: candidates, hasQualifyingStopAhead: hasQualifyingStopAhead,
+                secondsSinceLastCheckThatProceeded: secondsSinceLastCheckThatProceeded, log: decisionLog)
 
         let lastStopTimestamp = snapshot.timeSinceLastStopSeconds.map { now.addingTimeInterval(-$0) }
         let verdict = GuardrailGate.evaluate(

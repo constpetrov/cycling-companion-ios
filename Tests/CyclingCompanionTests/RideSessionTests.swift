@@ -3,9 +3,38 @@ import XCTest
 
 @testable import CyclingCompanion
 
-/// task-1.3 through task-1.5 validation (RULE-1/RULE-4/RULE-5/RULE-6 in spec/rules.md, AC-12
-/// through AC-15, AC-24, AC-26): the cadence/force-check loop, the advisor-chain wiring, and
-/// the per-cycle `RouteStore` re-read.
+/// Routes requests by path suffix; a single stubbed sign-in response plus a configurable
+/// advisor-decision response. Tracks call counts per path so tests can assert whether the
+/// remote Advisor was ever attempted.
+private actor StubAdvisorTransport: HTTPTransport {
+    private let decisionStatusCode: Int
+    private let decisionBody: Data
+    private(set) var decisionCallCount = 0
+
+    init(decisionStatusCode: Int = 200, decisionBody: Data) {
+        self.decisionStatusCode = decisionStatusCode
+        self.decisionBody = decisionBody
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        let path = request.url!.path
+        if path.hasSuffix("sign-in") {
+            let body = #"{"token":"stub-jwt","riderId":"11111111-1111-1111-1111-111111111111"}"#
+                .data(using: .utf8)!
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (body, response)
+        }
+        decisionCallCount += 1
+        let response = HTTPURLResponse(
+            url: request.url!, statusCode: decisionStatusCode, httpVersion: nil, headerFields: nil)!
+        return (decisionBody, response)
+    }
+}
+
+/// task-1.3 through task-1.5 validation (RULE-1/RULE-4/RULE-5/RULE-6/RULE-12/RULE-14/RULE-15/
+/// RULE-16 in spec/rules.md, AC-1/AC-2/AC-9/AC-10/AC-11, AC-12 through AC-15, AC-24, AC-26):
+/// the cadence/force-check loop, the advisor-chain wiring (both Local and remote), and the
+/// per-cycle `RouteStore` re-read.
 final class RideSessionTests: XCTestCase {
 
     private static let routeId = "route-1"
@@ -41,7 +70,7 @@ final class RideSessionTests: XCTestCase {
     @MainActor
     private func makeSession(
         clock: Clock, tracker: RideTracker? = nil, routeStore: RouteStore? = nil, notifier: Notifier? = nil,
-        snapshotIntervalSeconds: TimeInterval = 60
+        snapshotIntervalSeconds: TimeInterval = 60, decisionLog: DecisionLog? = nil, advisorClient: AdvisorClient? = nil
     ) async -> RideSession {
         let tracker = tracker ?? freshRideTracker(route: flatRoute())
         let engine = FeatureEngine(rideTracker: tracker, route: flatRoute(), clock: clock)
@@ -54,8 +83,24 @@ final class RideSessionTests: XCTestCase {
         }
         return RideSession(
             rideTracker: tracker, featureEngine: engine, clock: clock, routeId: Self.routeId, routeStore: store,
-            decisionLog: DecisionLog(), notifier: notifier, snapshotIntervalSeconds: snapshotIntervalSeconds,
-            pollGranularitySeconds: 1.0)
+            decisionLog: decisionLog ?? DecisionLog(), notifier: notifier, snapshotIntervalSeconds: snapshotIntervalSeconds,
+            pollGranularitySeconds: 1.0, advisorClient: advisorClient)
+    }
+
+    /// Builds a real `AdvisorClient` backed by `StubAdvisorTransport` — matching this project's
+    /// convention of faking at the transport layer, not the service layer (`CorridorPollingService`'s
+    /// own tests do the same).
+    @MainActor
+    private func advisorClient(
+        decisionStatusCode: Int = 200, decisionBody: Data
+    ) -> (client: AdvisorClient, transport: StubAdvisorTransport) {
+        let transport = StubAdvisorTransport(decisionStatusCode: decisionStatusCode, decisionBody: decisionBody)
+        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
+        let lazySignIn = LazySignIn(authClient: authClient)
+        let client = AdvisorClient(
+            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, lazySignIn: lazySignIn,
+            transport: transport)
+        return (client, transport)
     }
 
     private func candidate(osmId: Int64 = 1, kmMarkMeters: Double = 1_000, detourMeters: Double = 300) -> PersistedPoiInput
@@ -231,5 +276,102 @@ final class RideSessionTests: XCTestCase {
         try await session.step()
         let postedAfterPOIsArrive = await scheduling.addedRequests
         XCTAssertEqual(postedAfterPOIsArrive.count, 1, "the very next cycle must pick up the newly-arrived POI")
+    }
+
+    // MARK: - Remote Advisor wiring (task-1.5, AC-1/AC-2/AC-9/AC-10/AC-11)
+
+    @MainActor
+    func testZeroCandidatesSkipsTheRemoteCallEntirely() async throws {
+        let tracker = await trackerPastTheQuietWindow()
+        let clock = ReplayClock()
+        let store = await routeStore(pois: [])  // zero candidates
+        let (client, transport) = advisorClient(decisionBody: #"{"suggest":false}"#.data(using: .utf8)!)
+        let session = await makeSession(clock: clock, tracker: tracker, routeStore: store, advisorClient: client)
+
+        await session.forceNextCheck()
+        try await session.step()
+
+        let decisionCalls = await transport.decisionCallCount
+        XCTAssertEqual(decisionCalls, 0, "the remote Advisor must never be called when there are no candidates")
+    }
+
+    @MainActor
+    func testASuccessfulRemoteDecisionIsUsedAndLocalAdvisorIsNotInvoked() async throws {
+        let tracker = await trackerPastTheQuietWindow()
+        let scheduling = FakeNotificationScheduling(initialStatus: .authorized, grantOnRequest: true)
+        let notifier = Notifier(scheduling: scheduling, log: DecisionLog())
+        let clock = ReplayClock()
+        let candidateStop = candidate(osmId: 1)
+        let store = await routeStore(pois: [candidateStop])
+        let decisionLog = DecisionLog()
+        let (client, _) = advisorClient(
+            decisionBody: #"""
+                {"suggest":true,"stopId":"1","urgency":"normal","reason":"remote-reason","message":"remote-message"}
+                """#.data(using: .utf8)!)
+        let session = await makeSession(
+            clock: clock, tracker: tracker, routeStore: store, notifier: notifier, decisionLog: decisionLog,
+            advisorClient: client)
+
+        await session.forceNextCheck()
+        try await session.step()
+
+        let logged = await decisionLog.advisorDecisions
+        XCTAssertEqual(logged.count, 1, "exactly one decision must be logged per cycle")
+        XCTAssertEqual(logged.first?.reason, "remote-reason", "Local Advisor would never produce this reason string")
+        let posted = await scheduling.addedRequests
+        XCTAssertEqual(posted.count, 1)
+    }
+
+    @MainActor
+    func testANilRemoteResultFallsBackToLocalAdvisor() async throws {
+        let tracker = await trackerPastTheQuietWindow()
+        let scheduling = FakeNotificationScheduling(initialStatus: .authorized, grantOnRequest: true)
+        let notifier = Notifier(scheduling: scheduling, log: DecisionLog())
+        let clock = ReplayClock()
+        let store = await routeStore(pois: [candidate()])
+        let decisionLog = DecisionLog()
+        // Unparseable response: AdvisorClient.requestDecision returns nil.
+        let (client, _) = advisorClient(decisionBody: "not json".data(using: .utf8)!)
+        let session = await makeSession(
+            clock: clock, tracker: tracker, routeStore: store, notifier: notifier, decisionLog: decisionLog,
+            advisorClient: client)
+
+        await session.forceNextCheck()
+        try await session.step()
+
+        let logged = await decisionLog.advisorDecisions
+        XCTAssertEqual(logged.count, 1, "exactly one decision must be logged per cycle, from the Local Advisor fallback")
+        XCTAssertEqual(logged.first?.stopId, "1", "the logged decision must be Local Advisor's (candidate's osmId), not a remote one")
+        let posted = await scheduling.addedRequests
+        XCTAssertEqual(posted.count, 1, "the fallback decision must still be able to post a notification")
+    }
+
+    @MainActor
+    func testAnInventedStopIsBlockedWithoutFallingBackToLocalAdvisor() async throws {
+        let tracker = await trackerPastTheQuietWindow()
+        let scheduling = FakeNotificationScheduling(initialStatus: .authorized, grantOnRequest: true)
+        let notifier = Notifier(scheduling: scheduling, log: DecisionLog())
+        let clock = ReplayClock()
+        let store = await routeStore(pois: [candidate(osmId: 1)])
+        let decisionLog = DecisionLog()
+        // suggest:true, but stop_id "999" isn't on the candidate list (which only has "1").
+        let (client, _) = advisorClient(
+            decisionBody: #"""
+                {"suggest":true,"stopId":"999","urgency":"normal","reason":"remote-reason","message":"remote-message"}
+                """#.data(using: .utf8)!)
+        let session = await makeSession(
+            clock: clock, tracker: tracker, routeStore: store, notifier: notifier, decisionLog: decisionLog,
+            advisorClient: client)
+
+        await session.forceNextCheck()
+        try await session.step()
+
+        let logged = await decisionLog.advisorDecisions
+        XCTAssertEqual(
+            logged.count, 1,
+            "Guardrail Gate blocking an invented stop must not trigger a second, Local Advisor decision this cycle")
+        XCTAssertEqual(logged.first?.stopId, "999", "the logged decision must still be the remote one, not a fallback")
+        let posted = await scheduling.addedRequests
+        XCTAssertTrue(posted.isEmpty, "an invented stop must never reach the rider as a notification")
     }
 }
