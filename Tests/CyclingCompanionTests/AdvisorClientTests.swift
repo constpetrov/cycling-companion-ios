@@ -80,7 +80,11 @@ final class AdvisorClientTests: XCTestCase {
                 #"{"suggest":true,"stopId":"42","urgency":"normal","reason":"speedTrend","message":"Test Cafe is coming up."}"#
                     .data(using: .utf8)!),
         ])
-        let client = makeClient(transport: responder)
+        // A real SystemClock-backed deadline is a race against actual wall-clock time, which a
+        // slow/contended CI runner can occasionally lose even though the stub has no real
+        // latency — GatedClock's sleep never resolves unless released (never is, here), so the
+        // deadline side can never win and this is deterministic regardless of machine speed.
+        let client = makeClient(transport: responder, clock: GatedClock())
 
         let decision = await client.requestDecision(
             rideId: "ride-1", routeId: "route-1", snapshot: snapshot(), candidates: candidates())
@@ -95,7 +99,7 @@ final class AdvisorClientTests: XCTestCase {
             "sign-in": (200, signInResponse),
             "advisor/decision": (200, #"{"suggest":false}"#.data(using: .utf8)!),
         ])
-        let client = makeClient(transport: responder)
+        let client = makeClient(transport: responder, clock: GatedClock())
 
         _ = await client.requestDecision(rideId: "ride-1", routeId: "route-1", snapshot: snapshot(), candidates: [])
 
@@ -111,7 +115,7 @@ final class AdvisorClientTests: XCTestCase {
             "sign-in": (200, signInResponse),
             "advisor/decision": (200, #"{"suggest":false}"#.data(using: .utf8)!),
         ])
-        let client = makeClient(transport: responder)
+        let client = makeClient(transport: responder, clock: GatedClock())
 
         _ = await client.requestDecision(
             rideId: "ride-1", routeId: "route-1", snapshot: snapshot(), candidates: candidates())
