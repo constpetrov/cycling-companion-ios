@@ -67,6 +67,8 @@ struct AdvisorDecisionResponsePayload: Decodable {
 /// unparseable JSON — so `RideSession` has exactly one uniform "fell back" signal to branch
 /// on (RULE-14); it never surfaces which failure occurred.
 actor AdvisorClient {
+    private static let log = Log.logger(category: "Advisor")
+
     private let baseURL: URL
     private let authClient: AuthStubClient
     private let lazySignIn: LazySignIn
@@ -90,9 +92,16 @@ actor AdvisorClient {
     func requestDecision(
         rideId: String, routeId: String, snapshot: FeatureSnapshot, candidates: [PersistedPoiInput]
     ) async -> AdvisorDecision? {
-        await raceWithDeadline(seconds: deadlineSeconds, clock: clock) { [self] in
+        let decision = await raceWithDeadline(seconds: deadlineSeconds, clock: clock) { [self] in
             try await fetchDecision(rideId: rideId, routeId: routeId, snapshot: snapshot, candidates: candidates)
         }
+        if let decision {
+            Self.log.info("Remote Advisor decision for ride \(rideId, privacy: .public): suggest=\(decision.suggest, privacy: .public)")
+        } else {
+            Self.log.notice(
+                "Remote Advisor call for ride \(rideId, privacy: .public) failed or timed out — falling back to LocalAdvisor")
+        }
+        return decision
     }
 
     private func fetchDecision(

@@ -134,6 +134,21 @@ once, on a real device, on the same real-POI-backed route from §3:
 - Directly confirming it: query the backend's `advisor_trace` table for a recent row and check
   `retrieved_ride_ids`/`retrieved_snapshot_ids` are non-empty JSON arrays, not `[]`.
 
+## Viewing logs
+
+The app logs its own events (sign-in, Advisor decisions, ride ingest/retry, notifications,
+route import, ride resume) via Apple's unified logging (`os.Logger`, subsystem
+`com.cyclingcompanion.app`) — this persists in the system log store and survives after the
+fact, unlike `print()`. Easiest: **Console.app**, select the Simulator or your connected device
+in the sidebar, filter by `com.cyclingcompanion.app`. From the terminal:
+
+- **Simulator**: the plain `log`/`log stream` commands on your Mac do *not* see Simulator
+  process logs (confirmed — they return nothing even while the app is actively logging). Use
+  `xcrun simctl spawn <device-id> log show --last 5m --predicate 'subsystem ==
+  "com.cyclingcompanion.app"'` (or `log stream` for live tailing) instead.
+- **Real device**: plain `log stream --predicate 'subsystem == "com.cyclingcompanion.app"'` on
+  your Mac works directly while the device is connected.
+
 ## Notes
 
 - The on-device rule-based fallback (`LocalAdvisor`) is indistinguishable from the LLM path at

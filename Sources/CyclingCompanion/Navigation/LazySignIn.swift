@@ -12,6 +12,8 @@ import Foundation
 /// double sign-in this type exists to prevent. A second caller instead awaits the first
 /// caller's own `Task`, so only one `signIn` call ever happens regardless of overlap.
 actor LazySignIn {
+    private static let log = Log.logger(category: "Auth")
+
     private let authClient: AuthStubClient
     private let placeholderIdentity: String
     private var hasSignedIn = false
@@ -40,11 +42,17 @@ actor LazySignIn {
         // unstructured, so cancelling whatever called `ensureSignedIn()` would otherwise never
         // reach the underlying `signIn` network call, leaving it to run forever. Explicitly
         // cancelling the owned task on cancellation is what actually propagates it.
-        try await withTaskCancellationHandler {
-            try await task.value
-        } onCancel: {
-            task.cancel()
+        do {
+            try await withTaskCancellationHandler {
+                try await task.value
+            } onCancel: {
+                task.cancel()
+            }
+        } catch {
+            Self.log.error("Sign-in failed: \(String(describing: error), privacy: .public)")
+            throw error
         }
         hasSignedIn = true
+        Self.log.info("Signed in as \(self.placeholderIdentity, privacy: .public)")
     }
 }

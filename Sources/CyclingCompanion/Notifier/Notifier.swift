@@ -6,6 +6,8 @@ import UserNotifications
 /// first Guardrail-approved suggestion, then posts a local notification naming the stop with a
 /// deep-link `userInfo` payload. Does nothing for a rejected/no-suggestion verdict.
 actor Notifier {
+    private static let osLog = Log.logger(category: "Notifier")
+
     private let scheduling: NotificationScheduling
     private let log: DecisionLog
 
@@ -23,6 +25,7 @@ actor Notifier {
             _ = try await scheduling.requestAuthorization()
         }
         guard await scheduling.authorizationStatus() == .authorized else {
+            Self.osLog.notice("Suppressing a suggested stop — notification permission not authorized")
             return
         }
 
@@ -38,5 +41,6 @@ actor Notifier {
         let request = UNNotificationRequest(identifier: stopId, content: content, trigger: nil)
         try await scheduling.add(request)
         log.recordPostedNotification(request)
+        Self.osLog.info("Posted stop notification for stopId=\(stopId, privacy: .public)")
     }
 }

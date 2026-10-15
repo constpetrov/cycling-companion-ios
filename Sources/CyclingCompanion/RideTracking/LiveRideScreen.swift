@@ -94,6 +94,8 @@ struct RideStarter {
 /// same "never a stuck loading state" rule `HomeViewModel.refresh()` already follows.
 @MainActor
 struct RideResumer {
+    private static let log = Log.logger(category: "RideTracking")
+
     let rideStore: RideStore
     let routeStore: RouteStore
     let appRouter: AppRouter
@@ -106,10 +108,14 @@ struct RideResumer {
             return
         }
         guard let checkpoint = try? await rideStore.fetchAll().first(where: { $0.endTime == nil }) else {
+            Self.log.notice("No unfinished ride to resume — falling back to Home")
             appRouter.show(.home)
             return
         }
         guard let route = try? await routeStore.fetch(routeId: checkpoint.routeId) else {
+            Self.log.error(
+                "Unfinished ride \(checkpoint.id, privacy: .public) references a missing route \(checkpoint.routeId, privacy: .public) — falling back to Home"
+            )
             appRouter.show(.home)
             return
         }
@@ -119,6 +125,7 @@ struct RideResumer {
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)
         try? await tracker.resumeIfNeeded(from: rideStore)
 
+        Self.log.info("Resumed ride \(checkpoint.id, privacy: .public)")
         appRouter.show(.liveRide(startLiveRideTasks(tracker: tracker, session: session)))
     }
 }
@@ -184,19 +191,25 @@ struct RideFinisher {
 /// app becoming responsive. Mirrors `RideResumer`'s own launch-time pattern.
 struct PendingRideUploadRetrier {
     static let maxUploadsPerLaunch = 5
+    private static let log = Log.logger(category: "RideIngest")
 
     let pendingUploadQueue: PendingRideUploadQueue
     let rideIngestClient: RideIngestClient
 
     func retryPendingUploads() async {
-        guard let pending = try? await pendingUploadQueue.fetchAllOldestFirst() else {
+        guard let pending = try? await pendingUploadQueue.fetchAllOldestFirst(), !pending.isEmpty else {
             return
         }
+        var succeeded = 0
         for upload in pending.prefix(Self.maxUploadsPerLaunch) {
             if await rideIngestClient.ingest(upload.payload) {
                 try? await pendingUploadQueue.remove(id: upload.id)
+                succeeded += 1
             }
         }
+        Self.log.info(
+            "Retried \(min(pending.count, Self.maxUploadsPerLaunch), privacy: .public) of \(pending.count, privacy: .public) queued ride uploads, \(succeeded, privacy: .public) succeeded"
+        )
     }
 }
 

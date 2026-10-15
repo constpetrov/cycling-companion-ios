@@ -11,6 +11,7 @@
 		082A2ACFD56B5B87614C9D2E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3E90750A92DFCB77548D0C /* AppDelegate.swift */; };
 		0B0D87938CEF695390FEE9E5 /* SensorSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */; };
 		1C38CA56D41B8627B572DDF8 /* ReplayLocationSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7F1427329F36441D4196B6 /* ReplayLocationSource.swift */; };
+		1ED49D4F4904D7271E0E28E0 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C3812DFE1C618FFAC0D95E /* Log.swift */; };
 		20048DED59406D3A89C939CB /* GatedClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = B408DF240A051E683A2D87CC /* GatedClock.swift */; };
 		212810B3D17BFFA2FFF09EE7 /* DemoRideStarterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCAD47AE39461ADC00482293 /* DemoRideStarterTests.swift */; };
 		21D0FD55341ADB92934504BB /* LocalAdvisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F66098AD0937AE1CE1EB6B82 /* LocalAdvisorTests.swift */; };
@@ -247,6 +248,7 @@
 		F505527CCDB5F1581F90FCFB /* HomeViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModelTests.swift; sourceTree = "<group>"; };
 		F66098AD0937AE1CE1EB6B82 /* LocalAdvisorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAdvisorTests.swift; sourceTree = "<group>"; };
 		F7394F7CCFDBBB41E9D9A2FC /* DemoModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModeTests.swift; sourceTree = "<group>"; };
+		F7C3812DFE1C618FFAC0D95E /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		FE105E19F5497AE22FA26827 /* GuardrailGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardrailGate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -291,6 +293,7 @@
 				70987000F6057937B7350102 /* ContentView.swift */,
 				16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */,
 				B81D7F9F4933773427941D7C /* Info.plist */,
+				F7C3812DFE1C618FFAC0D95E /* Log.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -748,6 +751,7 @@
 				63E12D15C572F8085039CA06 /* LocalAdvisor.swift in Sources */,
 				89F678BBFC6822AFACCB9DBF /* LocalTrigger.swift in Sources */,
 				51E421657DEA413D6DB86130 /* LocationSource.swift in Sources */,
+				1ED49D4F4904D7271E0E28E0 /* Log.swift in Sources */,
 				58BC0DAAC6CEEB9A124F45A0 /* NotificationScheduling.swift in Sources */,
 				B02D1AC1E915F36E872051E9 /* Notifier.swift in Sources */,
 				3E5692939A100932A9BA848E /* POILookahead.swift in Sources */,

@@ -20,6 +20,8 @@ private struct RideIngestResponsePayload: Decodable {
 /// existing transparent sign-in flow (no second sign-in path). Returns `false` (never throws)
 /// for every failure case, so `RideFinisher` has one uniform "upload failed, queue it" signal.
 actor RideIngestClient {
+    private static let log = Log.logger(category: "RideIngest")
+
     private let baseURL: URL
     private let authClient: AuthStubClient
     private let lazySignIn: LazySignIn
@@ -47,11 +49,14 @@ actor RideIngestClient {
 
             let (data, response) = try await transport.data(for: authorized)
             guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                Self.log.notice("Ride ingest failed with a non-2xx response — will be queued for retry")
                 return false
             }
-            _ = try JSONDecoder().decode(RideIngestResponsePayload.self, from: data)
+            let decoded = try JSONDecoder().decode(RideIngestResponsePayload.self, from: data)
+            Self.log.info("Ride ingested: \(decoded.rideId, privacy: .public)")
             return true
         } catch {
+            Self.log.notice("Ride ingest failed: \(String(describing: error), privacy: .public) — will be queued for retry")
             return false
         }
     }

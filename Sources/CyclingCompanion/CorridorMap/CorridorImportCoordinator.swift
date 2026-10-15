@@ -15,6 +15,8 @@ import RoutePersistence
 @MainActor
 @Observable
 final class CorridorImportCoordinator {
+    private static let log = Log.logger(category: "CorridorImport")
+
     private(set) var points: [PersistedPointInput] = []
     private(set) var pois: [PersistedPoiInput] = []
     private(set) var importErrorMessage: String?
@@ -54,9 +56,11 @@ final class CorridorImportCoordinator {
             pois = []
             pointer.routeId = response.routeId
             appRouter.show(.corridorMap)
+            Self.log.info("Imported route \(response.routeId, privacy: .public), status=\(response.status, privacy: .public)")
             return pollAndUpdate(routeId: response.routeId)
         } catch {
             importErrorMessage = "Couldn't import this route. Please try again."
+            Self.log.error("Route import failed: \(String(describing: error), privacy: .public)")
             return nil
         }
     }
