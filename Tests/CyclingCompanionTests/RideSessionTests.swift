@@ -296,6 +296,38 @@ final class RideSessionTests: XCTestCase {
     }
 
     @MainActor
+    func testSharedRideFactoryForwardsTheRemoteAdvisorIntoTheSession() async throws {
+        let store = await routeStore(pois: [candidate()])
+        let route = PersistedRoute(
+            id: Self.routeId, hash: "hash", totalDistanceMeters: 10_000, totalClimbingMeters: nil, status: "ready",
+            points: flatRoute().map {
+                PersistedPointInput(
+                    latitude: $0.latitude, longitude: $0.longitude, elevationMeters: $0.elevationMeters,
+                    cumulativeDistanceMeters: $0.cumulativeDistanceMeters)
+            }, pois: [candidate()])
+        let rideStore = RideStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        let log = DecisionLog()
+        let (client, transport) = advisorClient(decisionBody: #"{"suggest":false}"#.data(using: .utf8)!)
+        let (tracker, session) = await makeTrackerAndSession(
+            rideId: "factory-ride", routeId: Self.routeId, startTime: Date(timeIntervalSince1970: 1_000),
+            route: route,
+            locationSource: ReplayLocationSource(fixes: [
+                LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 1_000)),
+                LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 1_700)),
+            ]), sensorSource: ReplaySensorSource(samples: []), clock: ReplayClock(),
+            rideStore: rideStore, routeStore: store, decisionLog: log,
+            notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: log), advisorClient: client)
+        await tracker.start()
+        await session.forceNextCheck()
+        try await session.step()
+
+        let callCount = await transport.decisionCallCount
+        XCTAssertEqual(callCount, 1)
+        let decisions = await log.advisorDecisions
+        XCTAssertEqual(decisions.first?.suggest, false)
+    }
+
+    @MainActor
     func testASuccessfulRemoteDecisionIsUsedAndLocalAdvisorIsNotInvoked() async throws {
         let tracker = await trackerPastTheQuietWindow()
         let scheduling = FakeNotificationScheduling(initialStatus: .authorized, grantOnRequest: true)

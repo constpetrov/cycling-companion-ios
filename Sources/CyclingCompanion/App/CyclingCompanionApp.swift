@@ -6,12 +6,7 @@ import UserNotifications
 struct CyclingCompanionApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    /// Dev-only: the backend's default local port (Spring Boot's own default, confirmed
-    /// against `application.yml`). The Simulator reaches the host Mac's `localhost` directly;
-    /// iOS exempts loopback addresses from App Transport Security, so no Info.plist exception
-    /// is needed.
-    private static let backendBaseURL = URL(string: "http://localhost:8080")!
-
+    private let configurationError: String?
     private let appRouter: AppRouter
     private let routeStore: RouteStore
     private let rideStore: RideStore
@@ -20,6 +15,7 @@ struct CyclingCompanionApp: App {
     private let notifier: Notifier
     private let authClient: AuthStubClient
     private let lazySignIn: LazySignIn
+    private let advisorClient: AdvisorClient
     private let coordinator: CorridorImportCoordinator
     private let rideStarter: RideStarter
     private let rideFinisher: RideFinisher
@@ -27,6 +23,16 @@ struct CyclingCompanionApp: App {
     private let pendingUploadQueue: PendingRideUploadQueue
 
     init() {
+        let configuration: BackendConfiguration
+        do {
+            configuration = try BackendConfiguration.load()
+            self.configurationError = nil
+        } catch {
+            // Construct inert dependencies, but show the configuration error instead of
+            // starting network requests or resuming a ride against a wrong server.
+            configuration = .local
+            self.configurationError = error.localizedDescription
+        }
         let routeStore = RouteStore(fileURL: (try? RouteStore.defaultFileURL()) ?? FileManager.default.temporaryDirectory.appendingPathComponent("routes.json"))
         let rideStore = RideStore(fileURL: (try? RideStore.defaultFileURL()) ?? FileManager.default.temporaryDirectory.appendingPathComponent("rides.json"))
         let pendingUploadsFileURL =
@@ -35,8 +41,10 @@ struct CyclingCompanionApp: App {
                 ?? FileManager.default.temporaryDirectory).appendingPathComponent("pending_ride_uploads.json")
         let decisionLog = DecisionLog()
         let notifier = Notifier(scheduling: UNUserNotificationCenter.current(), log: decisionLog)
-        let authClient = AuthStubClient(baseURL: Self.backendBaseURL)
+        let authClient = AuthStubClient(baseURL: configuration.baseURL, demoAccessToken: configuration.demoAccessToken)
         let lazySignIn = LazySignIn(authClient: authClient)
+        // The HTTP deadline uses wall-clock time, even during an accelerated demo replay.
+        let advisorClient = AdvisorClient(baseURL: configuration.baseURL, authClient: authClient, lazySignIn: lazySignIn)
         let appRouter = AppRouter()
         let pointer = CurrentRoutePointer()
 
@@ -46,15 +54,16 @@ struct CyclingCompanionApp: App {
         self.notifier = notifier
         self.authClient = authClient
         self.lazySignIn = lazySignIn
+        self.advisorClient = advisorClient
         self.appRouter = appRouter
         self.pointer = pointer
         self.coordinator = CorridorImportCoordinator(
-            corridorPollingService: CorridorPollingService(baseURL: Self.backendBaseURL, authClient: authClient),
+            corridorPollingService: CorridorPollingService(baseURL: configuration.baseURL, authClient: authClient),
             routeStore: routeStore, pointer: pointer, appRouter: appRouter, lazySignIn: lazySignIn)
         self.rideStarter = RideStarter(
             routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: decisionLog,
-            notifier: notifier)
-        self.rideIngestClient = RideIngestClient(baseURL: Self.backendBaseURL, authClient: authClient, lazySignIn: lazySignIn)
+            notifier: notifier, advisorClient: advisorClient)
+        self.rideIngestClient = RideIngestClient(baseURL: configuration.baseURL, authClient: authClient, lazySignIn: lazySignIn)
         self.pendingUploadQueue = PendingRideUploadQueue(fileURL: pendingUploadsFileURL)
         self.rideFinisher = RideFinisher(
             rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, decisionLog: decisionLog,
@@ -65,17 +74,23 @@ struct CyclingCompanionApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(
-                appRouter: appRouter, routeStore: routeStore, coordinator: coordinator, rideStarter: rideStarter,
-                rideFinisher: rideFinisher, onStartDemoRide: startDemoRide
-            )
-            .task {
-                await RideResumer(
-                    rideStore: rideStore, routeStore: routeStore, appRouter: appRouter, decisionLog: decisionLog,
-                    notifier: notifier
-                ).resumeIfNeeded()
-                await PendingRideUploadRetrier(pendingUploadQueue: pendingUploadQueue, rideIngestClient: rideIngestClient)
-                    .retryPendingUploads()
+            if let configurationError {
+                ContentUnavailableView(
+                    "Backend configuration required", systemImage: "network",
+                    description: Text(configurationError))
+            } else {
+                ContentView(
+                    appRouter: appRouter, routeStore: routeStore, coordinator: coordinator, rideStarter: rideStarter,
+                    rideFinisher: rideFinisher, onStartDemoRide: startDemoRide
+                )
+                .task {
+                    await RideResumer(
+                        rideStore: rideStore, routeStore: routeStore, appRouter: appRouter, decisionLog: decisionLog,
+                        notifier: notifier, advisorClient: advisorClient
+                    ).resumeIfNeeded()
+                    await PendingRideUploadRetrier(pendingUploadQueue: pendingUploadQueue, rideIngestClient: rideIngestClient)
+                        .retryPendingUploads()
+                }
             }
         }
     }
@@ -88,7 +103,8 @@ struct CyclingCompanionApp: App {
         let fixture = DemoFixture.loadBundled()
         let starter = DemoRideStarter(
             routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: decisionLog,
-            notifier: notifier, locationFixes: fixture.locationFixes, sensorSamples: fixture.sensorSamples)
+            notifier: notifier, locationFixes: fixture.locationFixes, sensorSamples: fixture.sensorSamples,
+            advisorClient: advisorClient)
         return await starter.startDemoRide(speed: speed)
         #else
         return nil

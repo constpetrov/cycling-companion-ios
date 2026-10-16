@@ -11,6 +11,9 @@ much more than an hour including one real ride, something's gone wrong.
 
 ## 0. Before you start
 
+For the Nebius backend and a physical iPhone, start with the
+[Russian setup and installation guide](../iphone-nebius-setup.ru.md).
+
 - **Backend running and reachable** — see `cycling-companion-backend/docs/deployment.md`.
   Variant A (`java -jar`) is the simplest for this.
 - **Set `NEBIUS_API_KEY` on the backend** if you want to see real LLM-driven Advisor messages.
@@ -21,27 +24,19 @@ much more than an hour including one real ride, something's gone wrong.
 
 ## 1. Pointing the app at your backend
 
-`CyclingCompanionApp.swift` hardcodes `http://localhost:8080` — there's no environment variable
-or build setting to override it.
+The application reads `CC_BACKEND_BASE_URL` and `CC_DEMO_ACCESS_TOKEN` from build settings
+embedded in Info.plist. Copy `Config/Backend.local.xcconfig.example` to
+`Config/Backend.local.xcconfig` (ignored by Git), then set your actual HTTPS domain and the
+separate Caddy demo gateway key. Keep Nebius credentials on the server.
 
-- **Simulator**: works as-is. The Simulator shares the Mac's network, so `localhost:8080`
-  reaches a backend running on the same Mac directly.
-- **Real device**: `localhost` on the phone means the phone itself, not your Mac. You have to:
-  1. Find your Mac's LAN IP (e.g. `ipconfig getifaddr en0`).
-  2. Edit `backendBaseURL` in `Sources/CyclingCompanion/App/CyclingCompanionApp.swift` to
-     `http://<that-ip>:8080`.
-  3. Add an App Transport Security exception for that IP — the project currently has none, and
-     plain HTTP to a non-loopback address is blocked by default. Add to `project.yml`'s
-     `info.properties`:
-     ```yaml
-     NSAppTransportSecurity:
-       NSExceptionDomains:
-         <your-ip>:
-           NSExceptionAllowsInsecureHTTPLoads: true
-     ```
-  4. `xcodegen generate` to regenerate the project with the updated Info.plist.
-  5. Revert both edits once you're done — they're local-only scaffolding, not something to
-     commit.
+- **Simulator**: defaults to `http://localhost:8080` without a local override, including an
+  SSH tunnel forwarding that port to Nebius.
+- **Physical device**: requires a reachable HTTPS origin and the demo gateway key. Do not
+  use localhost or add a blanket ATS exception. Missing/invalid settings show a configuration
+  error at launch; rebuild after changing the local configuration.
+
+The shared remote Advisor is wired into Start Ride, Resume and Demo Mode. Its eight-second
+network deadline uses wall-clock time rather than the accelerated replay clock.
 
 ## 2. Install & first run
 

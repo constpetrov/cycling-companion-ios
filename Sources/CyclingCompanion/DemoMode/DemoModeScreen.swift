@@ -48,6 +48,7 @@ struct DemoRideStarter {
     let notifier: Notifier
     let locationFixes: [LocationFix]
     let sensorSamples: [SensorSample]
+    var advisorClient: AdvisorClient? = nil
 
     /// Returns the started `RideSession` (`nil` if there's no current route to ride against)
     /// so the caller — `DemoModeScreen`'s own "Start Demo Ride" action — can retain it for the
@@ -69,7 +70,7 @@ struct DemoRideStarter {
         let (tracker, session) = await makeTrackerAndSession(
             rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route, locationSource: driver,
             sensorSource: driver, clock: demoClock, rideStore: rideStore, routeStore: routeStore,
-            decisionLog: decisionLog, notifier: notifier)
+            decisionLog: decisionLog, notifier: notifier, advisorClient: advisorClient)
 
         appRouter.show(.liveRide(startLiveRideTasks(tracker: tracker, session: session)))
         return session

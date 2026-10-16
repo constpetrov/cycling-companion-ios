@@ -1,0 +1,6 @@
+// Keep private device settings in the ignored Backend.local.xcconfig beside this file.
+CC_URL_SLASH = /
+CC_BACKEND_BASE_URL = http:$(CC_URL_SLASH)$(CC_URL_SLASH)localhost:8080
+CC_DEMO_ACCESS_TOKEN =
+
+#include? "Backend.local.xcconfig"

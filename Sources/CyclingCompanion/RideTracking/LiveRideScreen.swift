@@ -26,7 +26,7 @@ struct LiveRide {
 func makeTrackerAndSession(
     rideId: String, routeId: String, startTime: Date, route: PersistedRoute, locationSource: LocationSource,
     sensorSource: SensorSource, clock: Clock, rideStore: RideStore, routeStore: RouteStore,
-    decisionLog: DecisionLog, notifier: Notifier
+    decisionLog: DecisionLog, notifier: Notifier, advisorClient: AdvisorClient? = nil
 ) async -> (tracker: RideTracker, session: RideSession) {
     let resampledPoints = route.points.map {
         ResampledPoint(
@@ -41,7 +41,7 @@ func makeTrackerAndSession(
     let engine = FeatureEngine(rideTracker: tracker, route: resampledPoints, clock: clock, baselines: baselines)
     let session = RideSession(
         rideTracker: tracker, featureEngine: engine, clock: clock, routeId: routeId, routeStore: routeStore,
-        decisionLog: decisionLog, notifier: notifier)
+        decisionLog: decisionLog, notifier: notifier, advisorClient: advisorClient)
     return (tracker, session)
 }
 
@@ -67,6 +67,7 @@ struct RideStarter {
     let appRouter: AppRouter
     let decisionLog: DecisionLog
     let notifier: Notifier
+    var advisorClient: AdvisorClient? = nil
 
     func startRide() async {
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
@@ -79,7 +80,8 @@ struct RideStarter {
         let (tracker, session) = await makeTrackerAndSession(
             rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route,
             locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
-            rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)
+            rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
+            advisorClient: advisorClient)
 
         appRouter.show(.liveRide(startLiveRideTasks(tracker: tracker, session: session)))
     }
@@ -101,6 +103,7 @@ struct RideResumer {
     let appRouter: AppRouter
     let decisionLog: DecisionLog
     let notifier: Notifier
+    var advisorClient: AdvisorClient? = nil
 
     func resumeIfNeeded() async {
         await appRouter.determineInitialScreen(rideStore: rideStore)
@@ -122,7 +125,8 @@ struct RideResumer {
         let (tracker, session) = await makeTrackerAndSession(
             rideId: checkpoint.id, routeId: checkpoint.routeId, startTime: checkpoint.startTime, route: route,
             locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
-            rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier)
+            rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
+            advisorClient: advisorClient)
         try? await tracker.resumeIfNeeded(from: rideStore)
 
         Self.log.info("Resumed ride \(checkpoint.id, privacy: .public)")

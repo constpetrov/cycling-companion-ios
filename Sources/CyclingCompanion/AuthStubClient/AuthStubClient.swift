@@ -27,11 +27,13 @@ enum AuthStubClientError: Error {
 actor AuthStubClient {
     private let baseURL: URL
     private let transport: HTTPTransport
+    private let demoAccessToken: String?
     private var token: String?
 
-    init(baseURL: URL, transport: HTTPTransport = URLSession.shared) {
+    init(baseURL: URL, transport: HTTPTransport = URLSession.shared, demoAccessToken: String? = nil) {
         self.baseURL = baseURL
         self.transport = transport
+        self.demoAccessToken = demoAccessToken
     }
 
     @discardableResult
@@ -39,6 +41,7 @@ actor AuthStubClient {
         var request = URLRequest(url: baseURL.appendingPathComponent("api/v1/auth/sign-in"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(demoAccessToken, forHTTPHeaderField: "X-CC-Demo-Key")
         request.httpBody = try JSONEncoder().encode(["placeholderIdentity": placeholderIdentity])
 
         let (data, response) = try await transport.data(for: request)
@@ -58,6 +61,7 @@ actor AuthStubClient {
         }
         var authorized = request
         authorized.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        authorized.setValue(demoAccessToken, forHTTPHeaderField: "X-CC-Demo-Key")
         return authorized
     }
 }

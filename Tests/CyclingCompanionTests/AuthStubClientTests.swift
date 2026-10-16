@@ -5,8 +5,10 @@ import XCTest
 private struct StubTransport: HTTPTransport {
     let statusCode: Int
     let body: Data
+    var expectedDemoAccessToken: String? = nil
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-CC-Demo-Key"), expectedDemoAccessToken)
         let response = HTTPURLResponse(
             url: request.url!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
         return (body, response)
@@ -15,6 +17,21 @@ private struct StubTransport: HTTPTransport {
 
 /// AC-11 in spec/criteria.md: the iOS app includes the auth-stub JWT on Route API calls.
 final class AuthStubClientTests: XCTestCase {
+
+    func testDemoGatewayKeyIsSentDuringSignInAndAlongsideTheJWT() async throws {
+        let body = #"{"token":"stub-jwt-value","riderId":"11111111-1111-1111-1111-111111111111"}"#
+            .data(using: .utf8)!
+        let client = AuthStubClient(
+            baseURL: URL(string: "https://backend.example.com")!,
+            transport: StubTransport(statusCode: 200, body: body, expectedDemoAccessToken: "test-demo-key"),
+            demoAccessToken: "test-demo-key")
+        _ = try await client.signIn(placeholderIdentity: "device-test-identity")
+
+        let request = URLRequest(url: URL(string: "https://backend.example.com/api/v1/routes")!)
+        let authorized = try await client.authorize(request)
+        XCTAssertEqual(authorized.value(forHTTPHeaderField: "Authorization"), "Bearer stub-jwt-value")
+        XCTAssertEqual(authorized.value(forHTTPHeaderField: "X-CC-Demo-Key"), "test-demo-key")
+    }
 
     func testAuthorizeAttachesStoredJWTAsBearerHeader() async throws {
         let body = #"{"token":"stub-jwt-value","riderId":"11111111-1111-1111-1111-111111111111"}"#
