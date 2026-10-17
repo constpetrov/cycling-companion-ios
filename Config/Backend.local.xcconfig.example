@@ -1,4 +1,4 @@
 // Copy to Backend.local.xcconfig and fill in the purchased API hostname and demo key.
 // Slashes use a build-setting variable because two literal slashes start an xcconfig comment.
-CC_BACKEND_BASE_URL = https:$(CC_URL_SLASH)$(CC_URL_SLASH)api.your-domain.com
+CC_BACKEND_BASE_URL = https:$(CC_URL_SLASH)$(CC_URL_SLASH)api.cyclecomp.site
 CC_DEMO_ACCESS_TOKEN = CHANGE_ME_SEPARATE_DEMO_GATEWAY_KEY
