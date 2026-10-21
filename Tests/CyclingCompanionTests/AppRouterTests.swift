@@ -64,4 +64,49 @@ final class AppRouterTests: XCTestCase {
 
         XCTAssertEqual(router.currentScreen, .liveRide(nil))
     }
+
+    @MainActor
+    private func liveRide() -> LiveRide {
+        let tracker = RideTracker(
+            rideId: UUID().uuidString, routeId: "route-1", startTime: Date(), route: [],
+            locationSource: ReplayLocationSource(fixes: []), sensorSource: ReplaySensorSource(samples: []),
+            clock: ReplayClock(), rideStore: freshRideStore())
+        let log = DecisionLog()
+        let session = RideSession(
+            rideTracker: tracker, featureEngine: FeatureEngine(rideTracker: tracker, route: [], clock: ReplayClock()),
+            clock: ReplayClock(), routeId: "route-1",
+            routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)),
+            decisionLog: log, notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: log))
+        return LiveRide(tracker: tracker, session: session, trackingTask: Task {}, sessionTask: Task {})
+    }
+
+    @MainActor
+    func testReplacingLiveRideCancelsBothOldTasks() {
+        let router = AppRouter()
+        let first = liveRide()
+        let second = liveRide()
+        router.show(.liveRide(first))
+
+        router.show(.liveRide(second))
+
+        XCTAssertTrue(first.trackingTask.isCancelled)
+        XCTAssertTrue(first.sessionTask.isCancelled)
+        XCTAssertFalse(second.sessionTask.isCancelled)
+        router.show(.home)
+        XCTAssertTrue(second.trackingTask.isCancelled)
+        XCTAssertTrue(second.sessionTask.isCancelled)
+    }
+
+    @MainActor
+    func testPlaceholderCannotDiscardAnActiveRide() {
+        let router = AppRouter()
+        let ride = liveRide()
+        router.show(.liveRide(ride))
+
+        router.show(.liveRide(nil))
+
+        XCTAssertEqual(router.currentScreen, .liveRide(ride))
+        XCTAssertFalse(ride.sessionTask.isCancelled)
+        router.show(.home)
+    }
 }

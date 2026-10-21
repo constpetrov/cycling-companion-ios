@@ -6,6 +6,41 @@ import XCTest
 /// AC-2/AC-3/AC-4's three-point pattern. Pure function, no RideTracker involved.
 final class GeoMathClosestPointTests: XCTestCase {
 
+    private func loop() -> [ResampledPoint] {
+        [(52.0, 13.0), (52.0, 13.01), (52.01, 13.01), (52.01, 13.0), (52.0, 13.0)]
+            .enumerated().map { index, coordinate in
+                ResampledPoint(
+                    latitude: coordinate.0, longitude: coordinate.1, elevationMeters: nil,
+                    cumulativeDistanceMeters: Double(index) * 1_000)
+            }
+    }
+
+    func testSharedStartFinishMatchesFinishWhenProgressIsNearFinish() {
+        let result = GeoMath.closestPointOnRoute(
+            latitude: 52, longitude: 13, route: loop(), progressRange: 3_800...4_000)
+        XCTAssertEqual(result.distanceAlongRouteMeters, 4_000, accuracy: 0.01)
+        XCTAssertEqual(result.offRouteMeters, 0, accuracy: 0.01)
+    }
+
+    func testGpsNoiseNearStartDoesNotMatchFinishBranch() {
+        let result = GeoMath.closestPointOnRoute(
+            latitude: 52.00001, longitude: 13, route: loop(), progressRange: 0...100)
+        XCTAssertEqual(result.distanceAlongRouteMeters, 0, accuracy: 0.01)
+        XCTAssertLessThan(result.offRouteMeters, 50)
+    }
+
+    func testReachableRangeAllowsBacktracking() {
+        let result = GeoMath.closestPointOnRoute(
+            latitude: 52, longitude: 13.004, route: loop(), progressRange: 300...700)
+        XCTAssertEqual(result.distanceAlongRouteMeters, 400, accuracy: 0.01)
+    }
+
+    func testUnreachableBranchDoesNotProduceAnAcceptedMatch() {
+        let result = GeoMath.closestPointOnRoute(
+            latitude: 52, longitude: 13, route: loop(), progressRange: 1_500...2_500)
+        XCTAssertGreaterThan(result.offRouteMeters, 50)
+    }
+
     /// An east-west segment at a fixed latitude, so a pure north offset from its midpoint is
     /// exactly the perpendicular (off-route) distance under the same equirectangular
     /// approximation `closestPointOnRoute` itself uses — no floating-point-approximation

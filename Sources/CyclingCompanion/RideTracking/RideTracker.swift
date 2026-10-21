@@ -58,6 +58,7 @@ final class RideTracker {
     private let clock: Clock
     private let rideStore: RideStore
     private var previousFixTimestamp: Date?
+    private var lastMatchedFix: LocationFix?
 
     init(
         rideId: String, routeId: String, startTime: Date, route: [ResampledPoint], locationSource: LocationSource,
@@ -81,12 +82,19 @@ final class RideTracker {
     /// the first post-resume fix as if it had no predecessor avoids inventing a bogus moving-
     /// time interval spanning however long the app was actually terminated for.
     func resumeIfNeeded(from store: RideStore) async throws {
-        guard let checkpoint = try await store.fetchAll().first(where: { $0.endTime == nil }) else {
+        guard let checkpoint = try await store.fetchAll().first(where: {
+            $0.endTime == nil && (rideId.isEmpty || $0.id == rideId)
+        }) else {
             return
         }
         distanceAlongRouteMeters = checkpoint.totalDistanceMeters
         movingTimeSeconds = checkpoint.totalMovingTimeSeconds
         track = checkpoint.track
+        if let last = track.last {
+            lastMatchedFix = LocationFix(
+                latitude: last.latitude, longitude: last.longitude,
+                speedMetersPerSecond: last.speedMetersPerSecond, timestamp: last.timestamp)
+        }
         etaSeconds = computeETA()
     }
 
@@ -111,9 +119,12 @@ final class RideTracker {
             latestFix = fix
             accumulateMovingTime(upTo: fix)
 
-            let closestPoint = GeoMath.closestPointOnRoute(latitude: fix.latitude, longitude: fix.longitude, route: route)
+            let closestPoint = GeoMath.closestPointOnRoute(
+                latitude: fix.latitude, longitude: fix.longitude, route: route,
+                progressRange: reachableProgress(for: fix))
             if closestPoint.offRouteMeters <= Self.corridorToleranceMeters {
                 distanceAlongRouteMeters = closestPoint.distanceAlongRouteMeters
+                lastMatchedFix = fix
                 etaSeconds = computeETA()
             }
 
@@ -124,6 +135,20 @@ final class RideTracker {
 
             await checkpoint()
         }
+    }
+
+    /// Uses both elapsed GPS time and displacement, allowing sparse fixes and real
+    /// backtracking. 25 m/s is a generous cycling bound; 100 m absorbs GPS noise. The
+    /// displacement allowance accommodates bends and resampled route distances.
+    private func reachableProgress(for fix: LocationFix) -> ClosedRange<Double>? {
+        guard let previous = lastMatchedFix else { return nil }
+        let elapsed = max(0, fix.timestamp.timeIntervalSince(previous.timestamp))
+        let displacement = GeoMath.haversineDistanceMeters(
+            TrackPoint(latitude: previous.latitude, longitude: previous.longitude, elevationMeters: nil),
+            TrackPoint(latitude: fix.latitude, longitude: fix.longitude, elevationMeters: nil))
+        let allowance = max(100, max(elapsed * 25, displacement * 3))
+        let progress = min(totalRouteDistanceMeters, max(0, distanceAlongRouteMeters))
+        return max(0, progress - allowance)...min(totalRouteDistanceMeters, progress + allowance)
     }
 
     /// RULE-12: persists the accumulated state so far with `endTime` left unset. A failed

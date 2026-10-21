@@ -92,14 +92,16 @@ actor AdvisorClient {
     func requestDecision(
         rideId: String, routeId: String, snapshot: FeatureSnapshot, candidates: [PersistedPoiInput]
     ) async -> AdvisorDecision? {
+        let started = Date()
         let decision = await raceWithDeadline(seconds: deadlineSeconds, clock: clock) { [self] in
             try await fetchDecision(rideId: rideId, routeId: routeId, snapshot: snapshot, candidates: candidates)
         }
+        let elapsedMilliseconds = Int(Date().timeIntervalSince(started) * 1_000)
         if let decision {
-            Self.log.info("Remote Advisor decision for ride \(rideId, privacy: .public): suggest=\(decision.suggest, privacy: .public)")
+            Self.log.info("Remote Advisor decision for ride \(rideId, privacy: .public): suggest=\(decision.suggest, privacy: .public), durationMs=\(elapsedMilliseconds, privacy: .public)")
         } else {
             Self.log.notice(
-                "Remote Advisor call for ride \(rideId, privacy: .public) failed or timed out — falling back to LocalAdvisor")
+                "Remote Advisor call for ride \(rideId, privacy: .public) failed or timed out — falling back to LocalAdvisor (durationMs=\(elapsedMilliseconds, privacy: .public))")
         }
         return decision
     }
@@ -123,6 +125,8 @@ actor AdvisorClient {
 
         let (data, response) = try await transport.data(for: authorized)
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            Self.log.notice("Advisor HTTP failure for ride \(rideId, privacy: .public): status=\(status, privacy: .public)")
             throw AdvisorClientError.unexpectedResponse
         }
 

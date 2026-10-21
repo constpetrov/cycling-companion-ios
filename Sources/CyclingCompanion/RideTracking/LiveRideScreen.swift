@@ -70,6 +70,8 @@ struct RideStarter {
     var advisorClient: AdvisorClient? = nil
 
     func startRide() async {
+        guard appRouter.beginPreparingRide() else { return }
+        defer { appRouter.endPreparingRide() }
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
             return
         }
@@ -106,6 +108,8 @@ struct RideResumer {
     var advisorClient: AdvisorClient? = nil
 
     func resumeIfNeeded() async {
+        guard appRouter.beginPreparingRide(resuming: true) else { return }
+        defer { appRouter.endPreparingRide() }
         await appRouter.determineInitialScreen(rideStore: rideStore)
         guard case .liveRide(nil) = appRouter.currentScreen else {
             return

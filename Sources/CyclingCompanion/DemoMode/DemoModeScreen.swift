@@ -55,6 +55,8 @@ struct DemoRideStarter {
     /// force-check control (task-4.4) to reach later.
     @discardableResult
     func startDemoRide(speed: Double) async -> RideSession? {
+        guard appRouter.beginPreparingRide() else { return nil }
+        defer { appRouter.endPreparingRide() }
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
             return nil
         }

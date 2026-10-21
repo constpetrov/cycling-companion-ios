@@ -18,17 +18,44 @@ final class AppRouter {
     }
 
     private(set) var currentScreen: Screen = .home
+    private var preparingRide = false
+
+    /// Acquired synchronously before Start/Resume/Demo's first await. All three paths
+    /// share this router, so rapid taps and a launch-time resume cannot start two loops.
+    func beginPreparingRide(resuming: Bool = false) -> Bool {
+        guard !preparingRide else { return false }
+        if case .liveRide(let ride) = currentScreen, ride != nil || !resuming {
+            return false
+        }
+        preparingRide = true
+        return true
+    }
+
+    func endPreparingRide() {
+        preparingRide = false
+    }
 
     /// AC-1/AC-17: checks `RideStore` for an unfinished ride and shows the live ride screen if
     /// one exists, Home otherwise — called once, early in the app's lifecycle, before the
     /// rider can interact with anything. Only decides *which* screen to show; task-3.2 extends
     /// the unfinished-ride path to also resume the actual `RideTracker`/`RideSession` pair.
     func determineInitialScreen(rideStore: RideStore) async {
+        if case .liveRide(.some) = currentScreen { return }
         let hasUnfinishedRide = (try? await rideStore.fetchAll().contains { $0.endTime == nil }) ?? false
-        currentScreen = hasUnfinishedRide ? .liveRide(nil) : .home
+        if case .liveRide(.some) = currentScreen { return }
+        show(hasUnfinishedRide ? .liveRide(nil) : .home)
     }
 
     func show(_ screen: Screen) {
+        if case .liveRide(let oldRide?) = currentScreen {
+            if case .liveRide(nil) = screen { return }
+            if case .liveRide(let newRide?) = screen, oldRide.tracker === newRide.tracker {
+                currentScreen = screen
+                return
+            }
+            oldRide.trackingTask.cancel()
+            oldRide.sessionTask.cancel()
+        }
         currentScreen = screen
     }
 }

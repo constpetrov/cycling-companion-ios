@@ -89,4 +89,30 @@ final class RideStarterTests: XCTestCase {
 
         XCTAssertEqual(appRouter.currentScreen, .home)
     }
+
+    @MainActor
+    func testRepeatedStartKeepsTheExistingRideAndTasks() async throws {
+        let routeStore = freshRouteStore()
+        try await routeStore.persist(
+            routeId: "route-1", hash: "hash", totalDistanceMeters: 10_000, totalClimbingMeters: nil,
+            points: samplePoints(), pois: [], status: "ready")
+        let router = AppRouter()
+        let starter = makeStarter(routeStore: routeStore, pointer: freshPointer(routeId: "route-1"), appRouter: router)
+        await starter.startRide()
+        guard case .liveRide(let first?) = router.currentScreen else {
+            return XCTFail("expected first ride")
+        }
+        defer {
+            first.trackingTask.cancel()
+            first.sessionTask.cancel()
+        }
+
+        await starter.startRide()
+
+        guard case .liveRide(let second?) = router.currentScreen else {
+            return XCTFail("expected existing ride")
+        }
+        XCTAssertTrue(first.tracker === second.tracker)
+        XCTAssertFalse(first.sessionTask.isCancelled)
+    }
 }

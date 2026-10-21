@@ -71,6 +71,29 @@ final class POILookaheadTests: XCTestCase {
         XCTAssertFalse(result.map(\.osmId).contains(6))
     }
 
+    func testFarSheltersWithTinyDetoursDoNotDisplaceNearbyCafe() {
+        let shelters = (1...5).map { index in
+            PersistedPoiInput(
+                osmId: Int64(index), type: "REST_SHELTER", name: nil, latitude: 52, longitude: 13,
+                kmMarkMeters: 26_500 + Double(index), detourMeters: 2, openingHours: nil)
+        }
+        let cafe = poi(osmId: 99, kmMarkMeters: 500, detourMeters: 40)
+
+        let result = POILookahead.rankedCandidates(pois: shelters + [cafe], currentKmMarkMeters: 0)
+
+        XCTAssertEqual(result.first?.osmId, 99)
+        XCTAssertEqual(result.count, 5)
+    }
+
+    func testTotalDistanceToReachStopIncludesItsDetour() {
+        let result = POILookahead.rankedCandidates(pois: [
+            poi(osmId: 1, kmMarkMeters: 100, detourMeters: 1_900),
+            poi(osmId: 2, kmMarkMeters: 500, detourMeters: 20),
+        ], currentKmMarkMeters: 0)
+
+        XCTAssertEqual(result.map(\.osmId), [2, 1])
+    }
+
     // MARK: - Closed-at-ETA exclusion (AC-24)
 
     private func poi(

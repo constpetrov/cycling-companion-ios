@@ -60,6 +60,28 @@ final class DemoRideStarterTests: XCTestCase {
     }
 
     @MainActor
+    func testConcurrentDemoStartsCreateOnlyOneSession() async throws {
+        let routeStore = freshRouteStore()
+        try await routeStore.persist(
+            routeId: "route-1", hash: "hash", totalDistanceMeters: 1_000, totalClimbingMeters: nil,
+            points: [
+                PersistedPointInput(latitude: 52, longitude: 13, elevationMeters: nil, cumulativeDistanceMeters: 0),
+                PersistedPointInput(latitude: 52, longitude: 13.01, elevationMeters: nil, cumulativeDistanceMeters: 1_000),
+            ], pois: [], status: "ready")
+        let router = AppRouter()
+        let starter = makeStarter(
+            routeStore: routeStore, pointer: freshPointer(routeId: "route-1"), appRouter: router,
+            decisionLog: DecisionLog())
+
+        let first = Task { @MainActor in await starter.startDemoRide(speed: 20) }
+        let second = Task { @MainActor in await starter.startDemoRide(speed: 20) }
+        let sessions = [await first.value, await second.value].compactMap { $0 }
+
+        XCTAssertEqual(sessions.count, 1)
+        router.show(.home)
+    }
+
+    @MainActor
     func testStartDemoRideFedThroughTheReplayDriverProducesDecisionLogEntries() async throws {
         let routeStore = freshRouteStore()
         try await routeStore.persist(

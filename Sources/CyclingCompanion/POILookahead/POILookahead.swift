@@ -33,19 +33,27 @@ enum POILookahead {
     }
 
     /// Candidate stops between `currentKmMarkMeters` and `lookaheadMeters` ahead, ranked by
-    /// detour (ascending) then type priority, capped at `maxCandidates` (RULE-18). No opening-
+    /// distance to reach the stop (along-route + detour), then type priority, capped at
+    /// `maxCandidates`. A shelter 26 km ahead must not beat a nearby cafe just because
+    /// it sits closer to the route line. No opening-
     /// hours check — exposed separately so the range/rank/cap logic is independently testable
     /// from the closed-at-ETA exclusion (RULE-17). `candidates(...)` above composes both.
     static func rankedCandidates(pois: [PersistedPoiInput], currentKmMarkMeters: Double) -> [PersistedPoiInput] {
         let ahead = pois.filter { poi in
             let distanceAheadMeters = poi.kmMarkMeters - currentKmMarkMeters
-            return distanceAheadMeters >= 0 && distanceAheadMeters <= lookaheadMeters
+            return distanceAheadMeters.isFinite && poi.detourMeters.isFinite && poi.detourMeters >= 0
+                && distanceAheadMeters >= 0 && distanceAheadMeters <= lookaheadMeters
         }
         let ranked = ahead.sorted { lhs, rhs in
-            if lhs.detourMeters != rhs.detourMeters {
-                return lhs.detourMeters < rhs.detourMeters
+            let lhsDistance = lhs.kmMarkMeters - currentKmMarkMeters + lhs.detourMeters
+            let rhsDistance = rhs.kmMarkMeters - currentKmMarkMeters + rhs.detourMeters
+            if lhsDistance != rhsDistance {
+                return lhsDistance < rhsDistance
             }
-            return (typePriority[lhs.type] ?? Int.max) < (typePriority[rhs.type] ?? Int.max)
+            let lhsPriority = typePriority[lhs.type] ?? Int.max
+            let rhsPriority = typePriority[rhs.type] ?? Int.max
+            if lhsPriority != rhsPriority { return lhsPriority < rhsPriority }
+            return lhs.osmId < rhs.osmId
         }
         return Array(ranked.prefix(maxCandidates))
     }

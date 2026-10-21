@@ -35,11 +35,86 @@ final class RideTrackerMapMatchingTests: XCTestCase {
     }
 
     @MainActor
-    private func tracker(fixes: [LocationFix]) -> RideTracker {
+    private func tracker(fixes: [LocationFix], customRoute: [ResampledPoint]? = nil) -> RideTracker {
         RideTracker(
-            rideId: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), route: route(),
+            rideId: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), route: customRoute ?? route(),
             locationSource: ReplayLocationSource(fixes: fixes), sensorSource: ReplaySensorSource(samples: []),
             clock: ReplayClock(), rideStore: freshRideStore())
+    }
+
+    private func loopRoute() -> [ResampledPoint] {
+        [
+            ResampledPoint(latitude: 52.0, longitude: 13.0, elevationMeters: nil, cumulativeDistanceMeters: 0),
+            ResampledPoint(latitude: 52.0, longitude: 13.01, elevationMeters: nil, cumulativeDistanceMeters: 1_000),
+            ResampledPoint(latitude: 52.01, longitude: 13.01, elevationMeters: nil, cumulativeDistanceMeters: 2_000),
+            ResampledPoint(latitude: 52.01, longitude: 13.0, elevationMeters: nil, cumulativeDistanceMeters: 3_000),
+            ResampledPoint(latitude: 52.0, longitude: 13.0, elevationMeters: nil, cumulativeDistanceMeters: 4_000),
+        ]
+    }
+
+    @MainActor
+    func testReturningToSharedStartFinishDoesNotResetProgress() async {
+        let tracker = tracker(fixes: [
+            LocationFix(latitude: 52.0002, longitude: 13.0, speedMetersPerSecond: 3,
+                        timestamp: Date(timeIntervalSince1970: 0)),
+            LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 0,
+                        timestamp: Date(timeIntervalSince1970: 10)),
+        ], customRoute: loopRoute())
+
+        await tracker.start()
+
+        XCTAssertEqual(tracker.distanceAlongRouteMeters, 4_000, accuracy: 1)
+        let engine = FeatureEngine(rideTracker: tracker, route: loopRoute(), clock: ReplayClock())
+        let snapshot = await engine.computeAndAppendSnapshot()
+        XCTAssertEqual(snapshot.remainingEffortMeters ?? -1, 0, accuracy: 1)
+    }
+
+    @MainActor
+    func testGpsNoiseNearStartCannotJumpToFinishOfLoop() async {
+        let tracker = tracker(fixes: [
+            LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 0,
+                        timestamp: Date(timeIntervalSince1970: 0)),
+            LocationFix(latitude: 52.00001, longitude: 13.0, speedMetersPerSecond: 0,
+                        timestamp: Date(timeIntervalSince1970: 1)),
+        ], customRoute: loopRoute())
+
+        await tracker.start()
+
+        XCTAssertEqual(tracker.distanceAlongRouteMeters, 0, accuracy: 1)
+    }
+
+    @MainActor
+    func testResumedRideKeepsFinishBranchOfLoop() async throws {
+        let store = freshRideStore()
+        try await store.persist(PersistedRide(
+            id: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), endTime: nil,
+            totalDistanceMeters: 3_980, totalMovingTimeSeconds: 600,
+            track: [PersistedRideSample(
+                latitude: 52.0002, longitude: 13.0, speedMetersPerSecond: 3, heartRateBPM: nil,
+                cadenceRPM: nil, timestamp: Date(timeIntervalSince1970: 600))]))
+        let tracker = RideTracker(
+            rideId: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), route: loopRoute(),
+            locationSource: ReplayLocationSource(fixes: [
+                LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 0,
+                            timestamp: Date(timeIntervalSince1970: 610))
+            ]), sensorSource: ReplaySensorSource(samples: []), clock: ReplayClock(), rideStore: store)
+
+        try await tracker.resumeIfNeeded(from: store)
+        await tracker.start()
+
+        XCTAssertEqual(tracker.distanceAlongRouteMeters, 4_000, accuracy: 1)
+    }
+
+    @MainActor
+    func testRealBacktrackingIsStillAllowed() async {
+        let tracker = tracker(fixes: [
+            fix(fractionAlongRoute: 0.5, offRouteMeters: 0, time: 0),
+            fix(fractionAlongRoute: 0.4, offRouteMeters: 0, time: 20),
+        ])
+
+        await tracker.start()
+
+        XCTAssertEqual(tracker.distanceAlongRouteMeters, 400, accuracy: 1)
     }
 
     @MainActor

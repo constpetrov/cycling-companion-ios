@@ -39,7 +39,8 @@ enum GeoMath {
     /// query point to it (RULE-9 in spec/rules.md) — ported from the backend's
     /// `GeoMath.closestPointOnRoute` (Java), same equirectangular-projection approach.
     static func closestPointOnRoute(
-        latitude: Double, longitude: Double, route: [ResampledPoint]
+        latitude: Double, longitude: Double, route: [ResampledPoint],
+        progressRange: ClosedRange<Double>? = nil
     ) -> ClosestPointResult {
         let queryPoint = TrackPoint(latitude: latitude, longitude: longitude, elevationMeters: nil)
 
@@ -72,6 +73,13 @@ enum GeoMath {
             let offRoute = hypot(px - clampedT * bx, py - clampedT * by)
             let segmentLength = b.cumulativeDistanceMeters - a.cumulativeDistanceMeters
             let distanceAlongRoute = a.cumulativeDistanceMeters + clampedT * segmentLength
+
+            // A loop's start and finish can share the same coordinates. Restrict matching
+            // to reachable progress when the caller has a previous fix; small backtracking
+            // remains valid, but a GPS wobble cannot jump to another lap/route branch.
+            if let progressRange, !progressRange.contains(distanceAlongRoute) {
+                continue
+            }
 
             if offRoute < bestOffRoute {
                 bestOffRoute = offRoute

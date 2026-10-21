@@ -68,6 +68,13 @@ final class RideResumerTests: XCTestCase {
         XCTAssertEqual(tracker.movingTimeSeconds, 600)
         XCTAssertEqual(tracker.track.count, 1)
 
+        await resumer.resumeIfNeeded()
+        guard case .liveRide(let resumedAgain) = appRouter.currentScreen else {
+            return XCTFail("expected the same active ride")
+        }
+        XCTAssertTrue(resumedAgain?.tracker === tracker, "a second launch task must not spawn another session")
+        XCTAssertFalse(liveRide?.sessionTask.isCancelled ?? true)
+
         liveRide?.trackingTask.cancel()
         liveRide?.sessionTask.cancel()
     }

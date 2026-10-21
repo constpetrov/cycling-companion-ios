@@ -91,4 +91,18 @@ final class RideTrackerResumeTests: XCTestCase {
         XCTAssertEqual(tracker.movingTimeSeconds, 0)
         XCTAssertTrue(tracker.track.isEmpty)
     }
+
+    @MainActor
+    func testDoesNotLoadAnotherUnfinishedRidesCheckpoint() async throws {
+        let store = RideStore(fileURL: tempStoreFileURL())
+        try await store.persist(PersistedRide(
+            id: "other-ride", routeId: "other-route", startTime: Date(), endTime: nil,
+            totalDistanceMeters: 9_000, totalMovingTimeSeconds: 600, track: []))
+        let tracker = freshTracker(rideStore: store)
+
+        try await tracker.resumeIfNeeded(from: store)
+
+        XCTAssertEqual(tracker.distanceAlongRouteMeters, 0)
+        XCTAssertTrue(tracker.track.isEmpty)
+    }
 }
