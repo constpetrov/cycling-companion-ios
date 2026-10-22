@@ -178,4 +178,20 @@ final class RideCoordinatorTests: XCTestCase {
         guard case .live = coordinator.presentation else { return XCTFail("expected .live") }
         coordinator.end(ride)
     }
+
+    /// The cover is presented with `.fullScreenCover(item:)`: a stable id means switching from the
+    /// live ride to its summary updates the cover in place rather than dismissing it (AC-11).
+    @MainActor
+    func testLiveAndSummaryShareOnePresentationIdentity() {
+        let coordinator = RideCoordinator()
+        let ride = liveRide()
+        coordinator.activate(ride)
+        let liveId = coordinator.presentation?.id
+
+        coordinator.end(ride)
+        coordinator.presentSummary(.notSaved)
+
+        XCTAssertNotNil(liveId)
+        XCTAssertEqual(coordinator.presentation?.id, liveId)
+    }
 }

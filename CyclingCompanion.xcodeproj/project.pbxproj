@@ -96,6 +96,7 @@
 		C13A5649FE7FDC7A9508E3C0 /* NormalizedOpeningHoursPayloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2B28EE20780FB25674A4AF /* NormalizedOpeningHoursPayloadTests.swift */; };
 		C177297C7CD5146401DCA046 /* CorridorMapViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C2A04B34847B7621B5C7F0 /* CorridorMapViewTests.swift */; };
 		C2EA12BFDAE7EF6EACC54E8C /* GuardrailGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE105E19F5497AE22FA26827 /* GuardrailGate.swift */; };
+		C33D31422136220994F71BC5 /* RideSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74CB0BEE84CE06566B3A605B /* RideSummaryView.swift */; };
 		C3C5C0D133EC4125E77A120B /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5204D4A91B8BA5FCA63FEEF9 /* HomeView.swift */; };
 		C5045D7D5EB065F75D677C53 /* DecisionLogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC53996CA4BDD9C1F6974084 /* DecisionLogTests.swift */; };
 		C57264055270FF68970C3A44 /* CyclingCompanionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */; };
@@ -207,6 +208,7 @@
 		6FBF98DDF5BAD4F8F462C7B3 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		70987000F6057937B7350102 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		715933033BE0C1E6E0E0834A /* CorridorMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorMapView.swift; sourceTree = "<group>"; };
+		74CB0BEE84CE06566B3A605B /* RideSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSummaryView.swift; sourceTree = "<group>"; };
 		750874F3FF8CCE60CE37917F /* DemoFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFixture.swift; sourceTree = "<group>"; };
 		7F73C336BB66E87351EEBD6D /* AdvisorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvisorClient.swift; sourceTree = "<group>"; };
 		81219A6957FB02A0606F9C9E /* RideFixtureReplayDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFixtureReplayDriver.swift; sourceTree = "<group>"; };
@@ -356,6 +358,14 @@
 				1BFACAAE6FC2C84153FA74E6 /* RoutePersistence */,
 			);
 			path = Packages;
+			sourceTree = "<group>";
+		};
+		663E713977FBAC5B55E75B15 /* RideSummary */ = {
+			isa = PBXGroup;
+			children = (
+				74CB0BEE84CE06566B3A605B /* RideSummaryView.swift */,
+			);
+			path = RideSummary;
 			sourceTree = "<group>";
 		};
 		7968C1BE962B9688300717B0 /* Config */ = {
@@ -542,6 +552,7 @@
 				118339DA305F7F7955841ABD /* POILookahead */,
 				CE573FF391F9FA5BB6126201 /* RideLifecycle */,
 				DA8DA16168D67A4D5D592B74 /* RideSession */,
+				663E713977FBAC5B55E75B15 /* RideSummary */,
 				B88487FDF5EF5ECC7B24AEB3 /* RideTracking */,
 				DAF09FF53EEFFF7E558F0FB9 /* RouteImporter */,
 			);
@@ -833,6 +844,7 @@
 				E1E5AF8BD1C3C8F8EDF10F10 /* RideResumer.swift in Sources */,
 				A74AD7E9FA56193455642A14 /* RideSession.swift in Sources */,
 				5FF2C43932D039D998B1D6B1 /* RideStarter.swift in Sources */,
+				C33D31422136220994F71BC5 /* RideSummaryView.swift in Sources */,
 				B0610CE5382580E76572EE69 /* RideTracker.swift in Sources */,
 				824B52903D649C5128FB0754 /* RouteAPIPayloads.swift in Sources */,
 				B893FBED4036ED77BD5B100C /* RouteHasher.swift in Sources */,

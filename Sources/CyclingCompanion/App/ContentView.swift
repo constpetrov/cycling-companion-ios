@@ -1,23 +1,38 @@
 import SwiftUI
 
-/// The app's root view (RULE-7/RULE-9): the live ride whenever `RideCoordinator` has an active
-/// ride, otherwise a `NavigationStack` rooted at Home whose pushed screens come from
-/// `AppRouter.path`. It never decides anything itself; everything comes from `AppDependencies`.
+/// The app's root view (RULE-7/RULE-9): a `NavigationStack` rooted at Home whose pushed screens
+/// come from `AppRouter.path`, with the ride (live, then its summary) in a full-screen cover driven
+/// by `RideCoordinator.presentation`. It never decides anything itself; everything comes from `AppDependencies`.
 struct ContentView: View {
     @Environment(AppDependencies.self) private var dependencies
 
     var body: some View {
-        if let liveRide = dependencies.rideCoordinator.activeRide {
-            LiveRideScreen(
-                rideTracker: liveRide.tracker,
-                onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } })
-        } else {
-            @Bindable var router = dependencies.appRouter
-            NavigationStack(path: $router.path) {
-                HomeView()
-                    .navigationDestination(for: HomeRoute.self, destination: destination)
-            }
+        @Bindable var router = dependencies.appRouter
+        NavigationStack(path: $router.path) {
+            HomeView()
+                .navigationDestination(for: HomeRoute.self, destination: destination)
         }
+        .fullScreenCover(item: ridePresentation) { presentation in
+            Group {
+                switch presentation {
+                case .live(let liveRide):
+                    LiveRideScreen(
+                        rideTracker: liveRide.tracker,
+                        onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } })
+                case .summary(let outcome):
+                    RideSummaryView(outcome: outcome, onDone: dependencies.rideCoordinator.dismissSummary)
+                }
+            }
+            .interactiveDismissDisabled()
+        }
+    }
+
+    /// The cover follows `RideCoordinator.presentation` (RULE-7). It can only be closed by the
+    /// summary's Done, so the only write that reaches the setter is that dismissal.
+    private var ridePresentation: Binding<RidePresentation?> {
+        Binding(
+            get: { dependencies.rideCoordinator.presentation },
+            set: { if $0 == nil { dependencies.rideCoordinator.dismissSummary() } })
     }
 
     @ViewBuilder

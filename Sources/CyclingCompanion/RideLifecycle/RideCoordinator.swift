@@ -14,12 +14,9 @@ enum RidePresentation: Identifiable {
     case live(LiveRide)
     case summary(FinishOutcome)
 
-    var id: String {
-        switch self {
-        case .live(let ride): "live-\(ride.tracker.rideId)"
-        case .summary: "summary"
-        }
-    }
+    /// The same for both cases, so switching from the live ride to its summary updates the cover
+    /// in place instead of dismissing it and presenting a new one.
+    var id: String { "ride" }
 }
 
 /// Owns the ride lifecycle (RULE-1/RULE-2 in milestone 7's rules.md): which ride is active, the
