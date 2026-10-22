@@ -13,8 +13,7 @@ struct RideFinisher {
     let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
     let rideStore: RideStore
-    let rideIngestClient: RideIngestClient
-    let pendingUploadQueue: PendingRideUploadQueue
+    let uploader: RideUploader
 
     /// `endTime` is the one deliberate exception to this project's "never `Date()` directly"
     /// convention: every other use of that rule is about *computing a ride-data-derived
@@ -60,6 +59,7 @@ struct RideFinisher {
     /// `stopsTaken`/`outcome` on-device, uploads immediately, and queues for retry at the next
     /// launch on any failure — never blocks `finishRide` on the network.
     private func uploadRide(tracker: RideTracker, session: RideSession, endTime: Date) async {
+        // RULE-22: keyed by the local ride id, so a retry replaces rather than duplicates.
         let historicalRides = (try? await rideStore.fetchAll()) ?? []
         let stopsTaken = RideOutcomeCalculator.stopsTaken(
             postedNotifications: decisionLog.postedNotifications, track: tracker.track)
@@ -72,9 +72,6 @@ struct RideFinisher {
             totalDistanceMeters: tracker.distanceAlongRouteMeters, totalMovingTimeSeconds: tracker.movingTimeSeconds,
             stopsTaken: stopsTaken, outcome: outcome.rawValue, featureSnapshots: snapshots.map(FeatureSnapshotPayload.init))
 
-        let succeeded = await rideIngestClient.ingest(payload)
-        if !succeeded {
-            try? await pendingUploadQueue.enqueue(payload)
-        }
+        await uploader.upload(payload, rideId: tracker.rideId)
     }
 }

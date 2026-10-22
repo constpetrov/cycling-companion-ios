@@ -61,7 +61,7 @@ final class RideFinisherTests: XCTestCase {
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         return RideFinisher(
             rideRecorder: rideRecorder, rideCoordinator: rideCoordinator, decisionLog: DecisionLog(), rideStore: rideStore,
-            rideIngestClient: ingestClient, pendingUploadQueue: pendingQueue)
+            uploader: RideUploader(ingestClient: ingestClient, queue: pendingQueue))
     }
 
     @MainActor
