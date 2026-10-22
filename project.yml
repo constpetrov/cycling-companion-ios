@@ -49,6 +49,7 @@ targets:
     scheme:
       testTargets:
         - CyclingCompanionTests
+        - CyclingCompanionUITests
       commandLineArguments: {}
 
   CyclingCompanionTests:
@@ -60,6 +61,19 @@ targets:
     dependencies:
       - target: CyclingCompanion
       - package: RoutePersistence
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+
+  CyclingCompanionUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Tests/CyclingCompanionUITests
+    dependencies:
+      - target: CyclingCompanion
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

@@ -22,11 +22,22 @@ struct ContentView: View {
                             idleTimer: dependencies.idleTimer),
                         onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } })
                 case .summary(let outcome):
-                    RideSummaryView(outcome: outcome, onDone: dependencies.rideCoordinator.dismissSummary)
+                    RideSummaryView(
+                        viewModel: RideSummaryViewModel(
+                            outcome: outcome, uploader: dependencies.rideUploader,
+                            decisionLog: dependencies.decisionLog),
+                        onDone: closeSummary)
                 }
             }
             .interactiveDismissDisabled()
         }
+    }
+
+    /// AC-85: Done closes the cover and shows Home, whatever was pushed when the ride started
+    /// (Demo Mode, the corridor map).
+    private func closeSummary() {
+        dependencies.appRouter.popToHome()
+        dependencies.rideCoordinator.dismissSummary()
     }
 
     /// The cover follows `RideCoordinator.presentation` (RULE-7). It can only be closed by the
@@ -34,7 +45,7 @@ struct ContentView: View {
     private var ridePresentation: Binding<RidePresentation?> {
         Binding(
             get: { dependencies.rideCoordinator.presentation },
-            set: { if $0 == nil { dependencies.rideCoordinator.dismissSummary() } })
+            set: { if $0 == nil { closeSummary() } })
     }
 
     @ViewBuilder

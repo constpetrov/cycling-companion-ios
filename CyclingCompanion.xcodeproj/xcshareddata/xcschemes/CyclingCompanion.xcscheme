@@ -50,6 +50,17 @@
                ReferencedContainer = "container:CyclingCompanion.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4EB2C1464DCC5F7F0B8C81E1"
+               BuildableName = "CyclingCompanionUITests.xctest"
+               BlueprintName = "CyclingCompanionUITests"
+               ReferencedContainer = "container:CyclingCompanion.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

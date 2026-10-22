@@ -5,7 +5,16 @@ import RoutePersistence
 /// ever sets `endTime` on a `PersistedRide`. `RideTracker` checkpoints the same id throughout
 /// the ride with `endTime` left unset (RULE-12); this call supersedes that last checkpoint
 /// with the completed record, invoked only once, when the ride ends.
-struct RideRecorder {
+/// Writes the finished ride (`RideRecorder` in production). A protocol so a failing write can be
+/// tested (AC-84 in milestone 7's criteria.md).
+protocol RideFinalizing: Sendable {
+    func finalize(
+        rideId: String, routeId: String, startTime: Date, endTime: Date, totalDistanceMeters: Double,
+        totalMovingTimeSeconds: Double, track: [PersistedRideSample]
+    ) async throws -> PersistedRide
+}
+
+struct RideRecorder: RideFinalizing {
     private let rideStore: RideStore
 
     init(rideStore: RideStore) {

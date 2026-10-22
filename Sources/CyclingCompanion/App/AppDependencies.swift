@@ -25,6 +25,7 @@ final class AppDependencies {
     let rideFinisher: RideFinisher
     let rideIngestClient: RideIngestClient
     let pendingUploadQueue: PendingRideUploadQueue
+    let rideUploader: RideUploader
     let homeViewModel: HomeViewModel
     let keepScreenOnPreference: KeepScreenOnPreference
     let idleTimer: IdleTimerControlling
@@ -66,10 +67,11 @@ final class AppDependencies {
             notifier: notifier, advisorClient: advisorClient)
         self.rideIngestClient = rideIngestClient
         self.pendingUploadQueue = pendingUploadQueue
+        let rideUploader = RideUploader(ingestClient: rideIngestClient, queue: pendingUploadQueue)
+        self.rideUploader = rideUploader
         self.rideFinisher = RideFinisher(
             rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator,
-            decisionLog: decisionLog, rideStore: rideStore, rideIngestClient: rideIngestClient,
-            pendingUploadQueue: pendingUploadQueue)
+            decisionLog: decisionLog, rideStore: rideStore, uploader: rideUploader)
         self.homeViewModel = HomeViewModel(routeStore: routeStore, pointer: pointer)
         self.keepScreenOnPreference = keepScreenOnPreference
         self.idleTimer = idleTimer

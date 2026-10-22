@@ -50,7 +50,8 @@ struct HoldToConfirmButton: View {
                 .padding(.vertical, 18)
                 .padding(.horizontal, 24)
         }
-        .frame(maxWidth: .infinity, minHeight: 64)
+        .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
         .contentShape(Capsule())
         .onLongPressGesture(
             minimumDuration: HoldToConfirmState.holdDuration, maximumDistance: 40,
