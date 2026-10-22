@@ -59,7 +59,7 @@ enum UITestFixtures {
         ]
         try? await dependencies.routeStore.persist(
             routeId: routeId, hash: "ui-test", totalDistanceMeters: points.last?.cumulativeDistanceMeters ?? 0,
-            totalClimbingMeters: 42, points: points, pois: pois, status: "ready")
+            totalClimbingMeters: 42, points: points, pois: pois, status: "ready", displayName: "Canal Loop")
         dependencies.pointer.routeId = routeId
         await dependencies.homeViewModel.refresh()
     }

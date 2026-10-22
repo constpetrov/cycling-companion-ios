@@ -21,6 +21,8 @@ struct ImportedRoute: Equatable {
     let totalDistanceMeters: Double
     let totalClimbingMeters: Double?
     let hash: String
+    /// RULE-26 (milestone 7): kept on the phone, never sent in the import request.
+    var displayName: String? = nil
 }
 
 enum RouteImporterError: Error, Equatable {

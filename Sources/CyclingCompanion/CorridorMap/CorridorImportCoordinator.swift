@@ -66,7 +66,7 @@ final class CorridorImportCoordinator {
             try await routeStore.persist(
                 routeId: response.routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
                 totalClimbingMeters: route.totalClimbingMeters, points: persistedPoints, pois: [],
-                status: response.status)
+                status: response.status, displayName: route.displayName)
             points = persistedPoints
             pois = []
             pointer.routeId = response.routeId

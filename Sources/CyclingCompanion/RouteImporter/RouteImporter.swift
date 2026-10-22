@@ -16,11 +16,18 @@ enum RouteImporter {
             throw RouteImporterError.fileTooLarge
         }
         let data = try Data(contentsOf: fileURL)
-        return try importGPX(data: data)
+        var route = try importGPX(data: data)
+        if route.displayName == nil {
+            route.displayName = fileURL.deletingPathExtension().lastPathComponent
+        }
+        return route
     }
 
+    /// RULE-26 (milestone 7): the display name is the GPX track name, else the metadata name; a
+    /// file import falls back to the file name.
     static func importGPX(data: Data) throws -> ImportedRoute {
-        let rawPoints = try GPXTrackPointParser().parse(data: data)
+        let parser = GPXTrackPointParser()
+        let rawPoints = try parser.parse(data: data)
         guard rawPoints.count >= 2 else {
             throw RouteImporterError.insufficientTrackPoints
         }
@@ -44,7 +51,7 @@ enum RouteImporter {
 
         return ImportedRoute(
             points: resampled, totalDistanceMeters: totalDistance, totalClimbingMeters: totalClimbing,
-            hash: hash)
+            hash: hash, displayName: parser.trackName ?? parser.metadataName)
     }
 
     private static func climbingMeters(_ points: [ResampledPoint]) -> Double {

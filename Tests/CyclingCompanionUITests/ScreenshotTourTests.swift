@@ -84,6 +84,13 @@ final class ScreenshotTourTests: XCTestCase {
 
         app.buttons["Cancel"].tap()
         XCTAssertTrue(startRide.waitForExistence(timeout: 5))
+
+        app.buttons["View map"].tap()
+        XCTAssertTrue(app.staticTexts["2 stops found"].waitForExistence(timeout: 5), "the corridor map loads the stored route")
+        sleep(2)  // let map tiles load
+        snapshot("09-corridor-map")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(startRide.waitForExistence(timeout: 5), "back returns Home")
     }
 
     /// A location prompt left over from the unit tests in the same run (`CoreLocationSource.init`

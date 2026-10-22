@@ -21,6 +21,16 @@ private final class FakeImporter: RouteImporting {
         return Task {}
     }
 
+    var pollingRouteIds: Set<String> = []
+    private(set) var retries: [String] = []
+
+    func isPolling(routeId: String) -> Bool { pollingRouteIds.contains(routeId) }
+
+    func retry(routeId: String) async -> Task<Void, Never>? {
+        retries.append(routeId)
+        return nil
+    }
+
     func release() {
         gate?.resume()
         gate = nil

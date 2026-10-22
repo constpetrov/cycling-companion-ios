@@ -18,10 +18,13 @@ public struct PersistedRoute: Codable, Sendable {
     public let status: String
     public let points: [PersistedPointInput]
     public let pois: [PersistedPoiInput]
+    /// The name shown on Home (milestone 7, RULE-26): from the GPX track or metadata name, else the
+    /// file name. Local only; optional so routes saved by earlier builds still decode.
+    public let displayName: String?
 
     public init(
         id: String, hash: String, totalDistanceMeters: Double, totalClimbingMeters: Double?, status: String,
-        points: [PersistedPointInput], pois: [PersistedPoiInput]
+        points: [PersistedPointInput], pois: [PersistedPoiInput], displayName: String? = nil
     ) {
         self.id = id
         self.hash = hash
@@ -30,6 +33,7 @@ public struct PersistedRoute: Codable, Sendable {
         self.status = status
         self.points = points
         self.pois = pois
+        self.displayName = displayName
     }
 }
 
@@ -122,14 +126,17 @@ public actor RouteStore {
         return directory.appendingPathComponent("routes.json")
     }
 
+    /// `displayName: nil` keeps the name already stored for `routeId`, so status and stop updates
+    /// never erase it.
     public func persist(
         routeId: String, hash: String, totalDistanceMeters: Double, totalClimbingMeters: Double?,
-        points: [PersistedPointInput], pois: [PersistedPoiInput], status: String
+        points: [PersistedPointInput], pois: [PersistedPoiInput], status: String, displayName: String? = nil
     ) throws {
         var routesById = try loadAll()
         routesById[routeId] = PersistedRoute(
             id: routeId, hash: hash, totalDistanceMeters: totalDistanceMeters,
-            totalClimbingMeters: totalClimbingMeters, status: status, points: points, pois: pois)
+            totalClimbingMeters: totalClimbingMeters, status: status, points: points, pois: pois,
+            displayName: displayName ?? routesById[routeId]?.displayName)
         let data = try JSONEncoder().encode(routesById)
         try data.write(to: fileURL, options: .atomic)
     }

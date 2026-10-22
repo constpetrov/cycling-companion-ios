@@ -40,6 +40,29 @@ enum ImportError: Equatable {
 protocol RouteImporting: AnyObject {
     @discardableResult
     func importRouteThrowing(_ route: ImportedRoute) async throws -> Task<Void, Never>
+    func isPolling(routeId: String) -> Bool
+    @discardableResult
+    func retry(routeId: String) async -> Task<Void, Never>?
+}
+
+/// What Home shows for the current route (RULE-26 in milestone 7's rules.md, AC-115 to AC-119).
+struct RouteCard: Equatable {
+    let routeId: String
+    let title: String
+    let distanceText: String
+    let climbingText: String?
+    let corridor: CorridorState
+
+    init(route: PersistedRoute, isPolling: Bool, locale: Locale) {
+        routeId = route.id
+        distanceText = LiveRideViewModel.distanceText(meters: route.totalDistanceMeters, locale: locale)
+        title = route.displayName ?? "Route · \(distanceText)"
+        climbingText = route.totalClimbingMeters.map {
+            Measurement(value: $0, unit: UnitLength.meters)
+                .formatted(.measurement(width: .abbreviated, usage: .asProvided).locale(locale))
+        }
+        corridor = CorridorState(route: route, isPolling: isPolling)
+    }
 }
 
 extension CorridorImportCoordinator: RouteImporting {}
@@ -61,16 +84,34 @@ final class HomeViewModel {
     private let routeStore: RouteStore
     private let pointer: CurrentRoutePointer
     private let importer: RouteImporting?
+    private let locale: Locale
 
     /// AC-95/AC-96: an import is in progress; both import entry points are disabled.
     private(set) var isImporting = false
     /// AC-97 to AC-101: why the last import failed, until dismissed or the next import starts.
     private(set) var importError: ImportError?
 
-    init(routeStore: RouteStore, pointer: CurrentRoutePointer, importer: RouteImporting? = nil) {
+    init(routeStore: RouteStore, pointer: CurrentRoutePointer, importer: RouteImporting? = nil, locale: Locale = .current) {
         self.routeStore = routeStore
         self.pointer = pointer
         self.importer = importer
+        self.locale = locale
+    }
+
+    /// AC-115/AC-116.
+    var routeCard: RouteCard? {
+        currentRoute.map {
+            RouteCard(route: $0, isPolling: importer?.isPolling(routeId: $0.id) ?? false, locale: locale)
+        }
+    }
+
+    /// AC-105/AC-108 on Home.
+    func retryCorridor() async {
+        guard let routeId = currentRoute?.id, let importer else { return }
+        let poll = await importer.retry(routeId: routeId)
+        await refresh()
+        await poll?.value
+        await refresh()
     }
 
     /// The file picker failed (AC-97).
@@ -144,11 +185,10 @@ struct HomeView: View {
         VStack(spacing: 16) {
             if viewModel.showsImportPrompt {
                 Text("Import a route")
+                    .font(.title2.bold())
                 importButton("Choose GPX File")
-            } else if let route = viewModel.currentRoute {
-                Text("Route: \(route.id)")
-                Button("Start Ride") { Task { await dependencies.rideStartFlow.requestStart() } }
-                importButton("Choose GPX File")
+            } else if let card = viewModel.routeCard {
+                routeCard(card)
             }
             if viewModel.isImporting {
                 ProgressView("Importing route…")
@@ -171,6 +211,9 @@ struct HomeView: View {
         }
         .padding()
         .task { await dependencies.homeViewModel.refresh() }
+        .onChange(of: dependencies.corridorImportCoordinator.pollingRouteIds) {
+            Task { await dependencies.homeViewModel.refresh() }
+        }
         .fileImporter(isPresented: $isImporterPresented, allowedContentTypes: [Self.gpxContentType]) { result in
             switch result {
             case .success(let fileURL):
@@ -179,6 +222,47 @@ struct HomeView: View {
                 dependencies.homeViewModel.pickerFailed()
             }
         }
+    }
+
+    private func routeCard(_ card: RouteCard) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(card.title)
+                .font(.title2.bold())
+                .lineLimit(2)
+            HStack(spacing: 16) {
+                Label(card.distanceText, systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                if let climbing = card.climbingText {
+                    Label(climbing, systemImage: "arrow.up.right")
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            HStack {
+                if card.corridor == .finding {
+                    ProgressView()
+                }
+                Text(card.corridor.message)
+                    .font(.subheadline)
+                Spacer()
+                if card.corridor.offersRetry {
+                    Button("Retry") { Task { await dependencies.homeViewModel.retryCorridor() } }
+                }
+            }
+            Button {
+                Task { await dependencies.rideStartFlow.requestStart() }
+            } label: {
+                Text("Start Ride").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            HStack {
+                Button("View map") { dependencies.appRouter.open(.corridorMap(routeId: card.routeId)) }
+                Spacer()
+                importButton("Import another route")
+            }
+        }
+        .padding()
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func importButton(_ title: String) -> some View {
