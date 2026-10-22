@@ -21,10 +21,16 @@ public struct PersistedRoute: Codable, Sendable {
     /// The name shown on Home (milestone 7, RULE-26): from the GPX track or metadata name, else the
     /// file name. Local only; optional so routes saved by earlier builds still decode.
     public let displayName: String?
+    /// The region the backend's stop data covers, and how much of this route lies outside it
+    /// (milestone 8, RULE-20). Stored so the coverage message works offline; optional so routes
+    /// saved by earlier builds still decode.
+    public let coverageRegion: String?
+    public let outsideMeters: Double?
 
     public init(
         id: String, hash: String, totalDistanceMeters: Double, totalClimbingMeters: Double?, status: String,
-        points: [PersistedPointInput], pois: [PersistedPoiInput], displayName: String? = nil
+        points: [PersistedPointInput], pois: [PersistedPoiInput], displayName: String? = nil,
+        coverageRegion: String? = nil, outsideMeters: Double? = nil
     ) {
         self.id = id
         self.hash = hash
@@ -34,6 +40,8 @@ public struct PersistedRoute: Codable, Sendable {
         self.points = points
         self.pois = pois
         self.displayName = displayName
+        self.coverageRegion = coverageRegion
+        self.outsideMeters = outsideMeters
     }
 }
 
@@ -127,16 +135,20 @@ public actor RouteStore {
     }
 
     /// `displayName: nil` keeps the name already stored for `routeId`, so status and stop updates
-    /// never erase it.
+    /// never erase it; likewise `coverageRegion`/`outsideMeters: nil` keep the stored coverage.
     public func persist(
         routeId: String, hash: String, totalDistanceMeters: Double, totalClimbingMeters: Double?,
-        points: [PersistedPointInput], pois: [PersistedPoiInput], status: String, displayName: String? = nil
+        points: [PersistedPointInput], pois: [PersistedPoiInput], status: String, displayName: String? = nil,
+        coverageRegion: String? = nil, outsideMeters: Double? = nil
     ) throws {
         var routesById = try loadAll()
+        let stored = routesById[routeId]
         routesById[routeId] = PersistedRoute(
             id: routeId, hash: hash, totalDistanceMeters: totalDistanceMeters,
             totalClimbingMeters: totalClimbingMeters, status: status, points: points, pois: pois,
-            displayName: displayName ?? routesById[routeId]?.displayName)
+            displayName: displayName ?? stored?.displayName,
+            coverageRegion: coverageRegion ?? stored?.coverageRegion,
+            outsideMeters: outsideMeters ?? stored?.outsideMeters)
         let data = try JSONEncoder().encode(routesById)
         try data.write(to: fileURL, options: .atomic)
     }

@@ -53,4 +53,8 @@ struct CorridorPoiResponse: Decodable, Sendable {
 struct CorridorStatusResponsePayload: Decodable, Sendable {
     let status: String
     let pois: [CorridorPoiResponse]?
+    /// Milestone 8: the region the backend's stops cover and how much of the route lies outside
+    /// it. Absent from older backends, and while the status is `building`.
+    var coverageRegion: String? = nil
+    var outsideMeters: Double? = nil
 }

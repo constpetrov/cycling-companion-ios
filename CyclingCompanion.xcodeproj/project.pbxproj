@@ -44,6 +44,7 @@
 		3C67A9CCE7EA39EAB374C762 /* Simplifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1056D05E51D8D586E77386AF /* Simplifier.swift */; };
 		3E5692939A100932A9BA848E /* POILookahead.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EB90D7C13D4FA0EDE71AFE /* POILookahead.swift */; };
 		3EA61428683F17C1AD52E310 /* RideIngestClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E16A4BA7315E47C9B930F686 /* RideIngestClient.swift */; };
+		3F43B25AD2BC134B26B5E4DD /* CorridorStopsRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7CE19567696CAB227BD8D4 /* CorridorStopsRefreshTests.swift */; };
 		3FDAC245609396ED68BCD17E /* DemoMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8A13BD850522A556CF6C4E /* DemoMode.swift */; };
 		40BFEA28F8C0D92354B749CF /* ClockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2318675D20DDF857B25FE8BF /* ClockTests.swift */; };
 		4457DDE3C982FA00C71A0183 /* DemoModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7394F7CCFDBBB41E9D9A2FC /* DemoModeTests.swift */; };
@@ -52,9 +53,11 @@
 		49C726AE77CAD6DB01ED9016 /* CurrentRoutePointerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84E6BFCF0AA4D14A2B2221EA /* CurrentRoutePointerTests.swift */; };
 		49D6E66C4E2369C97029B3B4 /* RideTrackerMapMatchingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25C02EB1257804AFA498C979 /* RideTrackerMapMatchingTests.swift */; };
 		4C0A2BB69DDAB1EA323C651A /* DirectionsOpening.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5D13BC5BF58D1D559D3EBB2 /* DirectionsOpening.swift */; };
+		4C2AF8AFF12EABCF4EB7383A /* PollBackoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = DABA4ABC9D4FF68D9CB92A7A /* PollBackoff.swift */; };
 		4CF88C427A612BE1258D1D68 /* RideResumerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657C7BF32691E87E7727C5EC /* RideResumerTests.swift */; };
 		4DF3F224C7936434F3A18393 /* SpeedScaledClockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7A73722832833EAAA86BA3 /* SpeedScaledClockTests.swift */; };
 		4FF7BD6D7669D4AC3CD3F248 /* AppRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12E2E3818965CF65A3C05DC /* AppRouterTests.swift */; };
+		5056B47557EF5616DF4C8978 /* StoppingClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFBAA4F0D14EFEFAF713F4FC /* StoppingClock.swift */; };
 		50F1E32748C7A5D2EF0046A8 /* BackendConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EA37164DE2133EBE7FBC9D /* BackendConfiguration.swift */; };
 		50FC4AD2F9085E2D2F9D8AE2 /* ReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106CB7BE77BF2FAD062A6AE0 /* ReadinessTests.swift */; };
 		51E421657DEA413D6DB86130 /* LocationSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECABEE239029D96B2B8C36BE /* LocationSource.swift */; };
@@ -276,6 +279,7 @@
 		76A279C36A1D557B16D47742 /* SuggestionLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionLedger.swift; sourceTree = "<group>"; };
 		7B7FAF5215BEDB6023EACFE3 /* ScreenshotTourTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTourTests.swift; sourceTree = "<group>"; };
 		7F73C336BB66E87351EEBD6D /* AdvisorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvisorClient.swift; sourceTree = "<group>"; };
+		7F7CE19567696CAB227BD8D4 /* CorridorStopsRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorStopsRefreshTests.swift; sourceTree = "<group>"; };
 		7FB0EF14174C354316B7853E /* AccessibilityLabelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityLabelTests.swift; sourceTree = "<group>"; };
 		81219A6957FB02A0606F9C9E /* RideFixtureReplayDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFixtureReplayDriver.swift; sourceTree = "<group>"; };
 		8177B3D8A9F5ED4450EA2DDB /* AppDependenciesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependenciesTests.swift; sourceTree = "<group>"; };
@@ -307,6 +311,7 @@
 		AB92AEA5F1486E5AA65653B5 /* LiveRideViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRideViewModelTests.swift; sourceTree = "<group>"; };
 		ADC52593CB0B185B5326EFBC /* FeatureEngineHRDriftCadenceDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureEngineHRDriftCadenceDropTests.swift; sourceTree = "<group>"; };
 		AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorSource.swift; sourceTree = "<group>"; };
+		AFBAA4F0D14EFEFAF713F4FC /* StoppingClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoppingClock.swift; sourceTree = "<group>"; };
 		B408DF240A051E683A2D87CC /* GatedClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatedClock.swift; sourceTree = "<group>"; };
 		B81D7F9F4933773427941D7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B93C35A18A4C67B37D4A53DF /* RideSummaryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSummaryViewModel.swift; sourceTree = "<group>"; };
@@ -336,6 +341,7 @@
 		D5D13BC5BF58D1D559D3EBB2 /* DirectionsOpening.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionsOpening.swift; sourceTree = "<group>"; };
 		D7887F7A499503C316827CCB /* CoreLocationSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreLocationSource.swift; sourceTree = "<group>"; };
 		D9FAD063DD355C94FF353A28 /* RideSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSessionTests.swift; sourceTree = "<group>"; };
+		DABA4ABC9D4FF68D9CB92A7A /* PollBackoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollBackoff.swift; sourceTree = "<group>"; };
 		DC53996CA4BDD9C1F6974084 /* DecisionLogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionLogTests.swift; sourceTree = "<group>"; };
 		DD2B28EE20780FB25674A4AF /* NormalizedOpeningHoursPayloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NormalizedOpeningHoursPayloadTests.swift; sourceTree = "<group>"; };
 		DD7A73722832833EAAA86BA3 /* SpeedScaledClockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedScaledClockTests.swift; sourceTree = "<group>"; };
@@ -502,6 +508,7 @@
 				C73A82B1DDC4CE66F8730CC6 /* GatedTransport.swift */,
 				479D7C431BDB42885EA20BA2 /* ReplayClock.swift */,
 				596968DB52299BC245D33435 /* ScaledRealClock.swift */,
+				AFBAA4F0D14EFEFAF713F4FC /* StoppingClock.swift */,
 			);
 			path = Fakes;
 			sourceTree = "<group>";
@@ -539,6 +546,7 @@
 				C4F58FB3EE82F0F45295DF3F /* CorridorMapViewModel.swift */,
 				99F4F32ACAB6777564621067 /* CorridorPollingService.swift */,
 				FAE624D1E90215CE42C3D10B /* CorridorState.swift */,
+				DABA4ABC9D4FF68D9CB92A7A /* PollBackoff.swift */,
 				1BF3B6B5B6A50418FEAB9B42 /* RouteAPIPayloads.swift */,
 			);
 			path = CorridorMap;
@@ -562,6 +570,7 @@
 				51C2A04B34847B7621B5C7F0 /* CorridorMapViewTests.swift */,
 				BC0030EA6B1CCB72DEFA53EC /* CorridorPollingRegistryTests.swift */,
 				A1502BA8AA6B5C75A534CFDC /* CorridorPollingServiceTests.swift */,
+				7F7CE19567696CAB227BD8D4 /* CorridorStopsRefreshTests.swift */,
 				84E6BFCF0AA4D14A2B2221EA /* CurrentRoutePointerTests.swift */,
 				DC53996CA4BDD9C1F6974084 /* DecisionLogTests.swift */,
 				41A1CF0533116B3113B7B72F /* DemoModeScreenTests.swift */,
@@ -907,6 +916,7 @@
 				C177297C7CD5146401DCA046 /* CorridorMapViewTests.swift in Sources */,
 				A94C52C15997265CBF7126A3 /* CorridorPollingRegistryTests.swift in Sources */,
 				3B0A521CC21DFD24C1EFF00F /* CorridorPollingServiceTests.swift in Sources */,
+				3F43B25AD2BC134B26B5E4DD /* CorridorStopsRefreshTests.swift in Sources */,
 				49C726AE77CAD6DB01ED9016 /* CurrentRoutePointerTests.swift in Sources */,
 				C5045D7D5EB065F75D677C53 /* DecisionLogTests.swift in Sources */,
 				DF0A38AF535D659AB1AF5B01 /* DemoModeScreenTests.swift in Sources */,
@@ -967,6 +977,7 @@
 				70E3B9D1AD6BF4037F792FE6 /* SensorSourceTests.swift in Sources */,
 				A48F750D8C2A4B46BDA44A30 /* SmokeTests.swift in Sources */,
 				4DF3F224C7936434F3A18393 /* SpeedScaledClockTests.swift in Sources */,
+				5056B47557EF5616DF4C8978 /* StoppingClock.swift in Sources */,
 				CB66EB49312E59B1B78DA787 /* SuggestionCardAndSheetTests.swift in Sources */,
 				37995C1E77DC3D066897171C /* SuggestionLedgerTests.swift in Sources */,
 				1A26A866D51803A29F02F7D4 /* SuggestionPersistenceTests.swift in Sources */,
@@ -1025,6 +1036,7 @@
 				7E7CFB758EC51761279695EA /* PendingRideUploadQueue.swift in Sources */,
 				EB4CD42185C3A49472BCBACD /* PendingRideUploadRetrier.swift in Sources */,
 				AA0150AF254FF78AAA75E78E /* PermissionStatusProviding.swift in Sources */,
+				4C2AF8AFF12EABCF4EB7383A /* PollBackoff.swift in Sources */,
 				250404C06EF6A28812363FD6 /* RaceWithDeadline.swift in Sources */,
 				CF33A737E6FB4F1C97560E30 /* ReadinessSheet.swift in Sources */,
 				0346F07CF30146CE4E04DCEA /* ReadinessViewModel.swift in Sources */,

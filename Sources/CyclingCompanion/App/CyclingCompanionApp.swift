@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct CyclingCompanionApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
 
     private let configurationError: String?
     private let dependencies: AppDependencies
@@ -49,7 +50,6 @@ struct CyclingCompanionApp: App {
                         #if DEBUG
                         if UITestFixtures.isEnabled { await UITestFixtures.seed(dependencies) }
                         #endif
-                        await dependencies.corridorImportCoordinator.resumePollingForBuildingRoutes()
                         await dependencies.makeRideResumer().resumeIfNeeded()
                         dependencies.appRouter.launchResumeFinished(
                             ridePhase: dependencies.rideCoordinator.phase)
@@ -57,6 +57,20 @@ struct CyclingCompanionApp: App {
                         if UITestFixtures.isEnabled { UITestFixtures.simulateNotificationTapIfRequested(appDelegate) }
                         #endif
                         await dependencies.makePendingRideUploadRetrier().retryPendingUploads()
+                    }
+                    // Milestone 8 (RULE-17/RULE-18): at launch (`initial: true`) and on every return
+                    // to the foreground, resume building routes' polls and refresh the current
+                    // route's offline stops once; leaving the foreground pauses polling.
+                    .onChange(of: scenePhase, initial: true) { _, phase in
+                        let coordinator = dependencies.corridorImportCoordinator
+                        if phase == .active {
+                            Task {
+                                await coordinator.resumePollingForBuildingRoutes()
+                                await coordinator.refreshCurrentRoute()
+                            }
+                        } else {
+                            coordinator.pauseAllPolls()
+                        }
                     }
             }
         }
