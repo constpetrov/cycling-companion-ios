@@ -7,10 +7,13 @@ struct LiveRideScreen: View {
     @Environment(AppDependencies.self) private var dependencies
     @State private var viewModel: LiveRideViewModel
     let onFinishRide: () -> Void
+    /// Debug only: asks the advisor for a decision now instead of waiting out the cadence.
+    let forceCheck: (() -> Void)?
 
-    init(viewModel: LiveRideViewModel, onFinishRide: @escaping () -> Void) {
+    init(viewModel: LiveRideViewModel, onFinishRide: @escaping () -> Void, forceCheck: (() -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
         self.onFinishRide = onFinishRide
+        self.forceCheck = forceCheck
     }
 
     var body: some View {
@@ -21,6 +24,15 @@ struct LiveRideScreen: View {
             .task {
                 await viewModel.loadRoute(from: dependencies.routeStore)
                 await viewModel.monitorGPS()
+            }
+            .task { await viewModel.listenForSuggestions() }
+            .sheet(item: $viewModel.stopSheet) { item in
+                StopSheetView(
+                    item: item, distanceAhead: viewModel.distanceAheadText(for: item.suggestion),
+                    detour: viewModel.detourText(for: item.suggestion),
+                    onDirections: { Task { await viewModel.openDirections(for: item) } },
+                    onAccept: { Task { await viewModel.accept(item) } },
+                    onDecline: { Task { await viewModel.decline(item) } })
             }
             .onAppear { viewModel.dashboardDidAppear() }
             .onDisappear { viewModel.dashboardDidDisappear() }
@@ -49,6 +61,20 @@ struct LiveRideScreen: View {
 
     private var controls: some View {
         VStack(spacing: 12) {
+            if let suggestion = viewModel.currentSuggestion {
+                SuggestionCardView(
+                    suggestion: suggestion, isHeadingTo: viewModel.isHeadingToCurrent,
+                    distanceAhead: viewModel.distanceAheadText(for: suggestion),
+                    detour: viewModel.detourText(for: suggestion),
+                    onTap: viewModel.openSheetForCurrentSuggestion)
+            }
+            #if DEBUG
+            if let forceCheck {
+                Button("Force Check", action: forceCheck)
+                    .font(.footnote)
+                    .accessibilityIdentifier("dashboard.forceCheck")
+            }
+            #endif
             Toggle(
                 "Keep screen on",
                 isOn: Binding(get: { viewModel.keepScreenOn }, set: { viewModel.setKeepScreenOn($0) }))

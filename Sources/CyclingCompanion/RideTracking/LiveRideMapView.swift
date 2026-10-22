@@ -20,8 +20,9 @@ struct LiveRideMapView: View {
             }
             ForEach(viewModel.stops, id: \.osmId) { stop in
                 Marker(
-                    stop.name ?? stop.type,
+                    stop.name ?? LiveRideViewModel.typeLabel(stop.type),
                     coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude))
+                .tint(stop.osmId == viewModel.highlightedStopId ? .orange : .gray)
             }
             if let rider = viewModel.riderCoordinate {
                 Annotation("You", coordinate: rider) {

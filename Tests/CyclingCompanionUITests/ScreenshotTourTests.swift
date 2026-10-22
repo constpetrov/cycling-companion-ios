@@ -34,17 +34,36 @@ final class ScreenshotTourTests: XCTestCase {
         XCTAssertTrue(app.buttons["Start Demo Ride"].waitForExistence(timeout: 5))
         snapshot("02-demo-mode")
 
+        app.sliders.firstMatch.adjust(toNormalizedSliderPosition: 1.0)  // 20x, past the 10-minute quiet window sooner
         app.buttons["Start Demo Ride"].tap()
         let finish = app.buttons["Hold to finish"]
         XCTAssertTrue(finish.waitForExistence(timeout: 10), "the live ride cover should appear")
         sleep(4)  // let the replay move the rider and the map settle
         snapshot("03-live-ride")
 
+        // At 20x, ~30 s of replay is past the advisor's 10-minute quiet period (ride time); the
+        // stub backend then suggests the seeded café, which is still ahead of the rider.
+        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Café am Kanal")).firstMatch
+        for _ in 0..<12 where !card.exists {
+            app.buttons["dashboard.forceCheck"].tap()
+            sleep(5)
+        }
+        XCTAssertTrue(card.waitForExistence(timeout: 5), "the suggestion card should appear")
+        snapshot("04-suggestion-card")
+
+        card.tap()
+        XCTAssertTrue(app.buttons["Directions"].waitForExistence(timeout: 5), "the stop sheet should open")
+        snapshot("05-stop-sheet")
+        app.buttons["Accept"].tap()
+        app.swipeDown(velocity: .fast)  // close the sheet; the card switches to "Heading to"
+        sleep(1)
+        snapshot("06-heading-to")
+
         finish.press(forDuration: 2.0)
         let done = app.buttons["Done"]
         XCTAssertTrue(done.waitForExistence(timeout: 10), "the summary should replace the dashboard")
         XCTAssertTrue(app.staticTexts["Saved"].waitForExistence(timeout: 10), "the stub backend accepts the upload")
-        snapshot("04-ride-summary")
+        snapshot("07-ride-summary")
 
         done.tap()
         XCTAssertTrue(startRide.waitForExistence(timeout: 5), "Done returns Home")
