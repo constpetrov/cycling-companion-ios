@@ -35,6 +35,20 @@ final class AppRouter {
         preparingRide = false
     }
 
+    private var finishingRide = false
+
+    /// Acquired synchronously before Finish's first await, so a double tap (each tap spawns
+    /// its own `Task`) cannot finalize and upload the same ride twice.
+    func beginFinishingRide() -> Bool {
+        guard !finishingRide else { return false }
+        finishingRide = true
+        return true
+    }
+
+    func endFinishingRide() {
+        finishingRide = false
+    }
+
     /// AC-1/AC-17: checks `RideStore` for an unfinished ride and shows the live ride screen if
     /// one exists, Home otherwise — called once, early in the app's lifecycle, before the
     /// rider can interact with anything. Only decides *which* screen to show; task-3.2 extends

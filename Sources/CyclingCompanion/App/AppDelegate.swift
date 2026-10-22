@@ -41,6 +41,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 extension AppDelegate: @preconcurrency UNUserNotificationCenterDelegate {
+    /// How a notification is shown while the app is in the foreground. During a ride the live
+    /// screen is usually open, and without this iOS silently drops the banner, so the rider
+    /// never sees the stop suggestion.
+    static let foregroundPresentationOptions: UNNotificationPresentationOptions = [.banner, .list, .sound]
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler(Self.foregroundPresentationOptions)
+    }
+
     func userNotificationCenter(
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void

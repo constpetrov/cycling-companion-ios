@@ -144,6 +144,8 @@ struct RideResumer {
 /// `PersistedRide` through `RideRecorder` and navigates back to Home.
 @MainActor
 struct RideFinisher {
+    private static let log = Log.logger(category: "RideTracking")
+
     let rideRecorder: RideRecorder
     let appRouter: AppRouter
     let decisionLog: DecisionLog
@@ -155,20 +157,33 @@ struct RideFinisher {
     /// convention: every other use of that rule is about *computing a ride-data-derived
     /// feature* without reading the live clock; this is the instant the rider tapped Finish
     /// Ride, which has no track-derived equivalent to fall back to.
+    ///
+    /// Navigates Home as soon as the ride is finalized locally, before the upload: the upload
+    /// can take as long as the network allows, and the rider shouldn't be left on a frozen live
+    /// screen meanwhile. A failed finalize leaves the unfinished checkpoint in `RideStore`, so
+    /// the next launch resumes the ride rather than losing it.
     func finishRide(_ liveRide: LiveRide) async {
+        guard appRouter.beginFinishingRide() else { return }
+        defer { appRouter.endFinishingRide() }
+
         liveRide.trackingTask.cancel()
         liveRide.sessionTask.cancel()
 
         let tracker = liveRide.tracker
         let endTime = Date()
-        try? await rideRecorder.finalize(
-            rideId: tracker.rideId, routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
-            totalDistanceMeters: tracker.distanceAlongRouteMeters, totalMovingTimeSeconds: tracker.movingTimeSeconds,
-            track: tracker.track)
-
-        await uploadRide(tracker: tracker, session: liveRide.session, endTime: endTime)
+        do {
+            try await rideRecorder.finalize(
+                rideId: tracker.rideId, routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
+                totalDistanceMeters: tracker.distanceAlongRouteMeters,
+                totalMovingTimeSeconds: tracker.movingTimeSeconds, track: tracker.track)
+        } catch {
+            Self.log.error(
+                "Finalizing ride \(tracker.rideId, privacy: .public) failed: \(String(describing: error), privacy: .public) — it will resume on next launch")
+        }
 
         appRouter.show(.home)
+
+        await uploadRide(tracker: tracker, session: liveRide.session, endTime: endTime)
     }
 
     /// RULE-5/RULE-7/RULE-8/RULE-10/RULE-11 in spec/rules.md (AC-4 through AC-13): computes

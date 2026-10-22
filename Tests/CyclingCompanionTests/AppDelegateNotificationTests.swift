@@ -1,4 +1,5 @@
 import RoutePersistence
+import UserNotifications
 import XCTest
 
 @testable import CyclingCompanion
@@ -77,5 +78,21 @@ final class AppDelegateNotificationTests: XCTestCase {
         let delegate = AppDelegate()
 
         delegate.handleNotificationTap() // must not crash
+    }
+
+    /// Without a `willPresent` delegate method iOS drops notifications while the app is in the
+    /// foreground, which is where the rider usually is during a ride.
+    @MainActor
+    func testForegroundNotificationsAreShownAsABannerWithSound() {
+        let options = AppDelegate.foregroundPresentationOptions
+        XCTAssertTrue(options.contains(.banner))
+        XCTAssertTrue(options.contains(.sound))
+    }
+
+    @MainActor
+    func testAppDelegateImplementsWillPresent() {
+        let selector = #selector(
+            UNUserNotificationCenterDelegate.userNotificationCenter(_:willPresent:withCompletionHandler:))
+        XCTAssertTrue(AppDelegate().responds(to: selector))
     }
 }
