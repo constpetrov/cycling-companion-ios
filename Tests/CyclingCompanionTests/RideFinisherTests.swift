@@ -17,6 +17,26 @@ private struct AlwaysSucceedsTransport: HTTPTransport {
     }
 }
 
+/// Records each ride-ingest request together with the screen showing when it was sent, so
+/// tests can check ordering (navigate first, upload second) and duplicate uploads.
+private actor RecordingTransport: HTTPTransport {
+    private let appRouter: AppRouter
+    /// `true` per ingest request if Home was already showing when it was sent.
+    private(set) var homeShownAtIngest: [Bool] = []
+
+    init(appRouter: AppRouter) {
+        self.appRouter = appRouter
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        if !request.url!.path.hasSuffix("sign-in") {
+            let isHome = await MainActor.run { appRouter.currentScreen == .home }
+            homeShownAtIngest.append(isHome)
+        }
+        return try await AlwaysSucceedsTransport().data(for: request)
+    }
+}
+
 /// task-3.1 validation (RULE-9/RULE-16 in spec/rules.md, AC-16).
 final class RideFinisherTests: XCTestCase {
 
@@ -25,8 +45,10 @@ final class RideFinisherTests: XCTestCase {
     }
 
     @MainActor
-    private func makeFinisher(rideRecorder: RideRecorder, appRouter: AppRouter, rideStore: RideStore) -> RideFinisher {
-        let transport = AlwaysSucceedsTransport()
+    private func makeFinisher(
+        rideRecorder: RideRecorder, appRouter: AppRouter, rideStore: RideStore,
+        transport: HTTPTransport = AlwaysSucceedsTransport()
+    ) -> RideFinisher {
         let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
         let lazySignIn = LazySignIn(authClient: authClient)
         let ingestClient = RideIngestClient(
@@ -95,5 +117,60 @@ final class RideFinisherTests: XCTestCase {
         let persisted = try await rideStore.fetch(rideId: "ride-1")
         XCTAssertNotNil(persisted?.endTime, "finalize must set a real endTime, not leave the checkpoint's nil")
         XCTAssertEqual(appRouter.currentScreen, .home)
+    }
+
+    @MainActor
+    private func liveRideWithIdleTasks(rideStore: RideStore) -> LiveRide {
+        let tracker = freshTracker(rideStore: rideStore)
+        let session = freshSession(
+            tracker: tracker,
+            routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
+        return LiveRide(
+            tracker: tracker, session: session, trackingTask: Task<Void, Never> {}, sessionTask: Task<Void, Never> {})
+    }
+
+    @MainActor
+    func testFinishRideNavigatesHomeBeforeTheUploadIsSent() async {
+        let rideStore = freshRideStore()
+        let liveRide = liveRideWithIdleTasks(rideStore: rideStore)
+        let appRouter = AppRouter()
+        appRouter.show(.liveRide(liveRide))
+        let transport = RecordingTransport(appRouter: appRouter)
+        let finisher = makeFinisher(
+            rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, rideStore: rideStore,
+            transport: transport)
+
+        await finisher.finishRide(liveRide)
+
+        let homeShown = await transport.homeShownAtIngest
+        XCTAssertEqual(homeShown, [true], "the rider must not wait on the live screen for the network")
+    }
+
+    @MainActor
+    func testADoubleTapOnFinishFinalizesAndUploadsTheRideOnce() async {
+        let rideStore = freshRideStore()
+        let liveRide = liveRideWithIdleTasks(rideStore: rideStore)
+        let appRouter = AppRouter()
+        appRouter.show(.liveRide(liveRide))
+        let transport = RecordingTransport(appRouter: appRouter)
+        let finisher = makeFinisher(
+            rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, rideStore: rideStore,
+            transport: transport)
+
+        async let first: Void = finisher.finishRide(liveRide)
+        async let second: Void = finisher.finishRide(liveRide)
+        _ = await (first, second)
+
+        let uploads = await transport.homeShownAtIngest.count
+        XCTAssertEqual(uploads, 1)
+    }
+
+    @MainActor
+    func testFinishCanRunAgainAfterAPreviousFinishCompleted() async {
+        let appRouter = AppRouter()
+        XCTAssertTrue(appRouter.beginFinishingRide())
+        XCTAssertFalse(appRouter.beginFinishingRide())
+        appRouter.endFinishingRide()
+        XCTAssertTrue(appRouter.beginFinishingRide())
     }
 }
