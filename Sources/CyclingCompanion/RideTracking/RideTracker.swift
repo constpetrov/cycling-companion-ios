@@ -25,7 +25,7 @@ final class RideTracker {
     /// AC-2/AC-3: a fix projecting at exactly this distance still counts as in-corridor. The one
     /// source of truth for "on route", also read by the dashboard's off-route badge (RULE-12 in
     /// milestone 7's rules.md).
-    static let corridorToleranceMeters: Double = 50
+    nonisolated static let corridorToleranceMeters: Double = 50
     /// AC-9/AC-10/AC-11: strictly above this counts as moving; at or below does not.
     private static let movingThresholdMetersPerSecond: Double = 0.5
     /// AC-7/AC-8: below this much accumulated moving time, pace is too noisy to report an
