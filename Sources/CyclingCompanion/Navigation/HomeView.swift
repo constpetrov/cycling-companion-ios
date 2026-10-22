@@ -204,8 +204,7 @@ struct HomeView: View {
         VStack(spacing: 16) {
             if viewModel.orphanedRideId != nil {
                 HStack(alignment: .top) {
-                    Label("Couldn't restore your last ride", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    WarningLabel("Couldn't restore your last ride")
                     Spacer()
                     Button("Discard", role: .destructive) {
                         Task { await viewModel.discardOrphanedRide() }
@@ -226,8 +225,7 @@ struct HomeView: View {
             }
             if let error = viewModel.importError {
                 HStack(alignment: .top) {
-                    Label(error.message, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    WarningLabel(error.message)
                     Button {
                         viewModel.dismissImportError()
                     } label: {
@@ -267,7 +265,6 @@ struct HomeView: View {
                 }
             }
             .font(.subheadline)
-            .foregroundStyle(.secondary)
             HStack {
                 if card.corridor == .finding {
                     ProgressView()

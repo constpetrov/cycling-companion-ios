@@ -8,6 +8,7 @@ struct CorridorMapPin: Identifiable {
     let name: String?
     let type: String
     let coordinate: CLLocationCoordinate2D
+    var kmMarkMeters: Double = 0
 }
 
 /// Renders the imported route's polyline and all of its corridor POI pins (AC-30/AC-31 in
@@ -24,12 +25,21 @@ struct CorridorMapView: View {
         self.pins = pois.map {
             CorridorMapPin(
                 id: $0.osmId, name: $0.name, type: $0.type,
-                coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude))
+                coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
+                kmMarkMeters: $0.kmMarkMeters)
         }
     }
 
     init(route: PersistedRoute) {
         self.init(points: route.points, pois: route.pois)
+    }
+
+    /// AC-132 (RULE-28): what VoiceOver reads for each stop instead of the map's pins.
+    var stopAccessibilityLabels: [String] {
+        pins.sorted { $0.kmMarkMeters < $1.kmMarkMeters }.map { pin in
+            let name = pin.name ?? LiveRideViewModel.typeLabel(pin.type)
+            return "\(name), \(LiveRideViewModel.distanceText(meters: pin.kmMarkMeters, locale: .current)) along the route"
+        }
     }
 
     var body: some View {
@@ -39,8 +49,13 @@ struct CorridorMapView: View {
                     .stroke(.blue, lineWidth: 3)
             }
             ForEach(pins) { pin in
-                Marker(pin.name ?? pin.type, coordinate: pin.coordinate)
+                Marker(pin.name ?? LiveRideViewModel.typeLabel(pin.type), coordinate: pin.coordinate)
             }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Route map")
+        .accessibilityChildren {
+            ForEach(stopAccessibilityLabels, id: \.self) { Text($0).accessibilityIdentifier("mapStop") }
         }
     }
 }

@@ -13,8 +13,7 @@ struct RideSummaryView: View {
                     .font(.largeTitle.bold())
 
                 if let message = viewModel.notSavedMessage {
-                    Label(message, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    WarningLabel(message)
                 } else {
                     figures
                     uploadStatus

@@ -53,6 +53,9 @@ struct CyclingCompanionApp: App {
                         await dependencies.makeRideResumer().resumeIfNeeded()
                         dependencies.appRouter.launchResumeFinished(
                             ridePhase: dependencies.rideCoordinator.phase)
+                        #if DEBUG
+                        if UITestFixtures.isEnabled { UITestFixtures.simulateNotificationTapIfRequested(appDelegate) }
+                        #endif
                         await dependencies.makePendingRideUploadRetrier().retryPendingUploads()
                     }
             }

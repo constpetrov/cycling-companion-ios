@@ -34,6 +34,15 @@ struct LiveRideMapView: View {
                 }
             }
         }
+        // AC-132 (RULE-28): VoiceOver gets the stops as a list instead of the map's pins.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Route map")
+        .accessibilityChildren {
+            ForEach(viewModel.stops, id: \.osmId) { stop in
+                Text(viewModel.stopAccessibilityLabel(stop))
+                    .accessibilityIdentifier("mapStop")
+            }
+        }
         .onChange(of: viewModel.cameraCenter?.latitude) { moveCamera() }
         .onChange(of: viewModel.cameraCenter?.longitude) { moveCamera() }
         .onChange(of: position.positionedByUser) { _, byUser in
