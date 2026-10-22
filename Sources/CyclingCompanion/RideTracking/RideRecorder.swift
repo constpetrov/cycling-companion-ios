@@ -10,7 +10,7 @@ import RoutePersistence
 protocol RideFinalizing: Sendable {
     func finalize(
         rideId: String, routeId: String, startTime: Date, endTime: Date, totalDistanceMeters: Double,
-        totalMovingTimeSeconds: Double, track: [PersistedRideSample]
+        totalMovingTimeSeconds: Double, track: [PersistedRideSample], suggestionState: PersistedSuggestionState?
     ) async throws -> PersistedRide
 }
 
@@ -26,11 +26,12 @@ struct RideRecorder: RideFinalizing {
     @discardableResult
     func finalize(
         rideId: String, routeId: String, startTime: Date, endTime: Date, totalDistanceMeters: Double,
-        totalMovingTimeSeconds: Double, track: [PersistedRideSample]
+        totalMovingTimeSeconds: Double, track: [PersistedRideSample], suggestionState: PersistedSuggestionState? = nil
     ) async throws -> PersistedRide {
         let ride = PersistedRide(
             id: rideId, routeId: routeId, startTime: startTime, endTime: endTime,
-            totalDistanceMeters: totalDistanceMeters, totalMovingTimeSeconds: totalMovingTimeSeconds, track: track)
+            totalDistanceMeters: totalDistanceMeters, totalMovingTimeSeconds: totalMovingTimeSeconds, track: track,
+            suggestionState: suggestionState)
         try await rideStore.persist(ride)
         return ride
     }

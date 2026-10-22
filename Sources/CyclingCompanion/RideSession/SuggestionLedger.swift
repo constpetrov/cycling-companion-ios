@@ -1,4 +1,5 @@
 import Foundation
+import RoutePersistence
 
 /// A stop suggestion the Guardrail Gate approved during a ride.
 struct ApprovedSuggestion: Sendable, Equatable, Codable, Identifiable {
@@ -123,5 +124,44 @@ struct SuggestionLedger: Sendable, Equatable, Codable {
         answers[suggestion.id] = SuggestionResponse(
             suggestionId: suggestion.id, stopId: suggestion.stopId, suggestedAt: suggestion.suggestedAt,
             answer: answer, respondedAt: answer == .none ? nil : time)
+    }
+}
+
+// MARK: - Saving with the ride checkpoint (RULE-17 in milestone 7's rules.md)
+
+extension SuggestionLedger {
+    var persisted: PersistedSuggestionState {
+        PersistedSuggestionState(
+            currentSuggestionId: current?.id,
+            suggestions: suggestions.map {
+                PersistedSuggestion(
+                    id: $0.id, stopId: $0.stopId, name: $0.name, type: $0.type, latitude: $0.latitude,
+                    longitude: $0.longitude, kmMarkMeters: $0.kmMarkMeters, detourMeters: $0.detourMeters,
+                    message: $0.message, suggestedAt: $0.suggestedAt)
+            },
+            answers: answers.values.sorted { $0.suggestedAt < $1.suggestedAt }.map {
+                PersistedSuggestionAnswer(
+                    suggestionId: $0.suggestionId, stopId: $0.stopId, suggestedAt: $0.suggestedAt,
+                    answer: $0.answer.rawValue, respondedAt: $0.respondedAt)
+            },
+            declinedStopIds: declinedStopIds.sorted())
+    }
+
+    init(persisted state: PersistedSuggestionState) {
+        self.init()
+        suggestions = state.suggestions.map {
+            ApprovedSuggestion(
+                id: $0.id, stopId: $0.stopId, name: $0.name, type: $0.type, latitude: $0.latitude,
+                longitude: $0.longitude, kmMarkMeters: $0.kmMarkMeters, detourMeters: $0.detourMeters,
+                message: $0.message, suggestedAt: $0.suggestedAt)
+        }
+        for answer in state.answers {
+            guard let kind = SuggestionAnswer(rawValue: answer.answer) else { continue }
+            answers[answer.suggestionId] = SuggestionResponse(
+                suggestionId: answer.suggestionId, stopId: answer.stopId, suggestedAt: answer.suggestedAt,
+                answer: kind, respondedAt: answer.respondedAt)
+        }
+        declinedStopIds = Set(state.declinedStopIds)
+        current = state.currentSuggestionId.flatMap { id in suggestions.first { $0.id == id } }
     }
 }

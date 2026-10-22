@@ -99,13 +99,17 @@ actor RideSession {
         ledger
     }
 
+    /// Records the answer and checkpoints straight away, so it survives the app being killed.
     @discardableResult
-    func respond(_ answer: SuggestionAnswer, to suggestionId: String, at time: Date) -> Bool {
-        ledger.respond(answer, to: suggestionId, at: time)
+    func respond(_ answer: SuggestionAnswer, to suggestionId: String, at time: Date) async -> Bool {
+        let recorded = ledger.respond(answer, to: suggestionId, at: time)
+        if recorded { await rideTracker.checkpointNow() }
+        return recorded
     }
 
-    func directionsOpened(for suggestionId: String, at time: Date) {
+    func directionsOpened(for suggestionId: String, at time: Date) async {
         ledger.directionsOpened(for: suggestionId, at: time)
+        await rideTracker.checkpointNow()
     }
 
     /// Restores the ledger saved with a ride checkpoint, after the app was killed mid-ride.
