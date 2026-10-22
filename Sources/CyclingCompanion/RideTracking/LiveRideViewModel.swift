@@ -1,4 +1,6 @@
+import CoreLocation
 import Foundation
+import RoutePersistence
 
 /// Display-ready state for the live ride dashboard (RULE-9/RULE-10/RULE-12 in milestone 7's
 /// rules.md). Reads `RideTracker` and turns it into locale-formatted text and badge flags, so the
@@ -21,6 +23,15 @@ final class LiveRideViewModel {
     private(set) var isGPSLost = true
     /// Ride-clock time of the latest GPS check, used to turn the ETA into an arrival time.
     private(set) var now: Date?
+
+    /// The ride's route and corridor stops, loaded once from `RouteStore` for the map.
+    private(set) var route: PersistedRoute?
+    /// AC-17/AC-18: whether the map camera follows the rider. Panning turns it off; Recenter
+    /// turns it back on.
+    private(set) var isFollowingRider = true
+    /// Where the map camera should be centred while following. Moved only by the 1 s GPS check
+    /// (and Recenter), so the camera moves at most once a second (review risk hotspot 4).
+    private(set) var cameraCenter: CLLocationCoordinate2D?
 
     init(tracker: RideTracker, clock: Clock, locale: Locale = .current, timeZone: TimeZone = .current) {
         self.tracker = tracker
@@ -54,6 +65,38 @@ final class LiveRideViewModel {
         return Self.speedText(metersPerSecond: metersPerSecond, locale: locale)
     }
 
+    // MARK: - Map (RULE-11)
+
+    /// The rider's position from the ride's own latest fix — a replayed position in Demo Mode —
+    /// never the device's location.
+    var riderCoordinate: CLLocationCoordinate2D? {
+        tracker.latestFix.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+    }
+
+    var routeCoordinates: [CLLocationCoordinate2D] {
+        route?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
+    }
+
+    var stops: [PersistedPoiInput] {
+        route?.pois ?? []
+    }
+
+    func loadRoute(from routeStore: RouteStore) async {
+        guard route == nil else { return }
+        route = try? await routeStore.fetch(routeId: tracker.routeId)
+    }
+
+    /// AC-18: the rider moved the map themselves.
+    func riderDidPan() {
+        isFollowingRider = false
+    }
+
+    /// AC-19: centre on the rider again and keep following.
+    func recenter() {
+        isFollowingRider = true
+        cameraCenter = riderCoordinate
+    }
+
     // MARK: - Badges
 
     /// AC-26 to AC-28: off route only strictly beyond the shared corridor tolerance (a fix at
@@ -71,6 +114,9 @@ final class LiveRideViewModel {
     func refreshGPSState() async {
         let current = await clock.now
         now = current
+        if isFollowingRider, let riderCoordinate {
+            cameraCenter = riderCoordinate
+        }
         guard let lastFixAt = tracker.lastFixAt else {
             isGPSLost = true
             return

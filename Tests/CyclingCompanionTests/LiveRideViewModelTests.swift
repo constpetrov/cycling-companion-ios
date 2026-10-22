@@ -178,3 +178,95 @@ final class LiveRideViewModelTests: XCTestCase {
         XCTAssertTrue(sleeps.allSatisfy { $0 == 1 })
     }
 }
+
+/// task-2.4 (RULE-11): follow / pan / recenter state for the dashboard map (AC-16 to AC-19).
+final class LiveRideMapStateTests: XCTestCase {
+
+    @MainActor
+    private func viewModel(fixes: [LocationFix], clock: ReplayClock) async -> LiveRideViewModel {
+        let tracker = RideTracker(
+            rideId: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0),
+            route: [
+                ResampledPoint(latitude: 52.0, longitude: 13.0, elevationMeters: nil, cumulativeDistanceMeters: 0),
+                ResampledPoint(latitude: 52.0, longitude: 13.01, elevationMeters: nil, cumulativeDistanceMeters: 685),
+            ],
+            locationSource: ReplayLocationSource(fixes: fixes), sensorSource: ReplaySensorSource(samples: []),
+            clock: clock,
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
+        await tracker.start()
+        return LiveRideViewModel(tracker: tracker, clock: clock)
+    }
+
+    private func fix(longitude: Double) -> LocationFix {
+        LocationFix(latitude: 52.0, longitude: longitude, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 0))
+    }
+
+    @MainActor
+    func testFollowsTheRiderFromTheRidesOwnFix() async {
+        let viewModel = await viewModel(fixes: [fix(longitude: 13.005)], clock: ReplayClock())
+
+        await viewModel.refreshGPSState()
+
+        XCTAssertTrue(viewModel.isFollowingRider)
+        XCTAssertEqual(viewModel.cameraCenter?.longitude, 13.005)
+        XCTAssertEqual(viewModel.riderCoordinate?.longitude, 13.005)
+    }
+
+    @MainActor
+    func testPanningStopsFollowing() async {
+        let viewModel = await viewModel(fixes: [fix(longitude: 13.005)], clock: ReplayClock())
+        await viewModel.refreshGPSState()
+
+        viewModel.riderDidPan()
+
+        XCTAssertFalse(viewModel.isFollowingRider)
+    }
+
+    @MainActor
+    func testCameraStaysPutWhilePannedEvenAsTheRiderMoves() async {
+        let clock = ReplayClock()
+        let viewModel = await viewModel(fixes: [fix(longitude: 13.002)], clock: clock)
+        await viewModel.refreshGPSState()
+        viewModel.riderDidPan()
+        let before = viewModel.cameraCenter
+
+        await viewModel.refreshGPSState()
+
+        XCTAssertEqual(viewModel.cameraCenter?.longitude, before?.longitude)
+    }
+
+    @MainActor
+    func testRecenterResumesFollowingAtTheRider() async {
+        let viewModel = await viewModel(fixes: [fix(longitude: 13.007)], clock: ReplayClock())
+        viewModel.riderDidPan()
+
+        viewModel.recenter()
+
+        XCTAssertTrue(viewModel.isFollowingRider)
+        XCTAssertEqual(viewModel.cameraCenter?.longitude, 13.007)
+    }
+
+    @MainActor
+    func testLoadsTheRoutesLineAndStopsForTheMap() async throws {
+        let routeStore = RouteStore(
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        try await routeStore.persist(
+            routeId: "route-1", hash: "hash", totalDistanceMeters: 685, totalClimbingMeters: nil,
+            points: [
+                PersistedPointInput(latitude: 52, longitude: 13, elevationMeters: nil, cumulativeDistanceMeters: 0),
+                PersistedPointInput(latitude: 52, longitude: 13.01, elevationMeters: nil, cumulativeDistanceMeters: 685),
+            ],
+            pois: [
+                PersistedPoiInput(
+                    osmId: 7, type: "CAFE", name: "Kaffee", latitude: 52.001, longitude: 13.005, kmMarkMeters: 340,
+                    detourMeters: 110, openingHours: nil)
+            ], status: "ready")
+        let viewModel = await viewModel(fixes: [], clock: ReplayClock())
+
+        await viewModel.loadRoute(from: routeStore)
+
+        XCTAssertEqual(viewModel.routeCoordinates.count, 2)
+        XCTAssertEqual(viewModel.stops.map(\.osmId), [7])
+    }
+}
