@@ -9,6 +9,26 @@ struct RideIngestRequestPayload: Codable {
     let stopsTaken: Int
     let outcome: String
     let featureSnapshots: [FeatureSnapshotPayload]
+    /// The rider's answer to each stop suggestion this ride (RULE-18 in milestone 7's rules.md).
+    /// Optional, so queued uploads written before it existed still decode, and omitted from the
+    /// JSON when absent.
+    var suggestionResponses: [SuggestionResponsePayload]? = nil
+}
+
+/// One suggestion answer as uploaded: stop id only — no coordinates (AC-68) — and the uppercase
+/// answer, matching `outcome`'s wire form.
+struct SuggestionResponsePayload: Codable, Equatable {
+    let stopId: Int64
+    let suggestedAt: Date
+    let response: String
+    let respondedAt: Date?
+
+    init(_ response: SuggestionResponse) {
+        self.stopId = response.stopId
+        self.suggestedAt = response.suggestedAt
+        self.response = response.answer.rawValue
+        self.respondedAt = response.respondedAt
+    }
 }
 
 private struct RideIngestResponsePayload: Decodable {

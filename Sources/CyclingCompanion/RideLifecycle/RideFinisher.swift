@@ -69,10 +69,13 @@ struct RideFinisher {
             thisRideDistanceMeters: tracker.distanceAlongRouteMeters, historicalRides: historicalRides)
         let snapshots = await session.featureSnapshots()
 
+        let suggestionResponses = await session.suggestionLedger().finalResponses.map(SuggestionResponsePayload.init)
+
         let payload = RideIngestRequestPayload(
             routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
             totalDistanceMeters: tracker.distanceAlongRouteMeters, totalMovingTimeSeconds: tracker.movingTimeSeconds,
-            stopsTaken: stopsTaken, outcome: outcome.rawValue, featureSnapshots: snapshots.map(FeatureSnapshotPayload.init))
+            stopsTaken: stopsTaken, outcome: outcome.rawValue, featureSnapshots: snapshots.map(FeatureSnapshotPayload.init),
+            suggestionResponses: suggestionResponses)
 
         await uploader.upload(payload, rideId: tracker.rideId)
     }

@@ -45,7 +45,7 @@ final class RideSummaryViewModelTests: XCTestCase {
         XCTAssertNotNil(viewModel.movingTimeText)
         XCTAssertTrue(viewModel.averageSpeedText?.contains("25,0") ?? false, "25 km in 1 h of moving time")
         XCTAssertEqual(viewModel.stopsTaken, 0)
-        XCTAssertFalse(viewModel.suggestionsText.isEmpty)
+        XCTAssertEqual(viewModel.suggestionsText, "No stop suggestions")
         XCTAssertNil(viewModel.notSavedMessage)
     }
 
