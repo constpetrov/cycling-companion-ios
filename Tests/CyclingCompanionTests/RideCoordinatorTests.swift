@@ -92,6 +92,18 @@ final class RideCoordinatorTests: XCTestCase {
     }
 
     @MainActor
+    func testStartIsRejectedWhileARideIsFinishing() {
+        let coordinator = RideCoordinator()
+
+        XCTAssertTrue(coordinator.beginFinishingRide())
+        XCTAssertFalse(coordinator.beginPreparingRide())
+        XCTAssertFalse(coordinator.beginPreparingRide(resuming: true))
+        coordinator.endFinishingRide()
+
+        XCTAssertTrue(coordinator.beginPreparingRide())
+    }
+
+    @MainActor
     func testStartIsRejectedWhileARideIsActive() {
         let coordinator = RideCoordinator()
         let ride = liveRide()

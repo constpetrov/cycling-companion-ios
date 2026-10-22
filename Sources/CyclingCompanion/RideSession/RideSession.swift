@@ -195,6 +195,10 @@ actor RideSession {
             decision: decision, candidates: candidates, now: now,
             lastApprovedSuggestionTimestamp: lastApprovedSuggestionTimestamp, lastStopTimestamp: lastStopTimestamp,
             log: decisionLog)
+        // AC-64/AC-65: the rider may have declined this stop while the advisor call was in flight.
+        if let stopId = verdict.stopId, ledger.declinedStopIds.contains(where: { String($0) == stopId }) {
+            return
+        }
         if verdict.suggest {
             lastApprovedSuggestionTimestamp = now
             if let stopId = verdict.stopId, let stop = candidates.first(where: { String($0.osmId) == stopId }) {

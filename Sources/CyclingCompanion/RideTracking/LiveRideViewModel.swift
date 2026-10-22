@@ -120,6 +120,9 @@ final class LiveRideViewModel {
     /// AC-71/AC-72: opens the sheet for a tapped notification's stop if the route has it; an
     /// unknown stop just leaves the dashboard showing.
     func open(_ link: StopLink, routeStore: RouteStore) async {
+        // On a cold launch or resume the ledger isn't loaded yet; without it a suggested stop
+        // would open without Accept / Decline.
+        await refreshLedger()
         await loadRoute(from: routeStore)
         guard let stop = route?.pois.first(where: { $0.osmId == link.stopId }) else { return }
         openSheet(forStop: stop)

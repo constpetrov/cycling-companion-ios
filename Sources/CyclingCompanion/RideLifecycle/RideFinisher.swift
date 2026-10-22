@@ -25,8 +25,21 @@ struct RideFinisher {
     /// on a frozen live screen meanwhile. AC-84: a failed finalize skips the upload and leaves the
     /// unfinished checkpoint in `RideStore`, so the next launch resumes the ride rather than losing
     /// it (or uploading a ride the phone itself doesn't have).
+    ///
+    /// The finish lock covers only the local part. It is released before the upload, so a slow
+    /// network can't stop the next ride from starting or finishing.
     @discardableResult
     func finishRide(_ liveRide: LiveRide) async -> FinishOutcome? {
+        guard let (outcome, endTime) = await finalize(liveRide) else { return nil }
+        if case .saved = outcome {
+            await uploadRide(tracker: liveRide.tracker, session: liveRide.session, endTime: endTime)
+        }
+        return outcome
+    }
+
+    /// Ends the ride, writes the final record and shows the summary, all under the finish lock.
+    /// Returns `nil` when another finish already holds the lock.
+    private func finalize(_ liveRide: LiveRide) async -> (FinishOutcome, Date)? {
         guard rideCoordinator.beginFinishingRide() else { return nil }
         defer { rideCoordinator.endFinishingRide() }
 
@@ -34,6 +47,9 @@ struct RideFinisher {
 
         let tracker = liveRide.tracker
         let endTime = Date()
+        // A checkpoint still in flight (from the cancelled fix loop or a suggestion answer) would
+        // otherwise be able to land after the final write and leave the ride unfinished.
+        await tracker.stopCheckpointing()
         let outcome: FinishOutcome
         let suggestionState = await liveRide.session.suggestionLedger().persisted
         do {
@@ -50,11 +66,7 @@ struct RideFinisher {
         }
 
         rideCoordinator.presentSummary(outcome)
-
-        if case .saved = outcome {
-            await uploadRide(tracker: tracker, session: liveRide.session, endTime: endTime)
-        }
-        return outcome
+        return (outcome, endTime)
     }
 
     /// RULE-5/RULE-7/RULE-8/RULE-10/RULE-11 in spec/rules.md (AC-4 through AC-13): computes

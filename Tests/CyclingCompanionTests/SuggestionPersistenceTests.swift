@@ -126,4 +126,19 @@ final class SuggestionPersistenceTests: XCTestCase {
         XCTAssertEqual(restored, history)
         coordinator.end(resumed)
     }
+
+    /// The tracker's checkpoint closure must not keep the session (which holds the tracker) alive,
+    /// or every finished ride would stay in memory.
+    @MainActor
+    func testAFinishedRidesTrackerAndSessionAreReleased() async {
+        let rideStore = RideStore(
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        weak var weakTracker: RideTracker?
+        do {
+            let (tracker, session) = await trackerAndSession(rideStore: rideStore)
+            weakTracker = tracker
+            _ = session
+        }
+        XCTAssertNil(weakTracker)
+    }
 }

@@ -40,6 +40,29 @@ private actor RecordingTransport: HTTPTransport {
     }
 }
 
+/// Records, per ride-ingest request, whether a new ride could start while the upload was in
+/// flight.
+private actor StartDuringUploadTransport: HTTPTransport {
+    private let rideCoordinator: RideCoordinator
+    private(set) var couldStartAtIngest: [Bool] = []
+
+    init(rideCoordinator: RideCoordinator) {
+        self.rideCoordinator = rideCoordinator
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        if !request.url!.path.hasSuffix("sign-in") {
+            let couldStart = await MainActor.run { () -> Bool in
+                guard rideCoordinator.beginPreparingRide() else { return false }
+                rideCoordinator.endPreparingRide()
+                return true
+            }
+            couldStartAtIngest.append(couldStart)
+        }
+        return try await AlwaysSucceedsTransport().data(for: request)
+    }
+}
+
 /// task-3.1 validation (RULE-9/RULE-16 in spec/rules.md, AC-16).
 final class RideFinisherTests: XCTestCase {
 
@@ -151,6 +174,25 @@ final class RideFinisherTests: XCTestCase {
 
         let homeShown = await transport.homeShownAtIngest
         XCTAssertEqual(homeShown, [true], "the rider must not wait on the live screen for the network")
+    }
+
+    /// The finish lock is released once the summary shows, so a slow upload can't block the
+    /// next ride.
+    @MainActor
+    func testANewRideCanStartWhileTheUploadIsInFlight() async {
+        let rideStore = freshRideStore()
+        let liveRide = liveRideWithIdleTasks(rideStore: rideStore)
+        let rideCoordinator = RideCoordinator()
+        rideCoordinator.activate(liveRide)
+        let transport = StartDuringUploadTransport(rideCoordinator: rideCoordinator)
+        let finisher = makeFinisher(
+            rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, rideStore: rideStore,
+            transport: transport)
+
+        await finisher.finishRide(liveRide)
+
+        let couldStart = await transport.couldStartAtIngest
+        XCTAssertEqual(couldStart, [true])
     }
 
     @MainActor
