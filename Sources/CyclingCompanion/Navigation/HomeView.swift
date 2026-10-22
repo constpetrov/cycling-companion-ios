@@ -64,7 +64,7 @@ struct HomeView: View {
                 Button("Choose GPX File") { isImporterPresented = true }
             } else if let route = viewModel.currentRoute {
                 Text("Route: \(route.id)")
-                Button("Start Ride") { Task { await dependencies.rideStarter.startRide() } }
+                Button("Start Ride") { Task { await dependencies.rideStartFlow.requestStart() } }
                 Button("Choose GPX File") { isImporterPresented = true }
             }
             if let importErrorMessage = coordinator.importErrorMessage {

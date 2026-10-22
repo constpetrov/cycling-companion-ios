@@ -12,6 +12,9 @@ struct ContentView: View {
             HomeView()
                 .navigationDestination(for: HomeRoute.self, destination: destination)
         }
+        .sheet(isPresented: readinessSheetPresented) {
+            ReadinessSheet(flow: dependencies.rideStartFlow)
+        }
         .fullScreenCover(item: ridePresentation) { presentation in
             Group {
                 switch presentation {
@@ -51,6 +54,12 @@ struct ContentView: View {
         dependencies.rideCoordinator.dismissSummary()
     }
 
+    private var readinessSheetPresented: Binding<Bool> {
+        Binding(
+            get: { dependencies.rideStartFlow.isReadinessSheetPresented },
+            set: { dependencies.rideStartFlow.isReadinessSheetPresented = $0 })
+    }
+
     /// The cover follows `RideCoordinator.presentation` (RULE-7). It can only be closed by the
     /// summary's Done, so the only write that reaches the setter is that dismissal.
     private var ridePresentation: Binding<RidePresentation?> {
@@ -65,7 +74,7 @@ struct ContentView: View {
         case .corridorMap:
             CorridorMapScreen(
                 coordinator: dependencies.corridorImportCoordinator,
-                onStartRide: { Task { await dependencies.rideStarter.startRide() } })
+                onStartRide: { Task { await dependencies.rideStartFlow.requestStart() } })
         #if DEBUG
         case .demo:
             DemoModeScreen(onStart: dependencies.startDemoRide(speed:))
