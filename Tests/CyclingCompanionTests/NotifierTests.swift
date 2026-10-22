@@ -19,25 +19,28 @@ final class NotifierTests: XCTestCase {
 
     // MARK: - Lazy permission request (AC-39)
 
-    func testPermissionIsRequestedWhenNotYetDetermined() async throws {
+    /// Milestone 7 RULE-21: permission is asked for only from the pre-ride readiness check. Mid-ride,
+    /// an undetermined permission means nothing is posted (the dashboard card still shows).
+    func testPermissionIsNeverRequestedMidRide() async throws {
         let scheduling = FakeNotificationScheduling(grantOnRequest: true)
         let notifier = Notifier(scheduling: scheduling, log: DecisionLog())
 
         try await notifier.notify(verdict: approved(), candidates: [candidate()])
 
         let callCount = await scheduling.requestAuthorizationCallCount
-        XCTAssertEqual(callCount, 1)
+        XCTAssertEqual(callCount, 0)
+        let posted = await scheduling.addedRequests
+        XCTAssertTrue(posted.isEmpty)
     }
 
-    func testPermissionIsNotRequestedAgainOnASecondApproval() async throws {
-        let scheduling = FakeNotificationScheduling(grantOnRequest: true)
+    func testProvisionalPermissionStillPosts() async throws {
+        let scheduling = FakeNotificationScheduling(initialStatus: .provisional, grantOnRequest: true)
         let notifier = Notifier(scheduling: scheduling, log: DecisionLog())
 
-        try await notifier.notify(verdict: approved(stopId: "1"), candidates: [candidate(osmId: 1)])
-        try await notifier.notify(verdict: approved(stopId: "2"), candidates: [candidate(osmId: 2)])
+        try await notifier.notify(verdict: approved(), candidates: [candidate()])
 
-        let callCount = await scheduling.requestAuthorizationCallCount
-        XCTAssertEqual(callCount, 1)
+        let posted = await scheduling.addedRequests
+        XCTAssertEqual(posted.count, 1)
     }
 
     func testPermissionIsNotRequestedWhenAlreadyAuthorized() async throws {

@@ -33,7 +33,7 @@ actor FakeNotificationScheduling: NotificationScheduling {
     }
 
     func add(_ request: UNNotificationRequest) async throws {
-        guard status == .authorized else {
+        guard status == .authorized || status == .provisional || status == .ephemeral else {
             throw FakeNotificationSchedulingError.notAuthorized
         }
         addedRequests.append(request)

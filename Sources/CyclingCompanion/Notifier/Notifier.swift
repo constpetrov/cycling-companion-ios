@@ -21,10 +21,10 @@ actor Notifier {
             return
         }
 
-        if await scheduling.authorizationStatus() == .notDetermined {
-            _ = try await scheduling.requestAuthorization()
-        }
-        guard await scheduling.authorizationStatus() == .authorized else {
+        // Milestone 7 RULE-21: permission is only ever asked for from the pre-ride readiness check,
+        // never mid-ride; without it the suggestion still shows on the dashboard card.
+        let status = await scheduling.authorizationStatus()
+        guard status == .authorized || status == .provisional || status == .ephemeral else {
             Self.osLog.notice("Suppressing a suggested stop — notification permission not authorized")
             return
         }
