@@ -117,6 +117,14 @@ final class LiveRideViewModel {
         }
     }
 
+    /// AC-71/AC-72: opens the sheet for a tapped notification's stop if the route has it; an
+    /// unknown stop just leaves the dashboard showing.
+    func open(_ link: StopLink, routeStore: RouteStore) async {
+        await loadRoute(from: routeStore)
+        guard let stop = route?.pois.first(where: { $0.osmId == link.stopId }) else { return }
+        openSheet(forStop: stop)
+    }
+
     /// AC-50/AC-51: Apple Maps directions; counts as accepting an unanswered suggestion.
     func openDirections(for item: StopSheetItem) async {
         let suggestion = item.suggestion

@@ -26,6 +26,10 @@ struct LiveRideScreen: View {
                 await viewModel.monitorGPS()
             }
             .task { await viewModel.listenForSuggestions() }
+            .task(id: dependencies.appRouter.pendingStopLink) {
+                guard let link = dependencies.appRouter.takePendingStopLink() else { return }
+                await viewModel.open(link, routeStore: dependencies.routeStore)
+            }
             .sheet(item: $viewModel.stopSheet) { item in
                 StopSheetView(
                     item: item, distanceAhead: viewModel.distanceAheadText(for: item.suggestion),

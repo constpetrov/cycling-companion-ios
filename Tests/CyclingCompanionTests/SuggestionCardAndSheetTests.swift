@@ -174,4 +174,38 @@ final class SuggestionCardAndSheetTests: XCTestCase {
         XCTAssertEqual(viewModel.stopSheet?.suggestion.id, "a")
         XCTAssertEqual(viewModel.stopSheet?.offersAnswers, true)
     }
+
+    // MARK: - From a notification (AC-71, AC-72)
+
+    @MainActor
+    func testALinkToAStopOnTheRouteOpensItsSheet() async throws {
+        let (viewModel, _) = await viewModel(with: SuggestionLedger())
+        let routeStore = RouteStore(
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        try await routeStore.persist(
+            routeId: "route-1", hash: "h", totalDistanceMeters: 3_000, totalClimbingMeters: nil, points: [],
+            pois: [
+                PersistedPoiInput(
+                    osmId: 1, type: "CAFE", name: "Café am Kanal", latitude: 52.0125, longitude: 13.0015,
+                    kmMarkMeters: 1_400, detourMeters: 110, openingHours: nil)
+            ], status: "ready")
+
+        await viewModel.open(StopLink(stopId: 1), routeStore: routeStore)
+
+        XCTAssertEqual(viewModel.stopSheet?.suggestion.stopId, 1)
+    }
+
+    @MainActor
+    func testALinkToAnUnknownStopOpensNothing() async throws {
+        let (viewModel, _) = await viewModel(with: SuggestionLedger())
+        let routeStore = RouteStore(
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        try await routeStore.persist(
+            routeId: "route-1", hash: "h", totalDistanceMeters: 3_000, totalClimbingMeters: nil, points: [], pois: [],
+            status: "ready")
+
+        await viewModel.open(StopLink(stopId: 999), routeStore: routeStore)
+
+        XCTAssertNil(viewModel.stopSheet)
+    }
 }
