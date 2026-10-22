@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0398BDE27E09B4FD66F79921 /* KeepScreenOnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2A163705145C8C6A255B98 /* KeepScreenOnTests.swift */; };
 		071C50A341E8E01E205098B0 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C63064E063616D26510616DA /* AppRouter.swift */; };
 		082A2ACFD56B5B87614C9D2E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3E90750A92DFCB77548D0C /* AppDelegate.swift */; };
 		0B0D87938CEF695390FEE9E5 /* SensorSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */; };
@@ -77,6 +78,7 @@
 		86F3B6782F8723AA1239244F /* Clock.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDDAB72ADA483C9D8EBF94BE /* Clock.swift */; };
 		8918523CD80BE17C194C64BB /* RideFixtureReplayDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81219A6957FB02A0606F9C9E /* RideFixtureReplayDriver.swift */; };
 		89F678BBFC6822AFACCB9DBF /* LocalTrigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8E7C1BDF2DB4EBD70F8EC0 /* LocalTrigger.swift */; };
+		8C399D2C62821462EE5E77A7 /* KeepScreenOnPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA6499E5634F7D290BDC9E57 /* KeepScreenOnPreference.swift */; };
 		98D963E9F52AA4B8BEC06FE1 /* RideCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 295B53FF166D35C4EC2AFF2B /* RideCoordinator.swift */; };
 		9A91BB6DA81B243559AD4D16 /* RideRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 462524783D5BDC642FD8D88B /* RideRecorder.swift */; };
 		9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414779F64E8D9536C42316E7 /* AuthStubClient.swift */; };
@@ -201,6 +203,7 @@
 		5409D239CA1A15FD28611FCF /* LocationSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSourceTests.swift; sourceTree = "<group>"; };
 		596968DB52299BC245D33435 /* ScaledRealClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaledRealClock.swift; sourceTree = "<group>"; };
 		5D170D792A0495158BAB2240 /* RideTrackerMovingTimeETATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerMovingTimeETATests.swift; sourceTree = "<group>"; };
+		5E2A163705145C8C6A255B98 /* KeepScreenOnTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepScreenOnTests.swift; sourceTree = "<group>"; };
 		5E76292EDF9F638AAA64DA9E /* BaselineCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineCalculator.swift; sourceTree = "<group>"; };
 		62EB90D7C13D4FA0EDE71AFE /* POILookahead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = POILookahead.swift; sourceTree = "<group>"; };
 		63E64494E0DECEB59D6D6566 /* RouteHasher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteHasher.swift; sourceTree = "<group>"; };
@@ -277,6 +280,7 @@
 		E16A4BA7315E47C9B930F686 /* RideIngestClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideIngestClient.swift; sourceTree = "<group>"; };
 		E4E726A8FE044B0EAC762D64 /* GeoMathClosestPointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoMathClosestPointTests.swift; sourceTree = "<group>"; };
 		E5B28A0D1F9338E011EE7AF9 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
+		EA6499E5634F7D290BDC9E57 /* KeepScreenOnPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepScreenOnPreference.swift; sourceTree = "<group>"; };
 		ECABEE239029D96B2B8C36BE /* LocationSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSource.swift; sourceTree = "<group>"; };
 		EDDAB72ADA483C9D8EBF94BE /* Clock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clock.swift; sourceTree = "<group>"; };
 		F117007FA9445EE22B8AE4A0 /* TrackPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPoint.swift; sourceTree = "<group>"; };
@@ -330,6 +334,7 @@
 				70987000F6057937B7350102 /* ContentView.swift */,
 				16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */,
 				B81D7F9F4933773427941D7C /* Info.plist */,
+				EA6499E5634F7D290BDC9E57 /* KeepScreenOnPreference.swift */,
 				F7C3812DFE1C618FFAC0D95E /* Log.swift */,
 			);
 			path = App;
@@ -473,6 +478,7 @@
 				E4E726A8FE044B0EAC762D64 /* GeoMathClosestPointTests.swift */,
 				1DBAC200E51EA08C8813D1CE /* GuardrailGateTests.swift */,
 				F505527CCDB5F1581F90FCFB /* HomeViewModelTests.swift */,
+				5E2A163705145C8C6A255B98 /* KeepScreenOnTests.swift */,
 				93D7DDE00FF31842D8CACB7F /* LazySignInTests.swift */,
 				AB92AEA5F1486E5AA65653B5 /* LiveRideViewModelTests.swift */,
 				F66098AD0937AE1CE1EB6B82 /* LocalAdvisorTests.swift */,
@@ -768,6 +774,7 @@
 				C7BE9CBD63D67C36CB087398 /* GeoMathClosestPointTests.swift in Sources */,
 				5ED67759CADC5811324C8942 /* GuardrailGateTests.swift in Sources */,
 				5EF1088626C722832BC49E9B /* HomeViewModelTests.swift in Sources */,
+				0398BDE27E09B4FD66F79921 /* KeepScreenOnTests.swift in Sources */,
 				D8FB5D3F880A9EFCBE8FFFF5 /* LazySignInTests.swift in Sources */,
 				0F23C009677B556EAC02F5C2 /* LiveRideViewModelTests.swift in Sources */,
 				21D0FD55341ADB92934504BB /* LocalAdvisorTests.swift in Sources */,
@@ -837,6 +844,7 @@
 				CFB8A1C47D0B891DDDE24F5F /* GeoMath.swift in Sources */,
 				C2EA12BFDAE7EF6EACC54E8C /* GuardrailGate.swift in Sources */,
 				C3C5C0D133EC4125E77A120B /* HomeView.swift in Sources */,
+				8C399D2C62821462EE5E77A7 /* KeepScreenOnPreference.swift in Sources */,
 				FE62940CCC1AA061EFB5BD9C /* LazySignIn.swift in Sources */,
 				57BE3B648D5003D7AA7A5328 /* LiveRide.swift in Sources */,
 				67920A905369DEF82A2BF471 /* LiveRideMapView.swift in Sources */,

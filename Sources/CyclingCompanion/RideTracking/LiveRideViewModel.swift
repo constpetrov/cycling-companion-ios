@@ -17,6 +17,12 @@ final class LiveRideViewModel {
     private let clock: Clock
     private let locale: Locale
     private let timeZone: TimeZone
+    private let keepScreenOnPreference: KeepScreenOnPreference
+    private let idleTimer: IdleTimerControlling
+    private var isDashboardVisible = false
+
+    /// AC-37/AC-38: the rider's keep-screen-on choice, starting from the remembered value.
+    private(set) var keepScreenOn: Bool
 
     /// AC-30 to AC-33: `true` before the first fix and once `gpsLostAfterSeconds` have passed
     /// without one. Updated by `refreshGPSState()`.
@@ -33,11 +39,42 @@ final class LiveRideViewModel {
     /// (and Recenter), so the camera moves at most once a second (review risk hotspot 4).
     private(set) var cameraCenter: CLLocationCoordinate2D?
 
-    init(tracker: RideTracker, clock: Clock, locale: Locale = .current, timeZone: TimeZone = .current) {
+    init(
+        tracker: RideTracker, clock: Clock, locale: Locale = .current, timeZone: TimeZone = .current,
+        keepScreenOnPreference: KeepScreenOnPreference = InMemoryKeepScreenOnPreference(),
+        idleTimer: IdleTimerControlling = NoIdleTimer()
+    ) {
         self.tracker = tracker
         self.clock = clock
         self.locale = locale
         self.timeZone = timeZone
+        self.keepScreenOnPreference = keepScreenOnPreference
+        self.idleTimer = idleTimer
+        self.keepScreenOn = keepScreenOnPreference.isEnabled
+    }
+
+    // MARK: - Keep screen on (RULE-13)
+
+    /// AC-34/AC-35/AC-38: remembers the choice and applies it at once if the dashboard is showing.
+    func setKeepScreenOn(_ enabled: Bool) {
+        keepScreenOn = enabled
+        keepScreenOnPreference.isEnabled = enabled
+        applyIdleTimer()
+    }
+
+    func dashboardDidAppear() {
+        isDashboardVisible = true
+        applyIdleTimer()
+    }
+
+    /// AC-36: also called when the ride ends, so auto-lock is restored either way.
+    func dashboardDidDisappear() {
+        isDashboardVisible = false
+        applyIdleTimer()
+    }
+
+    private func applyIdleTimer() {
+        idleTimer.setIdleTimerDisabled(isDashboardVisible && keepScreenOn)
     }
 
     // MARK: - Metrics
