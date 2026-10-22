@@ -43,6 +43,7 @@ final class ScreenshotTourTests: XCTestCase {
         finish.press(forDuration: 2.0)
         let done = app.buttons["Done"]
         XCTAssertTrue(done.waitForExistence(timeout: 10), "the summary should replace the dashboard")
+        XCTAssertTrue(app.staticTexts["Saved"].waitForExistence(timeout: 10), "the stub backend accepts the upload")
         snapshot("04-ride-summary")
 
         done.tap()
