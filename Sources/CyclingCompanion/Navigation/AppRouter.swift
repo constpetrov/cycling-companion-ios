@@ -1,19 +1,28 @@
 import Foundation
 
-/// Which screen is showing (RULE-9 in spec/rules.md). Navigation only: since milestone 7 the ride
-/// lifecycle (active ride, start/finish locks, task cancellation) lives in `RideCoordinator`, so no
-/// navigation change can stop a ride (RULE-2 in milestone 7's rules.md).
+/// A screen pushed onto Home's navigation stack (RULE-7 in milestone 7's rules.md). Value routes
+/// carry ids only, never live objects.
+enum HomeRoute: Hashable {
+    case corridorMap(routeId: String)
+    #if DEBUG
+    case demo
+    #endif
+}
+
+/// Navigation state only (RULE-2/RULE-7 in milestone 7's rules.md): the stack pushed on top of
+/// Home. The ride itself is presented from `RideCoordinator`, never from here, so no navigation
+/// change can stop a ride.
 @MainActor
 @Observable
 final class AppRouter {
-    enum Screen: Equatable {
-        case home
-        case corridorMap
+    var path: [HomeRoute] = []
+
+    /// Shows `route` on top of Home, replacing anything pushed before it.
+    func open(_ route: HomeRoute) {
+        path = [route]
     }
 
-    private(set) var currentScreen: Screen = .home
-
-    func show(_ screen: Screen) {
-        currentScreen = screen
+    func popToHome() {
+        path = []
     }
 }

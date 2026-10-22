@@ -11,16 +11,29 @@ final class AppRouterTests: XCTestCase {
     func testStartsOnHome() {
         let router = AppRouter()
 
-        XCTAssertEqual(router.currentScreen, .home)
+        XCTAssertEqual(router.path, [])
+    }
+
+    /// AC-13: opening a route's corridor map pushes it over Home; going back returns to Home.
+    @MainActor
+    func testOpeningTheCorridorMapPushesItAndBackReturnsHome() {
+        let router = AppRouter()
+
+        router.open(.corridorMap(routeId: "route-1"))
+        XCTAssertEqual(router.path, [.corridorMap(routeId: "route-1")])
+
+        router.path.removeLast()  // what the system back button does to a bound path
+        XCTAssertEqual(router.path, [])
     }
 
     @MainActor
-    func testShowMutatesCurrentScreen() {
+    func testOpeningAnotherRouteReplacesThePushedScreen() {
         let router = AppRouter()
+        router.open(.corridorMap(routeId: "route-1"))
 
-        router.show(.corridorMap)
+        router.open(.corridorMap(routeId: "route-2"))
 
-        XCTAssertEqual(router.currentScreen, .corridorMap)
+        XCTAssertEqual(router.path, [.corridorMap(routeId: "route-2")])
     }
 
     /// AC-1/AC-2: navigating while a ride is active never stops its tracking or advisor loop.
@@ -46,8 +59,8 @@ final class AppRouterTests: XCTestCase {
         rideCoordinator.activate(ride)
         let router = AppRouter()
 
-        router.show(.corridorMap)
-        router.show(.home)
+        router.open(.corridorMap(routeId: "route-1"))
+        router.popToHome()
 
         XCTAssertFalse(ride.trackingTask.isCancelled)
         XCTAssertFalse(ride.sessionTask.isCancelled)

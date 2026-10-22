@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The app's root view (RULE-9 in spec/rules.md): the live ride whenever `RideCoordinator` has an
-/// active ride, otherwise Home or the corridor map from `AppRouter.currentScreen`. It never
-/// decides anything itself; everything comes from `AppDependencies` in the environment.
+/// The app's root view (RULE-7/RULE-9): the live ride whenever `RideCoordinator` has an active
+/// ride, otherwise a `NavigationStack` rooted at Home whose pushed screens come from
+/// `AppRouter.path`. It never decides anything itself; everything comes from `AppDependencies`.
 struct ContentView: View {
     @Environment(AppDependencies.self) private var dependencies
 
@@ -12,21 +12,25 @@ struct ContentView: View {
                 rideTracker: liveRide.tracker,
                 onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } })
         } else {
-            NavigationStack {
-                screen
+            @Bindable var router = dependencies.appRouter
+            NavigationStack(path: $router.path) {
+                HomeView()
+                    .navigationDestination(for: HomeRoute.self, destination: destination)
             }
         }
     }
 
     @ViewBuilder
-    private var screen: some View {
-        switch dependencies.appRouter.currentScreen {
-        case .home:
-            HomeView()
+    private func destination(for route: HomeRoute) -> some View {
+        switch route {
         case .corridorMap:
             CorridorMapScreen(
                 coordinator: dependencies.corridorImportCoordinator,
                 onStartRide: { Task { await dependencies.rideStarter.startRide() } })
+        #if DEBUG
+        case .demo:
+            DemoModeScreen(onStart: dependencies.startDemoRide(speed:))
+        #endif
         }
     }
 }

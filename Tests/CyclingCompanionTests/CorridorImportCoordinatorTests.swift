@@ -107,7 +107,7 @@ final class CorridorImportCoordinatorTests: XCTestCase {
         // iterations), so the background poll Task can never reach its second RouteStore
         // write regardless of scheduling — these assertions hold no matter how far it's run.
         XCTAssertEqual(pointer.routeId, "route-123")
-        XCTAssertEqual(appRouter.currentScreen, .corridorMap)
+        XCTAssertEqual(appRouter.path, [.corridorMap(routeId: "route-123")])
         let persisted = try await routeStore.fetch(routeId: "route-123")
         XCTAssertEqual(persisted?.status, "building")
         XCTAssertEqual(persisted?.pois.count, 0)
@@ -129,7 +129,7 @@ final class CorridorImportCoordinatorTests: XCTestCase {
         XCTAssertNil(pointer.routeId)
         let all = try await routeStore.fetchAll()
         XCTAssertTrue(all.isEmpty)
-        XCTAssertEqual(appRouter.currentScreen, .home)
+        XCTAssertEqual(appRouter.path, [])
         XCTAssertNotNil(coordinator.importErrorMessage)
     }
 

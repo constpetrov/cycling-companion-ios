@@ -26,19 +26,19 @@ final class AppDelegateNotificationTests: XCTestCase {
 
         delegate.handleNotificationTap()
 
-        XCTAssertEqual(appRouter.currentScreen, .home)
+        XCTAssertEqual(appRouter.path, [])
     }
 
     @MainActor
     func testTapWhileOnCorridorMapWithNoRideStaysOnTheCorridorMap() {
         let appRouter = AppRouter()
-        appRouter.show(.corridorMap)
+        appRouter.open(.corridorMap(routeId: "route-1"))
         let delegate = AppDelegate()
         delegate.appRouter = appRouter
 
         delegate.handleNotificationTap()
 
-        XCTAssertEqual(appRouter.currentScreen, .corridorMap)
+        XCTAssertEqual(appRouter.path, [.corridorMap(routeId: "route-1")])
     }
 
     @MainActor

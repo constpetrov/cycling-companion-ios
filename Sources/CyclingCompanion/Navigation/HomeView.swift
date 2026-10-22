@@ -71,9 +71,7 @@ struct HomeView: View {
                 Text(importErrorMessage)
             }
             #if DEBUG
-            NavigationLink("Demo Mode") {
-                DemoModeScreen(onStart: dependencies.startDemoRide(speed:))
-            }
+            NavigationLink("Demo Mode", value: HomeRoute.demo)
             #endif
         }
         .padding()
