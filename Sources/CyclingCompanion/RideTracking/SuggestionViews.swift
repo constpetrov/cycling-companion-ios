@@ -15,6 +15,7 @@ struct SuggestionCardView: View {
                 Image(systemName: isHeadingTo ? "location.north.circle.fill" : "cup.and.saucer.fill")
                     .font(.title2)
                     .foregroundStyle(.orange)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(isHeadingTo ? "Heading to \(title)" : title)
                         .font(.headline)
@@ -29,6 +30,7 @@ struct SuggestionCardView: View {
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.up")
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)

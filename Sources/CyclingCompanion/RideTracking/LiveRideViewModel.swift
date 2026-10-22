@@ -225,6 +225,14 @@ final class LiveRideViewModel {
         route?.pois ?? []
     }
 
+    /// AC-132: a stop as VoiceOver reads it — name and how far ahead (or behind).
+    func stopAccessibilityLabel(_ stop: PersistedPoiInput) -> String {
+        let name = stop.name ?? Self.typeLabel(stop.type)
+        let ahead = stop.kmMarkMeters - tracker.distanceAlongRouteMeters
+        let distance = Self.distanceText(meters: abs(ahead), locale: locale)
+        return ahead >= 0 ? "\(name), \(distance) ahead" : "\(name), passed"
+    }
+
     func loadRoute(from routeStore: RouteStore) async {
         guard route == nil else { return }
         route = try? await routeStore.fetch(routeId: tracker.routeId)
