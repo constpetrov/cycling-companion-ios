@@ -49,7 +49,7 @@ final class RideFinisherTests: XCTestCase {
 
     @MainActor
     private func makeFinisher(
-        rideRecorder: RideRecorder, rideCoordinator: RideCoordinator, rideStore: RideStore,
+        rideRecorder: RideFinalizing, rideCoordinator: RideCoordinator, rideStore: RideStore,
         transport: HTTPTransport = AlwaysSucceedsTransport()
     ) -> RideFinisher {
         let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
@@ -164,12 +164,71 @@ final class RideFinisherTests: XCTestCase {
             rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, rideStore: rideStore,
             transport: transport)
 
-        async let first: Void = finisher.finishRide(liveRide)
-        async let second: Void = finisher.finishRide(liveRide)
+        async let first = finisher.finishRide(liveRide)
+        async let second = finisher.finishRide(liveRide)
         _ = await (first, second)
 
         let uploads = await transport.homeShownAtIngest.count
         XCTAssertEqual(uploads, 1)
     }
 
+
+    /// AC-84: saving fails → summary says not saved, no upload, and the unfinished checkpoint
+    /// stays so the ride resumes on next launch.
+    @MainActor
+    func testAFailedSaveSkipsTheUploadAndKeepsTheUnfinishedRide() async throws {
+        let rideStore = freshRideStore()
+        try await rideStore.persist(
+            PersistedRide(
+                id: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), endTime: nil,
+                totalDistanceMeters: 500, totalMovingTimeSeconds: 100, track: []))
+        let liveRide = liveRideWithIdleTasks(rideStore: rideStore)
+        let rideCoordinator = RideCoordinator()
+        rideCoordinator.activate(liveRide)
+        let transport = RecordingTransport(rideCoordinator: rideCoordinator)
+        let finisher = makeFinisher(
+            rideRecorder: FailingRecorder(), rideCoordinator: rideCoordinator, rideStore: rideStore,
+            transport: transport)
+
+        let outcome = await finisher.finishRide(liveRide)
+
+        guard case .notSaved = outcome else { return XCTFail("expected .notSaved") }
+        guard case .summary(.notSaved) = rideCoordinator.presentation else {
+            return XCTFail("the summary must say the ride wasn't saved")
+        }
+        let uploads = await transport.homeShownAtIngest.count
+        XCTAssertEqual(uploads, 0, "nothing is uploaded for a ride that wasn't saved")
+        let stored = try await rideStore.fetch(rideId: "ride-1")
+        XCTAssertNil(stored?.endTime, "the checkpoint stays unfinished so the ride resumes")
+    }
+
+    /// AC-77: a successful finish ends on the summary of the saved ride.
+    @MainActor
+    func testASuccessfulFinishShowsTheSavedRidesSummary() async {
+        let rideStore = freshRideStore()
+        let liveRide = liveRideWithIdleTasks(rideStore: rideStore)
+        let rideCoordinator = RideCoordinator()
+        rideCoordinator.activate(liveRide)
+        let finisher = makeFinisher(
+            rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, rideStore: rideStore)
+
+        let outcome = await finisher.finishRide(liveRide)
+
+        guard case .saved(let ride) = outcome, case .summary(.saved(let shown)) = rideCoordinator.presentation else {
+            return XCTFail("expected the saved ride's summary")
+        }
+        XCTAssertEqual(ride.id, shown.id)
+        XCTAssertNotNil(ride.endTime)
+    }
+}
+
+private struct FailingRecorder: RideFinalizing {
+    struct WriteFailed: Error {}
+
+    func finalize(
+        rideId: String, routeId: String, startTime: Date, endTime: Date, totalDistanceMeters: Double,
+        totalMovingTimeSeconds: Double, track: [PersistedRideSample]
+    ) async throws -> PersistedRide {
+        throw WriteFailed()
+    }
 }

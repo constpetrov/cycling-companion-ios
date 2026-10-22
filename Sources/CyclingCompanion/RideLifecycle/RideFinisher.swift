@@ -9,7 +9,7 @@ import RoutePersistence
 struct RideFinisher {
     private static let log = Log.logger(category: "RideTracking")
 
-    let rideRecorder: RideRecorder
+    let rideRecorder: RideFinalizing
     let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
     let rideStore: RideStore
@@ -23,10 +23,12 @@ struct RideFinisher {
     ///
     /// Hands the outcome to the coordinator as soon as the ride is finalized locally, before the
     /// upload: the upload can take as long as the network allows, and the rider shouldn't be left
-    /// on a frozen live screen meanwhile. A failed finalize leaves the unfinished checkpoint in `RideStore`, so
-    /// the next launch resumes the ride rather than losing it.
-    func finishRide(_ liveRide: LiveRide) async {
-        guard rideCoordinator.beginFinishingRide() else { return }
+    /// on a frozen live screen meanwhile. AC-84: a failed finalize skips the upload and leaves the
+    /// unfinished checkpoint in `RideStore`, so the next launch resumes the ride rather than losing
+    /// it (or uploading a ride the phone itself doesn't have).
+    @discardableResult
+    func finishRide(_ liveRide: LiveRide) async -> FinishOutcome? {
+        guard rideCoordinator.beginFinishingRide() else { return nil }
         defer { rideCoordinator.endFinishingRide() }
 
         rideCoordinator.end(liveRide)
@@ -48,7 +50,10 @@ struct RideFinisher {
 
         rideCoordinator.presentSummary(outcome)
 
-        await uploadRide(tracker: tracker, session: liveRide.session, endTime: endTime)
+        if case .saved = outcome {
+            await uploadRide(tracker: tracker, session: liveRide.session, endTime: endTime)
+        }
+        return outcome
     }
 
     /// RULE-5/RULE-7/RULE-8/RULE-10/RULE-11 in spec/rules.md (AC-4 through AC-13): computes
