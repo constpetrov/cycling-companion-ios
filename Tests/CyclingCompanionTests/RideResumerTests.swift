@@ -15,9 +15,9 @@ final class RideResumerTests: XCTestCase {
     }
 
     @MainActor
-    private func makeResumer(rideStore: RideStore, routeStore: RouteStore, appRouter: AppRouter) -> RideResumer {
+    private func makeResumer(rideStore: RideStore, routeStore: RouteStore, rideCoordinator: RideCoordinator) -> RideResumer {
         RideResumer(
-            rideStore: rideStore, routeStore: routeStore, appRouter: appRouter, decisionLog: DecisionLog(),
+            rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator, decisionLog: DecisionLog(),
             notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: DecisionLog()))
     }
 
@@ -25,12 +25,12 @@ final class RideResumerTests: XCTestCase {
     func testNoUnfinishedRideSettlesOnHome() async throws {
         let rideStore = freshRideStore()
         let routeStore = freshRouteStore()
-        let appRouter = AppRouter()
-        let resumer = makeResumer(rideStore: rideStore, routeStore: routeStore, appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        let resumer = makeResumer(rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator)
 
         await resumer.resumeIfNeeded()
 
-        XCTAssertEqual(appRouter.currentScreen, .home)
+        XCTAssertNil(rideCoordinator.activeRide)
     }
 
     @MainActor
@@ -53,12 +53,13 @@ final class RideResumerTests: XCTestCase {
             PersistedRide(
                 id: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), endTime: nil,
                 totalDistanceMeters: 2_500, totalMovingTimeSeconds: 600, track: checkpointTrack))
-        let appRouter = AppRouter()
-        let resumer = makeResumer(rideStore: rideStore, routeStore: routeStore, appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        let resumer = makeResumer(rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator)
 
         await resumer.resumeIfNeeded()
 
-        guard case .liveRide(let liveRide) = appRouter.currentScreen, let tracker = liveRide?.tracker else {
+        let liveRide = rideCoordinator.activeRide
+        guard let tracker = liveRide?.tracker else {
             XCTFail("expected a resumed live ride screen")
             return
         }
@@ -69,7 +70,8 @@ final class RideResumerTests: XCTestCase {
         XCTAssertEqual(tracker.track.count, 1)
 
         await resumer.resumeIfNeeded()
-        guard case .liveRide(let resumedAgain) = appRouter.currentScreen else {
+        let resumedAgain = rideCoordinator.activeRide
+        guard resumedAgain != nil else {
             return XCTFail("expected the same active ride")
         }
         XCTAssertTrue(resumedAgain?.tracker === tracker, "a second launch task must not spawn another session")
@@ -87,13 +89,29 @@ final class RideResumerTests: XCTestCase {
             PersistedRide(
                 id: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), endTime: nil,
                 totalDistanceMeters: 0, totalMovingTimeSeconds: 0, track: []))
-        let appRouter = AppRouter()
-        let resumer = makeResumer(rideStore: rideStore, routeStore: routeStore, appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        let resumer = makeResumer(rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator)
 
         await resumer.resumeIfNeeded()
 
-        XCTAssertEqual(
-            appRouter.currentScreen, .home,
-            "an unresolvable checkpoint must fall back to Home, not strand the screen on .liveRide(nil)'s spinner")
+        XCTAssertNil(rideCoordinator.activeRide, "an unresolvable checkpoint must leave the app on Home")
+        XCTAssertEqual(rideCoordinator.phase, .idle, "and must release the resume lock")
+    }
+
+    /// Was `AppRouterTests.testAFinishedRideDoesNotCountAsUnfinished` (detection moved here).
+    @MainActor
+    func testAFinishedRideIsNotResumed() async throws {
+        let rideStore = freshRideStore()
+        try await rideStore.persist(
+            PersistedRide(
+                id: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0),
+                endTime: Date(timeIntervalSince1970: 100), totalDistanceMeters: 1_000, totalMovingTimeSeconds: 60,
+                track: []))
+        let rideCoordinator = RideCoordinator()
+        let resumer = makeResumer(rideStore: rideStore, routeStore: freshRouteStore(), rideCoordinator: rideCoordinator)
+
+        await resumer.resumeIfNeeded()
+
+        XCTAssertNil(rideCoordinator.activeRide)
     }
 }

@@ -55,7 +55,7 @@ final class CorridorImportCoordinator {
             points = persistedPoints
             pois = []
             pointer.routeId = response.routeId
-            appRouter.show(.corridorMap)
+            appRouter.open(.corridorMap(routeId: response.routeId))
             Self.log.info("Imported route \(response.routeId, privacy: .public), status=\(response.status, privacy: .public)")
             return pollAndUpdate(routeId: response.routeId)
         } catch {

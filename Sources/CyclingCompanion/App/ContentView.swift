@@ -1,70 +1,58 @@
-import RoutePersistence
 import SwiftUI
-import UserNotifications
 
-/// The app's root view (RULE-9 in spec/rules.md) — switches between Home, the corridor map,
-/// and the live ride screen purely off `appRouter.currentScreen`; it never decides anything
-/// itself. `onStartDemoRide` is a type-erased closure (not a `DemoRideStarter` reference) so
-/// this always-compiled file never needs to name a `#if DEBUG`-only type (RULE-15).
+/// The app's root view (RULE-7/RULE-9): a `NavigationStack` rooted at Home whose pushed screens
+/// come from `AppRouter.path`, with the ride (live, then its summary) in a full-screen cover driven
+/// by `RideCoordinator.presentation`. It never decides anything itself; everything comes from `AppDependencies`.
 struct ContentView: View {
-    let appRouter: AppRouter
-    let routeStore: RouteStore
-    let coordinator: CorridorImportCoordinator
-    let rideStarter: RideStarter
-    let rideFinisher: RideFinisher
-    let onStartDemoRide: (Double) async -> RideSession?
+    @Environment(AppDependencies.self) private var dependencies
 
     var body: some View {
-        NavigationStack {
-            screen
+        @Bindable var router = dependencies.appRouter
+        NavigationStack(path: $router.path) {
+            HomeView()
+                .navigationDestination(for: HomeRoute.self, destination: destination)
         }
+        .fullScreenCover(item: ridePresentation) { presentation in
+            Group {
+                switch presentation {
+                case .live(let liveRide):
+                    LiveRideScreen(
+                        rideTracker: liveRide.tracker,
+                        onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } })
+                case .summary(let outcome):
+                    RideSummaryView(outcome: outcome, onDone: dependencies.rideCoordinator.dismissSummary)
+                }
+            }
+            .interactiveDismissDisabled()
+        }
+    }
+
+    /// The cover follows `RideCoordinator.presentation` (RULE-7). It can only be closed by the
+    /// summary's Done, so the only write that reaches the setter is that dismissal.
+    private var ridePresentation: Binding<RidePresentation?> {
+        Binding(
+            get: { dependencies.rideCoordinator.presentation },
+            set: { if $0 == nil { dependencies.rideCoordinator.dismissSummary() } })
     }
 
     @ViewBuilder
-    private var screen: some View {
-        switch appRouter.currentScreen {
-        case .home:
-            HomeView(
-                routeStore: routeStore, coordinator: coordinator,
-                onStartRide: { Task { await rideStarter.startRide() } }, onStartDemoRide: onStartDemoRide)
+    private func destination(for route: HomeRoute) -> some View {
+        switch route {
         case .corridorMap:
-            CorridorMapScreen(coordinator: coordinator, onStartRide: { Task { await rideStarter.startRide() } })
-        case .liveRide(let liveRide):
-            LiveRideScreen(
-                rideTracker: liveRide?.tracker,
-                onFinishRide: {
-                    guard let liveRide else { return }
-                    Task { await rideFinisher.finishRide(liveRide) }
-                })
+            CorridorMapScreen(
+                coordinator: dependencies.corridorImportCoordinator,
+                onStartRide: { Task { await dependencies.rideStarter.startRide() } })
+        #if DEBUG
+        case .demo:
+            DemoModeScreen(onStart: dependencies.startDemoRide(speed:))
+        #endif
         }
     }
 }
 
+#if DEBUG
 #Preview {
-    ContentView(
-        appRouter: AppRouter(),
-        routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-routes.json")),
-        coordinator: CorridorImportCoordinator(
-            corridorPollingService: CorridorPollingService(
-                baseURL: URL(string: "http://localhost:8080")!,
-                authClient: AuthStubClient(baseURL: URL(string: "http://localhost:8080")!)),
-            routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-routes.json")),
-            pointer: CurrentRoutePointer(), appRouter: AppRouter(),
-            lazySignIn: LazySignIn(authClient: AuthStubClient(baseURL: URL(string: "http://localhost:8080")!))),
-        rideStarter: RideStarter(
-            routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-routes.json")),
-            pointer: CurrentRoutePointer(), appRouter: AppRouter(), decisionLog: DecisionLog(),
-            notifier: Notifier(scheduling: UNUserNotificationCenter.current(), log: DecisionLog())),
-        rideFinisher: RideFinisher(
-            rideRecorder: RideRecorder(
-                rideStore: RideStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-rides.json"))),
-            appRouter: AppRouter(), decisionLog: DecisionLog(),
-            rideStore: RideStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-rides.json")),
-            rideIngestClient: RideIngestClient(
-                baseURL: URL(string: "http://localhost:8080")!,
-                authClient: AuthStubClient(baseURL: URL(string: "http://localhost:8080")!),
-                lazySignIn: LazySignIn(authClient: AuthStubClient(baseURL: URL(string: "http://localhost:8080")!))),
-            pendingUploadQueue: PendingRideUploadQueue(
-                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("preview-pending-uploads.json"))),
-        onStartDemoRide: { _ in nil })
+    ContentView()
+        .environment(AppDependencies.preview)
 }
+#endif

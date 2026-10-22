@@ -17,39 +17,32 @@ final class AppDelegateNotificationTests: XCTestCase {
             clock: ReplayClock(), rideStore: rideStore)
     }
 
+    /// AC-76 (milestone 7): with no ride, a tap leaves the app where it is — no placeholder.
     @MainActor
-    func testTapWhileOnHomeNavigatesToTheLiveRideScreen() {
+    func testTapWhileOnHomeWithNoRideStaysOnHome() {
         let appRouter = AppRouter()
-        appRouter.show(.home)
         let delegate = AppDelegate()
         delegate.appRouter = appRouter
 
         delegate.handleNotificationTap()
 
-        guard case .liveRide = appRouter.currentScreen else {
-            XCTFail("expected the live ride screen")
-            return
-        }
+        XCTAssertEqual(appRouter.path, [])
     }
 
     @MainActor
-    func testTapWhileOnCorridorMapNavigatesToTheLiveRideScreen() {
+    func testTapWhileOnCorridorMapWithNoRideStaysOnTheCorridorMap() {
         let appRouter = AppRouter()
-        appRouter.show(.corridorMap)
+        appRouter.open(.corridorMap(routeId: "route-1"))
         let delegate = AppDelegate()
         delegate.appRouter = appRouter
 
         delegate.handleNotificationTap()
 
-        guard case .liveRide = appRouter.currentScreen else {
-            XCTFail("expected the live ride screen")
-            return
-        }
+        XCTAssertEqual(appRouter.path, [.corridorMap(routeId: "route-1")])
     }
 
     @MainActor
-    func testTapWhileAlreadyOnARealLiveRideDoesNotDiscardTheTracker() {
-        let appRouter = AppRouter()
+    func testTapDuringAnActiveRideDoesNotDiscardIt() {
         let tracker = freshRideTracker()
         let routeStore = RouteStore(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
@@ -57,20 +50,20 @@ final class AppDelegateNotificationTests: XCTestCase {
             rideTracker: tracker, featureEngine: FeatureEngine(rideTracker: tracker, route: [], clock: ReplayClock()),
             clock: ReplayClock(), routeId: "route-1", routeStore: routeStore, decisionLog: DecisionLog(),
             notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: DecisionLog()))
-        let trackingTask = Task<Void, Never> {}
-        let sessionTask = Task<Void, Never> {}
-        appRouter.show(
-            .liveRide(LiveRide(tracker: tracker, session: session, trackingTask: trackingTask, sessionTask: sessionTask)))
+        let ride = LiveRide(
+            tracker: tracker, session: session,
+            trackingTask: Task { try? await Task.sleep(nanoseconds: .max) },
+            sessionTask: Task { try? await Task.sleep(nanoseconds: .max) })
+        let rideCoordinator = RideCoordinator()
+        rideCoordinator.activate(ride)
         let delegate = AppDelegate()
-        delegate.appRouter = appRouter
+        delegate.appRouter = AppRouter()
 
         delegate.handleNotificationTap()
 
-        guard case .liveRide(let liveRide) = appRouter.currentScreen else {
-            XCTFail("expected the live ride screen")
-            return
-        }
-        XCTAssertTrue(liveRide?.tracker === tracker, "an already-resumed/started ride's tracker must not be discarded")
+        XCTAssertTrue(rideCoordinator.activeRide?.tracker === tracker, "the active ride must not be discarded")
+        XCTAssertFalse(ride.sessionTask.isCancelled)
+        rideCoordinator.end(ride)
     }
 
     @MainActor

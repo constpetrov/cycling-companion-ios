@@ -25,9 +25,12 @@ final class RideStarterTests: XCTestCase {
     }
 
     @MainActor
-    private func makeStarter(routeStore: RouteStore, pointer: CurrentRoutePointer, appRouter: AppRouter) -> RideStarter {
+    private func makeStarter(routeStore: RouteStore, pointer: CurrentRoutePointer, rideCoordinator: RideCoordinator) -> RideStarter {
         RideStarter(
-            routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: DecisionLog(),
+            routeStore: routeStore,
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")),
+            pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: DecisionLog(),
             notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: DecisionLog()))
     }
 
@@ -38,12 +41,13 @@ final class RideStarterTests: XCTestCase {
             routeId: "route-1", hash: "hash", totalDistanceMeters: 10_000, totalClimbingMeters: nil,
             points: samplePoints(), pois: [], status: "building")
         let pointer = freshPointer(routeId: "route-1")
-        let appRouter = AppRouter()
-        let starter = makeStarter(routeStore: routeStore, pointer: pointer, appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        let starter = makeStarter(routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator)
 
         await starter.startRide()
 
-        guard case .liveRide(let liveRide) = appRouter.currentScreen else {
+        let liveRide = rideCoordinator.activeRide
+        guard liveRide != nil else {
             XCTFail("expected the live ride screen")
             return
         }
@@ -64,12 +68,13 @@ final class RideStarterTests: XCTestCase {
             routeId: "route-1", hash: "hash", totalDistanceMeters: 10_000, totalClimbingMeters: nil,
             points: samplePoints(), pois: pois, status: "ready")
         let pointer = freshPointer(routeId: "route-1")
-        let appRouter = AppRouter()
-        let starter = makeStarter(routeStore: routeStore, pointer: pointer, appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        let starter = makeStarter(routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator)
 
         await starter.startRide()
 
-        guard case .liveRide(let liveRide) = appRouter.currentScreen else {
+        let liveRide = rideCoordinator.activeRide
+        guard liveRide != nil else {
             XCTFail("expected the live ride screen")
             return
         }
@@ -82,12 +87,12 @@ final class RideStarterTests: XCTestCase {
     func testStartRideIsANoOpWithNoCurrentRoute() async {
         let routeStore = freshRouteStore()
         let pointer = freshPointer(routeId: nil)
-        let appRouter = AppRouter()
-        let starter = makeStarter(routeStore: routeStore, pointer: pointer, appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        let starter = makeStarter(routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator)
 
         await starter.startRide()
 
-        XCTAssertEqual(appRouter.currentScreen, .home)
+        XCTAssertNil(rideCoordinator.activeRide)
     }
 
     @MainActor
@@ -96,10 +101,10 @@ final class RideStarterTests: XCTestCase {
         try await routeStore.persist(
             routeId: "route-1", hash: "hash", totalDistanceMeters: 10_000, totalClimbingMeters: nil,
             points: samplePoints(), pois: [], status: "ready")
-        let router = AppRouter()
-        let starter = makeStarter(routeStore: routeStore, pointer: freshPointer(routeId: "route-1"), appRouter: router)
+        let router = RideCoordinator()
+        let starter = makeStarter(routeStore: routeStore, pointer: freshPointer(routeId: "route-1"), rideCoordinator: router)
         await starter.startRide()
-        guard case .liveRide(let first?) = router.currentScreen else {
+        guard let first = router.activeRide else {
             return XCTFail("expected first ride")
         }
         defer {
@@ -109,7 +114,7 @@ final class RideStarterTests: XCTestCase {
 
         await starter.startRide()
 
-        guard case .liveRide(let second?) = router.currentScreen else {
+        guard let second = router.activeRide else {
             return XCTFail("expected existing ride")
         }
         XCTAssertTrue(first.tracker === second.tracker)
