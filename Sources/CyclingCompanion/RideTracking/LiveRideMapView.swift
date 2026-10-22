@@ -40,6 +40,7 @@ struct LiveRideMapView: View {
         .accessibilityChildren {
             ForEach(viewModel.stops, id: \.osmId) { stop in
                 Text(viewModel.stopAccessibilityLabel(stop))
+                    .accessibilityIdentifier("mapStop")
             }
         }
         .onChange(of: viewModel.cameraCenter?.latitude) { moveCamera() }

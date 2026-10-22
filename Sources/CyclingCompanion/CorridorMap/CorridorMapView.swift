@@ -55,7 +55,7 @@ struct CorridorMapView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Route map")
         .accessibilityChildren {
-            ForEach(stopAccessibilityLabels, id: \.self) { Text($0) }
+            ForEach(stopAccessibilityLabels, id: \.self) { Text($0).accessibilityIdentifier("mapStop") }
         }
     }
 }

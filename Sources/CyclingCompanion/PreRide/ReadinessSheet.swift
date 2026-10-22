@@ -8,21 +8,25 @@ struct ReadinessSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("A few things before you ride")
-                        .font(.title2.bold())
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("A few things before you ride")
+                            .font(.title2.bold())
+                        Spacer()
+                        // Plain primary-coloured text, in the content rather than the toolbar: both the
+                        // glass toolbar button and a tinted bordered one failed the contrast audit.
+                        Button("Cancel", role: .cancel) { dismiss() }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.primary)
+                            .font(.body.weight(.semibold))
+                    }
                     if let decision = flow.readiness.decision {
                         ForEach(decision.items) { item in
                             itemRow(item)
                         }
                         if decision.warnsTrackingStopsWhenLocked {
-                            Label(
-                                "With location only while using the app, tracking stops when your phone locks. Keep the screen on, or allow Always.",
-                                systemImage: "exclamationmark.triangle.fill"
-                            )
-                            .foregroundStyle(.orange)
+                            WarningLabel("With location only while using the app, tracking stops when your phone locks. Keep the screen on, or allow Always.")
                             .font(.subheadline)
                         }
                         Button {
@@ -42,12 +46,6 @@ struct ReadinessSheet: View {
                     }
                 }
                 .padding()
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
         }
         .task { await flow.readiness.refresh() }
         .onChange(of: scenePhase) { _, phase in
@@ -66,6 +64,7 @@ struct ReadinessSheet: View {
                 Task { await flow.readiness.perform(item) }
             }
             .buttonStyle(.bordered)
+                    .tint(.primary)  // blue or red text on the grey fill fails the contrast audit
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)

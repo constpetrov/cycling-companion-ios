@@ -59,7 +59,8 @@ struct LiveRideScreen: View {
             }
         }
         .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .fixedSize(horizontal: false, vertical: true)  // never squeezed by the map: no clipped text
+        .background(DashboardPanel.background, in: RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
     }
 
@@ -74,8 +75,13 @@ struct LiveRideScreen: View {
             }
             #if DEBUG
             if let forceCheck {
-                Button("Force Check", action: forceCheck)
-                    .font(.footnote)
+                Button(action: forceCheck) {
+                    Text("Force Check")
+                        .font(.footnote)
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
                     .accessibilityIdentifier("dashboard.forceCheck")
             }
             #endif
@@ -91,7 +97,8 @@ struct LiveRideScreen: View {
                 })
         }
         .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .fixedSize(horizontal: false, vertical: true)  // never squeezed by the map: no clipped text
+        .background(DashboardPanel.background, in: RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
     }
 }
@@ -104,12 +111,11 @@ private struct MetricTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.caption.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
             Text(value)
                 .font(.title2.weight(.semibold).monospacedDigit())
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)  // wraps at large text sizes, never clipped
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -122,11 +128,23 @@ private struct StatusBadge: View {
     let tint: Color
 
     var body: some View {
-        Label(text, systemImage: systemImage)
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(tint.opacity(0.2), in: Capsule())
-            .foregroundStyle(tint)
+        // Coloured icon, primary text: tinted text on its own tint fails the contrast audit.
+        Label {
+            Text(text)
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(tint)
+        }
+        .font(.subheadline.weight(.semibold))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(tint.opacity(0.2), in: Capsule())
     }
+}
+
+/// The dashboard's overlay panels sit on a moving map. A near-opaque system background keeps text
+/// readable at a glance and passes the contrast audit; a translucent material over the map did not
+/// (milestone 7, RULE-28).
+enum DashboardPanel {
+    static let background = Color(uiColor: .systemBackground).opacity(0.96)
 }

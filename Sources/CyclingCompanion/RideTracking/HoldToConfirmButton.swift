@@ -39,14 +39,16 @@ struct HoldToConfirmButton: View {
 
     var body: some View {
         ZStack {
+            // Solid red with white bold text: red text on a pale red fill failed the contrast audit.
             Capsule()
-                .fill(.red.opacity(0.15))
+                .fill(Color(uiColor: .systemRed))
             Capsule()
                 .trim(from: 0, to: progress)
-                .stroke(.red, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .padding(3)
             Text(state.isPressing ? "Keep holding…" : title)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.red)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
                 .padding(.vertical, 18)
                 .padding(.horizontal, 24)
         }

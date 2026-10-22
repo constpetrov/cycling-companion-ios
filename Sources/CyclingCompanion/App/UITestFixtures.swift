@@ -11,6 +11,9 @@ enum UITestFixtures {
     /// With this too, permissions read as While Using location and no notifications, so Start Ride
     /// shows the readiness sheet.
     static let missingPermissionsArgument = "-uiTestMissingPermissions"
+    /// With this too, the app behaves as if a stop notification was tapped after launch, with no
+    /// ride to show it on (AC-76).
+    static let staleStopLinkArgument = "-uiTestStaleStopLink"
 
     static var isEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
@@ -62,6 +65,13 @@ enum UITestFixtures {
             totalClimbingMeters: 42, points: points, pois: pois, status: "ready", displayName: "Canal Loop")
         dependencies.pointer.routeId = routeId
         await dependencies.homeViewModel.refresh()
+    }
+
+    /// After the launch-time resume: replays a tap on a notification for the seeded café.
+    @MainActor
+    static func simulateNotificationTapIfRequested(_ appDelegate: AppDelegate) {
+        guard ProcessInfo.processInfo.arguments.contains(staleStopLinkArgument) else { return }
+        appDelegate.handleNotificationTap(userInfo: ["stopId": "1001"])
     }
 }
 
