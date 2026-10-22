@@ -43,6 +43,18 @@ final class CorridorImportCoordinator {
     /// (`importRoute` itself has already returned by the time it would ever complete).
     @discardableResult
     func importRoute(_ route: ImportedRoute) async -> Task<Void, Never>? {
+        do {
+            return try await importRouteThrowing(route)
+        } catch {
+            importErrorMessage = "Couldn't import this route. Please try again."
+            return nil
+        }
+    }
+
+    /// The import itself, letting the caller tell failures apart (milestone 7, RULE-23). Returns the
+    /// background poll `Task`, as `importRoute` does.
+    @discardableResult
+    func importRouteThrowing(_ route: ImportedRoute) async throws -> Task<Void, Never> {
         importErrorMessage = nil
         do {
             try await lazySignIn.ensureSignedIn()
@@ -59,9 +71,8 @@ final class CorridorImportCoordinator {
             Self.log.info("Imported route \(response.routeId, privacy: .public), status=\(response.status, privacy: .public)")
             return pollAndUpdate(routeId: response.routeId)
         } catch {
-            importErrorMessage = "Couldn't import this route. Please try again."
             Self.log.error("Route import failed: \(String(describing: error), privacy: .public)")
-            return nil
+            throw error
         }
     }
 

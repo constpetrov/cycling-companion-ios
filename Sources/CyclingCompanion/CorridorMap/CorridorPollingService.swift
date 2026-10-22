@@ -4,6 +4,9 @@ enum CorridorPollingError: Error, Equatable {
     case unexpectedResponse
     /// AC-38: the route stayed `building` for the full timeout window without settling.
     case timedOut
+    /// The backend refused the route import with this HTTP status (milestone 7: lets the app tell
+    /// a sign-in problem, 401/403, from any other rejection).
+    case rejected(statusCode: Int)
 }
 
 /// Sends the imported route to the backend, then polls the corridor-status endpoint until it
@@ -53,8 +56,11 @@ actor CorridorPollingService {
         let authorized = try await authClient.authorize(request)
 
         let (data, response) = try await transport.data(for: authorized)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+        guard let http = response as? HTTPURLResponse else {
             throw CorridorPollingError.unexpectedResponse
+        }
+        guard http.statusCode == 200 else {
+            throw CorridorPollingError.rejected(statusCode: http.statusCode)
         }
         return try JSONDecoder().decode(ImportRouteResponsePayload.self, from: data)
     }

@@ -62,9 +62,10 @@ final class AppDependencies {
         self.authClient = authClient
         self.lazySignIn = lazySignIn
         self.advisorClient = advisorClient
-        self.corridorImportCoordinator = CorridorImportCoordinator(
+        let corridorImportCoordinator = CorridorImportCoordinator(
             corridorPollingService: CorridorPollingService(baseURL: baseURL, authClient: authClient, transport: transport),
             routeStore: routeStore, pointer: pointer, appRouter: appRouter, lazySignIn: lazySignIn)
+        self.corridorImportCoordinator = corridorImportCoordinator
         let rideStarter = RideStarter(
             routeStore: routeStore, rideStore: rideStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: notifier, advisorClient: advisorClient)
@@ -76,7 +77,7 @@ final class AppDependencies {
         self.rideFinisher = RideFinisher(
             rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator,
             decisionLog: decisionLog, rideStore: rideStore, uploader: rideUploader)
-        self.homeViewModel = HomeViewModel(routeStore: routeStore, pointer: pointer)
+        self.homeViewModel = HomeViewModel(routeStore: routeStore, pointer: pointer, importer: corridorImportCoordinator)
         self.keepScreenOnPreference = keepScreenOnPreference
         self.idleTimer = idleTimer
         self.directions = directions

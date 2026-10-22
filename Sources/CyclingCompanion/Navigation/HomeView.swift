@@ -2,6 +2,48 @@ import RoutePersistence
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Why a route import failed (RULE-23 in milestone 7's rules.md, AC-97 to AC-101), each with its
+/// own message.
+enum ImportError: Equatable {
+    case pickerFailed
+    case unreadableGPX
+    case noConnection
+    case authFailed
+    case backendRejected
+
+    var message: String {
+        switch self {
+        case .pickerFailed: "The file couldn't be opened. Try choosing it again."
+        case .unreadableGPX: "This file has no usable route. Choose a GPX file with a track."
+        case .noConnection: "No connection. Check your internet and try again."
+        case .authFailed: "Couldn't sign in to the server. Try again in a moment."
+        case .backendRejected: "The server couldn't import this route. Try again later."
+        }
+    }
+
+    init(networkError error: Error) {
+        switch error {
+        case is URLError:
+            self = .noConnection
+        case is AuthStubClientError:
+            self = .authFailed
+        case CorridorPollingError.rejected(let status) where status == 401 || status == 403:
+            self = .authFailed
+        default:
+            self = .backendRejected
+        }
+    }
+}
+
+/// The import step `HomeViewModel` needs from `CorridorImportCoordinator`.
+@MainActor
+protocol RouteImporting: AnyObject {
+    @discardableResult
+    func importRouteThrowing(_ route: ImportedRoute) async throws -> Task<Void, Never>
+}
+
+extension CorridorImportCoordinator: RouteImporting {}
+
 /// Backs `HomeView`'s observable state (RULE-16 in spec/rules.md): resolves the current route
 /// from `CurrentRoutePointer` + `RouteStore`. A missing pointer, or a pointer `RouteStore` no
 /// longer has an entry for (stale), both read as "show the import prompt" (AC-2) — never a
@@ -18,10 +60,52 @@ final class HomeViewModel {
 
     private let routeStore: RouteStore
     private let pointer: CurrentRoutePointer
+    private let importer: RouteImporting?
 
-    init(routeStore: RouteStore, pointer: CurrentRoutePointer) {
+    /// AC-95/AC-96: an import is in progress; both import entry points are disabled.
+    private(set) var isImporting = false
+    /// AC-97 to AC-101: why the last import failed, until dismissed or the next import starts.
+    private(set) var importError: ImportError?
+
+    init(routeStore: RouteStore, pointer: CurrentRoutePointer, importer: RouteImporting? = nil) {
         self.routeStore = routeStore
         self.pointer = pointer
+        self.importer = importer
+    }
+
+    /// The file picker failed (AC-97).
+    func pickerFailed() {
+        importError = .pickerFailed
+    }
+
+    func dismissImportError() {
+        importError = nil
+    }
+
+    /// Reads, parses and uploads the chosen GPX file (RULE-23). Ignored while an import is running;
+    /// on failure the current route is left as it was.
+    func importGPX(from fileURL: URL) async {
+        guard !isImporting, let importer else { return }
+        isImporting = true
+        importError = nil
+        defer { isImporting = false }
+
+        let imported: ImportedRoute
+        do {
+            let accessing = fileURL.startAccessingSecurityScopedResource()
+            defer { if accessing { fileURL.stopAccessingSecurityScopedResource() } }
+            imported = try RouteImporter.importGPX(fileURL: fileURL)
+        } catch {
+            importError = .unreadableGPX
+            return
+        }
+        do {
+            try await importer.importRouteThrowing(imported)
+        } catch {
+            importError = ImportError(networkError: error)
+            return
+        }
+        await refresh()
     }
 
     /// Re-resolves `currentRoute` from the pointer + `RouteStore`.
@@ -57,18 +141,29 @@ struct HomeView: View {
 
     var body: some View {
         let viewModel = dependencies.homeViewModel
-        let coordinator = dependencies.corridorImportCoordinator
         VStack(spacing: 16) {
             if viewModel.showsImportPrompt {
                 Text("Import a route")
-                Button("Choose GPX File") { isImporterPresented = true }
+                importButton("Choose GPX File")
             } else if let route = viewModel.currentRoute {
                 Text("Route: \(route.id)")
                 Button("Start Ride") { Task { await dependencies.rideStartFlow.requestStart() } }
-                Button("Choose GPX File") { isImporterPresented = true }
+                importButton("Choose GPX File")
             }
-            if let importErrorMessage = coordinator.importErrorMessage {
-                Text(importErrorMessage)
+            if viewModel.isImporting {
+                ProgressView("Importing route…")
+            }
+            if let error = viewModel.importError {
+                HStack(alignment: .top) {
+                    Label(error.message, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Button {
+                        viewModel.dismissImportError()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .accessibilityLabel("Dismiss")
+                }
             }
             #if DEBUG
             NavigationLink("Demo Mode", value: HomeRoute.demo)
@@ -77,18 +172,17 @@ struct HomeView: View {
         .padding()
         .task { await dependencies.homeViewModel.refresh() }
         .fileImporter(isPresented: $isImporterPresented, allowedContentTypes: [Self.gpxContentType]) { result in
-            guard case .success(let fileURL) = result else {
-                return
-            }
-            Task {
-                let accessing = fileURL.startAccessingSecurityScopedResource()
-                defer { if accessing { fileURL.stopAccessingSecurityScopedResource() } }
-                guard let imported = try? RouteImporter.importGPX(fileURL: fileURL) else {
-                    return
-                }
-                await dependencies.corridorImportCoordinator.importRoute(imported)
-                await dependencies.homeViewModel.refresh()
+            switch result {
+            case .success(let fileURL):
+                Task { await dependencies.homeViewModel.importGPX(from: fileURL) }
+            case .failure:
+                dependencies.homeViewModel.pickerFailed()
             }
         }
+    }
+
+    private func importButton(_ title: String) -> some View {
+        Button(title) { isImporterPresented = true }
+            .disabled(dependencies.homeViewModel.isImporting)
     }
 }
