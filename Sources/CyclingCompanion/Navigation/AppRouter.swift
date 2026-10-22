@@ -40,12 +40,16 @@ final class AppRouter {
     private(set) var isLaunchResumeFinished = false
 
     /// AC-71 to AC-76: keeps the link while a ride is active, being prepared or resumed, or before
-    /// the launch-time resume has run; drops it when there is no ride to show it on.
+    /// the launch-time resume has run; drops it when there is no ride to show it on. A tap while
+    /// a ride is finishing is dropped too, or it would open on the next ride's dashboard.
     func handle(_ link: StopLink, ridePhase: RideCoordinator.Phase) {
-        if ridePhase == .idle, isLaunchResumeFinished {
-            pendingStopLink = nil
-        } else {
+        switch ridePhase {
+        case .active, .preparing, .resuming:
             pendingStopLink = link
+        case .idle where !isLaunchResumeFinished:
+            pendingStopLink = link
+        case .idle, .finishing:
+            pendingStopLink = nil
         }
     }
 

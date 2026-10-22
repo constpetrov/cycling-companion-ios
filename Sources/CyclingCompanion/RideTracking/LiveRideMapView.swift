@@ -45,6 +45,10 @@ struct LiveRideMapView: View {
         }
         .onChange(of: viewModel.cameraCenter?.latitude) { moveCamera() }
         .onChange(of: viewModel.cameraCenter?.longitude) { moveCamera() }
+        // Recenter on a rider standing still sets the same centre, which the two above don't see.
+        .onChange(of: viewModel.isFollowingRider) { _, following in
+            if following { moveCamera() }
+        }
         .onChange(of: position.positionedByUser) { _, byUser in
             if byUser { viewModel.riderDidPan() }
         }

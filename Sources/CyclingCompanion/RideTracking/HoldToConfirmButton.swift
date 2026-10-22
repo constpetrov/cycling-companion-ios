@@ -74,8 +74,10 @@ struct HoldToConfirmButton: View {
             })
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
-        .accessibilityHint("Hold for \(HoldToConfirmState.holdDuration.formatted()) seconds")
+        .accessibilityHint("Asks you to confirm")
         .accessibilityAddTraits(.isButton)
+        // VoiceOver double-tap, Switch Control and Voice Control can't hold; they get the dialog.
+        .accessibilityAction { isConfirmationPresented = true }
         .accessibilityAction(named: accessibilityActionName) { isConfirmationPresented = true }
         .confirmationDialog(confirmationTitle, isPresented: $isConfirmationPresented, titleVisibility: .visible) {
             Button(accessibilityActionName, role: .destructive) {

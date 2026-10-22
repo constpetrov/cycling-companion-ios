@@ -94,6 +94,18 @@ final class AppDelegateNotificationTests: XCTestCase {
         XCTAssertEqual(router.pendingStopLink, StopLink(stopId: 1001))
     }
 
+    /// A tap while a ride is finishing has no dashboard to open on; keeping it would open the
+    /// stop on the next ride.
+    @MainActor
+    func testATapWhileARideIsFinishingIsDropped() {
+        let router = AppRouter()
+        router.launchResumeFinished(ridePhase: .idle)
+
+        router.handle(StopLink(stopId: 1001), ridePhase: .finishing)
+
+        XCTAssertNil(router.pendingStopLink)
+    }
+
     /// AC-75: on a cold launch the tap arrives before the resume; it's kept until the resume has
     /// run, then kept if a ride resumed and dropped if not.
     @MainActor
