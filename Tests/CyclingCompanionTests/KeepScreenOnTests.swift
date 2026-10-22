@@ -91,3 +91,52 @@ final class KeepScreenOnTests: XCTestCase {
         XCTAssertTrue(nextRide.keepScreenOn)
     }
 }
+
+/// task-2.7: AC-25 — no heart-rate or cadence fields, with or without sensor samples.
+final class LiveRideSensorFieldsTests: XCTestCase {
+
+    @MainActor
+    func testNoSensorFieldsWithoutSensorSamples() async {
+        let tracker = RideTracker(
+            rideId: "ride-1", routeId: "route-1", startTime: Date(), route: [],
+            locationSource: ReplayLocationSource(fixes: []), sensorSource: NoSensorSource(), clock: ReplayClock(),
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
+        // Not started: NoSensorSource never finishes, like a real ride's sources.
+        XCTAssertNil(tracker.currentHeartRateBPM)
+
+        XCTAssertFalse(LiveRideViewModel(tracker: tracker).showsSensorFields)
+    }
+
+    @MainActor
+    func testDemoSensorSamplesAreNotShownEither() async {
+        let tracker = RideTracker(
+            rideId: "ride-1", routeId: "route-1", startTime: Date(), route: [],
+            locationSource: ReplayLocationSource(fixes: []),
+            sensorSource: ReplaySensorSource(samples: [
+                SensorSample(heartRateBPM: 140, cadenceRPM: 85, timestamp: Date(timeIntervalSince1970: 0))
+            ]),
+            clock: ReplayClock(),
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
+        await tracker.start()
+        XCTAssertEqual(tracker.currentHeartRateBPM, 140)
+
+        XCTAssertFalse(LiveRideViewModel(tracker: tracker).showsSensorFields)
+    }
+
+    @MainActor
+    func testUsesTheRidesOwnClockByDefault() async throws {
+        let clock = ReplayClock(start: Date(timeIntervalSince1970: 7_000))
+        let tracker = RideTracker(
+            rideId: "ride-1", routeId: "route-1", startTime: Date(), route: [],
+            locationSource: ReplayLocationSource(fixes: []), sensorSource: NoSensorSource(), clock: clock,
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
+        let viewModel = LiveRideViewModel(tracker: tracker)
+
+        await viewModel.refreshGPSState()
+
+        XCTAssertEqual(viewModel.now, Date(timeIntervalSince1970: 7_000))
+    }
+}

@@ -40,12 +40,12 @@ final class LiveRideViewModel {
     private(set) var cameraCenter: CLLocationCoordinate2D?
 
     init(
-        tracker: RideTracker, clock: Clock, locale: Locale = .current, timeZone: TimeZone = .current,
+        tracker: RideTracker, clock: Clock? = nil, locale: Locale = .current, timeZone: TimeZone = .current,
         keepScreenOnPreference: KeepScreenOnPreference = InMemoryKeepScreenOnPreference(),
         idleTimer: IdleTimerControlling = NoIdleTimer()
     ) {
         self.tracker = tracker
-        self.clock = clock
+        self.clock = clock ?? tracker.clock
         self.locale = locale
         self.timeZone = timeZone
         self.keepScreenOnPreference = keepScreenOnPreference
@@ -133,6 +133,11 @@ final class LiveRideViewModel {
         isFollowingRider = true
         cameraCenter = riderCoordinate
     }
+
+    /// AC-25: heart rate and cadence aren't shown on the dashboard this milestone — real rides have
+    /// no sensors (`NoSensorSource`), and Demo Mode's replayed values are deliberately hidden too
+    /// (spec decision 7), so the screen never advertises metrics a rider can't have.
+    var showsSensorFields: Bool { false }
 
     // MARK: - Badges
 

@@ -17,7 +17,9 @@ struct ContentView: View {
                 switch presentation {
                 case .live(let liveRide):
                     LiveRideScreen(
-                        rideTracker: liveRide.tracker,
+                        viewModel: LiveRideViewModel(
+                            tracker: liveRide.tracker, keepScreenOnPreference: dependencies.keepScreenOnPreference,
+                            idleTimer: dependencies.idleTimer),
                         onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } })
                 case .summary(let outcome):
                     RideSummaryView(outcome: outcome, onDone: dependencies.rideCoordinator.dismissSummary)

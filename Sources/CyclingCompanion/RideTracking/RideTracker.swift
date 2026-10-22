@@ -63,7 +63,9 @@ final class RideTracker {
     private let route: [ResampledPoint]
     private let locationSource: LocationSource
     private let sensorSource: SensorSource
-    private let clock: Clock
+    /// The ride's clock (wall time for a real ride, scaled ride time for Demo Mode); the dashboard
+    /// measures GPS gaps on the same clock (RULE-12 in milestone 7's rules.md).
+    let clock: Clock
     private let rideStore: RideStore
     private var previousFixTimestamp: Date?
     private var lastMatchedFix: LocationFix?
