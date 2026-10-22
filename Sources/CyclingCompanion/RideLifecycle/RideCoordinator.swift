@@ -45,7 +45,7 @@ final class RideCoordinator {
     /// coordinator, so rapid taps and a launch-time resume cannot start two loops, and neither a
     /// start nor a resume can displace a ride that is already active.
     func beginPreparingRide(resuming: Bool = false) -> Bool {
-        guard !preparingRide, activeRide == nil else { return false }
+        guard !preparingRide, !finishingRide, activeRide == nil else { return false }
         preparingRide = true
         phase = resuming ? .resuming : .preparing
         return true

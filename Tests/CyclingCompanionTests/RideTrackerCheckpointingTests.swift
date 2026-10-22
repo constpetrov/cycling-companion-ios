@@ -74,4 +74,45 @@ final class RideTrackerCheckpointingTests: XCTestCase {
             checkpointed?.totalDistanceMeters ?? -1, 1_000, accuracy: 0.5, "frozen at the in-corridor fix's distance")
         XCTAssertEqual(checkpointed?.track.count, 2, "the off-route fix is still checkpointed in the raw track")
     }
+
+    /// A checkpoint requested after the ride started finishing (a late suggestion answer, or the
+    /// cancelled fix loop) must not write, or it could overwrite the finished ride.
+    @MainActor
+    func testNoCheckpointIsWrittenAfterCheckpointingStops() async throws {
+        let fileURL = tempStoreFileURL()
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let store = RideStore(fileURL: fileURL)
+        let tracker = RideTracker(
+            rideId: "ride-42", routeId: "route-7", startTime: Date(timeIntervalSince1970: 0), route: straightRoute(),
+            locationSource: ReplayLocationSource(fixes: []), sensorSource: ReplaySensorSource(samples: []),
+            clock: ReplayClock(), rideStore: store)
+
+        await tracker.stopCheckpointing()
+        await tracker.checkpointNow()
+
+        let stored = try await store.fetch(rideId: "ride-42")
+        XCTAssertNil(stored)
+    }
+
+    @MainActor
+    func testStopCheckpointingWaitsForTheCheckpointInFlight() async throws {
+        let fileURL = tempStoreFileURL()
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let store = RideStore(fileURL: fileURL)
+        let tracker = RideTracker(
+            rideId: "ride-42", routeId: "route-7", startTime: Date(timeIntervalSince1970: 0), route: straightRoute(),
+            locationSource: ReplayLocationSource(fixes: []), sensorSource: ReplaySensorSource(samples: []),
+            clock: ReplayClock(), rideStore: store)
+
+        async let inFlight: Void = tracker.checkpointNow()
+        await Task.yield()
+        await tracker.stopCheckpointing()
+        let storedWhenStopped = try await store.fetch(rideId: "ride-42")
+        await inFlight
+
+        // Either the in-flight checkpoint finished before stopCheckpointing returned, or it never
+        // wrote; nothing may land afterwards.
+        let storedAfterwards = try await store.fetch(rideId: "ride-42")
+        XCTAssertEqual(storedWhenStopped?.id, storedAfterwards?.id)
+    }
 }

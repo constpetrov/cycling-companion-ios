@@ -167,13 +167,37 @@ final class RideTracker {
     /// write is swallowed rather than propagated — per RULE-11's reasoning, each checkpoint is
     /// low-stakes and immediately superseded by the next one, so there's nothing a caller
     /// should do differently if one write fails.
+    ///
+    /// Checkpoints run one after another, chained through `latestCheckpoint`, so
+    /// `stopCheckpointing()` can wait for every write already under way. Once it has been called,
+    /// no checkpoint writes, so none can land after the ride is finalized and overwrite the
+    /// finished record with an unfinished one.
     private func checkpoint() async {
-        let suggestionState = await suggestionStateProvider?()
-        let snapshot = PersistedRide(
-            id: rideId, routeId: routeId, startTime: startTime, endTime: nil,
-            totalDistanceMeters: distanceAlongRouteMeters, totalMovingTimeSeconds: movingTimeSeconds, track: track,
-            suggestionState: suggestionState)
-        try? await rideStore.persist(snapshot)
+        guard !checkpointingStopped else { return }
+        let previous = latestCheckpoint
+        let write = Task { @MainActor in
+            await previous?.value
+            let suggestionState = await suggestionStateProvider?()
+            // Checked again right before the write: the ride may have finished while this waited.
+            guard !checkpointingStopped else { return }
+            let snapshot = PersistedRide(
+                id: rideId, routeId: routeId, startTime: startTime, endTime: nil,
+                totalDistanceMeters: distanceAlongRouteMeters, totalMovingTimeSeconds: movingTimeSeconds, track: track,
+                suggestionState: suggestionState)
+            try? await rideStore.persist(snapshot)
+        }
+        latestCheckpoint = write
+        await write.value
+    }
+
+    private var latestCheckpoint: Task<Void, Never>?
+    private var checkpointingStopped = false
+
+    /// Called by `RideFinisher` before it finalizes: no checkpoint writes after this returns,
+    /// including one from a suggestion answer that arrives while the ride is finishing.
+    func stopCheckpointing() async {
+        checkpointingStopped = true
+        await latestCheckpoint?.value
     }
 
     /// Supplies the ride's suggestion state for each checkpoint (RULE-17 in milestone 7's rules.md):
