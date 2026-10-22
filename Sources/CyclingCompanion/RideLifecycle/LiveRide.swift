@@ -41,6 +41,7 @@ func makeTrackerAndSession(
     let session = RideSession(
         rideTracker: tracker, featureEngine: engine, clock: clock, routeId: routeId, routeStore: routeStore,
         decisionLog: decisionLog, notifier: notifier, advisorClient: advisorClient)
+    tracker.suggestionStateProvider = { [session] in await session.suggestionLedger().persisted }
     return (tracker, session)
 }
 

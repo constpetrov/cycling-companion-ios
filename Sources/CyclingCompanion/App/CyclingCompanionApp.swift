@@ -33,6 +33,7 @@ struct CyclingCompanionApp: App {
         self.configurationError = configurationError
         self.dependencies = dependencies
         appDelegate.appRouter = dependencies.appRouter
+        appDelegate.rideCoordinator = dependencies.rideCoordinator
     }
 
     var body: some Scene {
@@ -49,6 +50,8 @@ struct CyclingCompanionApp: App {
                         if UITestFixtures.isEnabled { await UITestFixtures.seed(dependencies) }
                         #endif
                         await dependencies.makeRideResumer().resumeIfNeeded()
+                        dependencies.appRouter.launchResumeFinished(
+                            ridePhase: dependencies.rideCoordinator.phase)
                         await dependencies.makePendingRideUploadRetrier().retryPendingUploads()
                     }
             }

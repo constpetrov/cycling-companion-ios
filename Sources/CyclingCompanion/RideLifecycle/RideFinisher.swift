@@ -35,11 +35,13 @@ struct RideFinisher {
         let tracker = liveRide.tracker
         let endTime = Date()
         let outcome: FinishOutcome
+        let suggestionState = await liveRide.session.suggestionLedger().persisted
         do {
             let saved = try await rideRecorder.finalize(
                 rideId: tracker.rideId, routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
                 totalDistanceMeters: tracker.distanceAlongRouteMeters,
-                totalMovingTimeSeconds: tracker.movingTimeSeconds, track: tracker.track)
+                totalMovingTimeSeconds: tracker.movingTimeSeconds, track: tracker.track,
+                suggestionState: suggestionState)
             outcome = .saved(saved)
         } catch {
             outcome = .notSaved
@@ -67,10 +69,13 @@ struct RideFinisher {
             thisRideDistanceMeters: tracker.distanceAlongRouteMeters, historicalRides: historicalRides)
         let snapshots = await session.featureSnapshots()
 
+        let suggestionResponses = await session.suggestionLedger().finalResponses.map(SuggestionResponsePayload.init)
+
         let payload = RideIngestRequestPayload(
             routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
             totalDistanceMeters: tracker.distanceAlongRouteMeters, totalMovingTimeSeconds: tracker.movingTimeSeconds,
-            stopsTaken: stopsTaken, outcome: outcome.rawValue, featureSnapshots: snapshots.map(FeatureSnapshotPayload.init))
+            stopsTaken: stopsTaken, outcome: outcome.rawValue, featureSnapshots: snapshots.map(FeatureSnapshotPayload.init),
+            suggestionResponses: suggestionResponses)
 
         await uploader.upload(payload, rideId: tracker.rideId)
     }

@@ -43,12 +43,14 @@ enum UITestFixtures {
                 cumulativeDistanceMeters: (latitude - 52.0) * metersPerDegreeLatitude)
         }
         let pois = [
+            // Late along the replay: the advisor's 10-minute quiet period (ride time) ends with the
+            // rider about 1.3 km in, so stops must still be ahead then for a suggestion to pass.
             PersistedPoiInput(
-                osmId: 1_001, type: "CAFE", name: "Café am Kanal", latitude: 52.0125, longitude: 13.0015,
-                kmMarkMeters: 0.0125 * metersPerDegreeLatitude, detourMeters: 110, openingHours: nil),
+                osmId: 1_001, type: "CAFE", name: "Café am Kanal", latitude: 52.0207, longitude: 13.0015,
+                kmMarkMeters: 0.0207 * metersPerDegreeLatitude, detourMeters: 110, openingHours: nil),
             PersistedPoiInput(
-                osmId: 1_002, type: "BAKERY", name: "Bäckerei Nord", latitude: 52.0215, longitude: 12.9988,
-                kmMarkMeters: 0.0215 * metersPerDegreeLatitude, detourMeters: 85, openingHours: nil),
+                osmId: 1_002, type: "BAKERY", name: "Bäckerei Nord", latitude: 52.0235, longitude: 12.9988,
+                kmMarkMeters: 0.0235 * metersPerDegreeLatitude, detourMeters: 85, openingHours: nil),
         ]
         try? await dependencies.routeStore.persist(
             routeId: routeId, hash: "ui-test", totalDistanceMeters: points.last?.cumulativeDistanceMeters ?? 0,
@@ -58,8 +60,8 @@ enum UITestFixtures {
     }
 }
 
-/// Answers every backend call the app makes, offline: sign-in, a no-suggestion advisor decision,
-/// and a successful ride ingest.
+/// Answers every backend call the app makes, offline: sign-in, an advisor decision suggesting the
+/// seeded café, and a successful ride ingest.
 struct StubBackendTransport: HTTPTransport {
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let path = request.url?.path ?? ""
@@ -67,7 +69,8 @@ struct StubBackendTransport: HTTPTransport {
         if path.hasSuffix("sign-in") {
             body = #"{"token":"ui-test-token","riderId":"00000000-0000-0000-0000-000000000001"}"#
         } else if path.contains("advisor") {
-            body = #"{"suggest":false}"#
+            // Always suggests the seeded café, so the screenshot tour can show the card and sheet.
+            body = #"{"suggest":true,"stopId":"1001","urgency":"low","reason":"time for a break","message":"Café am Kanal is just ahead — fancy a coffee?"}"#
         } else {
             body = #"{"rideId":"00000000-0000-0000-0000-000000000002"}"#
         }

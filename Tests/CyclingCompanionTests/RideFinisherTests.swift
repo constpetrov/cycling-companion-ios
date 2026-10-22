@@ -227,7 +227,7 @@ private struct FailingRecorder: RideFinalizing {
 
     func finalize(
         rideId: String, routeId: String, startTime: Date, endTime: Date, totalDistanceMeters: Double,
-        totalMovingTimeSeconds: Double, track: [PersistedRideSample]
+        totalMovingTimeSeconds: Double, track: [PersistedRideSample], suggestionState: PersistedSuggestionState?
     ) async throws -> PersistedRide {
         throw WriteFailed()
     }

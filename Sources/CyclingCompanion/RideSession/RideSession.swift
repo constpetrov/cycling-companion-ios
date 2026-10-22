@@ -31,6 +31,12 @@ actor RideSession {
     private var lastAdvisorProceedTimestamp: Date?
     private var lastApprovedSuggestionTimestamp: Date?
 
+    /// This ride's suggestions, answers and declined stops (RULE-16 in milestone 7's rules.md).
+    private var ledger = SuggestionLedger()
+    /// Each Guardrail-approved suggestion, for the dashboard (RULE-15 in milestone 7's rules.md).
+    nonisolated let approvedSuggestions: AsyncStream<ApprovedSuggestion>
+    private let approvedSuggestionsContinuation: AsyncStream<ApprovedSuggestion>.Continuation
+
     init(
         rideTracker: RideTracker, featureEngine: FeatureEngine, clock: Clock, routeId: String, routeStore: RouteStore,
         decisionLog: DecisionLog, notifier: Notifier, snapshotIntervalSeconds: TimeInterval = 60.0,
@@ -46,6 +52,8 @@ actor RideSession {
         self.snapshotIntervalSeconds = snapshotIntervalSeconds
         self.pollGranularitySeconds = pollGranularitySeconds
         self.advisorClient = advisorClient
+        (approvedSuggestions, approvedSuggestionsContinuation) = AsyncStream.makeStream(
+            of: ApprovedSuggestion.self, bufferingPolicy: .bufferingNewest(1))
     }
 
     /// One polling step: sleeps `pollGranularitySeconds`, then runs a cycle if the cadence has
@@ -85,6 +93,30 @@ actor RideSession {
     }
     #endif
 
+    // MARK: - Suggestions (RULE-16 in milestone 7's rules.md)
+
+    func suggestionLedger() -> SuggestionLedger {
+        ledger
+    }
+
+    /// Records the answer and checkpoints straight away, so it survives the app being killed.
+    @discardableResult
+    func respond(_ answer: SuggestionAnswer, to suggestionId: String, at time: Date) async -> Bool {
+        let recorded = ledger.respond(answer, to: suggestionId, at: time)
+        if recorded { await rideTracker.checkpointNow() }
+        return recorded
+    }
+
+    func directionsOpened(for suggestionId: String, at time: Date) async {
+        ledger.directionsOpened(for: suggestionId, at: time)
+        await rideTracker.checkpointNow()
+    }
+
+    /// Restores the ledger saved with a ride checkpoint, after the app was killed mid-ride.
+    func restoreLedger(_ restored: SuggestionLedger) {
+        ledger = restored
+    }
+
     /// The ride's full feature-snapshot timeline so far (RULE-16 in spec/rules.md, Milestone 6)
     /// — a thin forwarder so `RideFinisher` can read it for Ride Ingest without `featureEngine`
     /// itself ever leaking outside this actor.
@@ -106,6 +138,7 @@ actor RideSession {
         }
 
         let currentKmMarkMeters = await rideTracker.distanceAlongRouteMeters
+        ledger.advance(toKmMark: currentKmMarkMeters)
         let (etaDayOfWeek, etaMinuteOfDay) = Self.isoDayOfWeekAndMinuteOfDay(for: now)
         // AC-26: re-fetched every cycle, never cached — a `nil`/failed fetch (or a route still
         // `building` with no POIs yet) reads as zero candidates rather than throwing, so POIs
@@ -117,9 +150,13 @@ actor RideSession {
         } catch {
             pois = []
         }
+        // AC-64/AC-65: a stop the rider declined this ride is never a candidate again, so neither
+        // the trigger, the advisor nor the Guardrail Gate (which rejects non-candidates) can pick it.
+        let declined = ledger.declinedStopIds
         let candidates = POILookahead.candidates(
             pois: pois, currentKmMarkMeters: currentKmMarkMeters, etaDayOfWeek: etaDayOfWeek,
-            etaMinuteOfDay: etaMinuteOfDay)
+            etaMinuteOfDay: etaMinuteOfDay
+        ).filter { !declined.contains($0.osmId) }
         let hasQualifyingStopAhead = !candidates.isEmpty
 
         let rideStart = track.first?.timestamp ?? now
@@ -160,6 +197,14 @@ actor RideSession {
             log: decisionLog)
         if verdict.suggest {
             lastApprovedSuggestionTimestamp = now
+            if let stopId = verdict.stopId, let stop = candidates.first(where: { String($0.osmId) == stopId }) {
+                let suggestion = ApprovedSuggestion(
+                    id: UUID().uuidString, stopId: stop.osmId, name: stop.name, type: stop.type,
+                    latitude: stop.latitude, longitude: stop.longitude, kmMarkMeters: stop.kmMarkMeters,
+                    detourMeters: stop.detourMeters, message: verdict.message, suggestedAt: now)
+                ledger.approve(suggestion)
+                approvedSuggestionsContinuation.yield(suggestion)
+            }
         }
 
         try? await notifier.notify(verdict: verdict, candidates: candidates)

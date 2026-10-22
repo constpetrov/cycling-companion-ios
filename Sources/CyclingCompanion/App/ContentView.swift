@@ -19,8 +19,10 @@ struct ContentView: View {
                     LiveRideScreen(
                         viewModel: LiveRideViewModel(
                             tracker: liveRide.tracker, keepScreenOnPreference: dependencies.keepScreenOnPreference,
-                            idleTimer: dependencies.idleTimer),
-                        onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } })
+                            idleTimer: dependencies.idleTimer, session: liveRide.session,
+                            directions: dependencies.directions),
+                        onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } },
+                        forceCheck: Self.forceCheck(liveRide))
                 case .summary(let outcome):
                     RideSummaryView(
                         viewModel: RideSummaryViewModel(
@@ -31,6 +33,15 @@ struct ContentView: View {
             }
             .interactiveDismissDisabled()
         }
+    }
+
+    /// Debug builds get a Force Check on the dashboard; Release gets none (RULE-15).
+    private static func forceCheck(_ liveRide: LiveRide) -> (() -> Void)? {
+        #if DEBUG
+        return { Task { await liveRide.session.forceNextCheck() } }
+        #else
+        return nil
+        #endif
     }
 
     /// AC-85: Done closes the cover and shows Home, whatever was pushed when the ride started

@@ -19,7 +19,14 @@ final class LiveRideViewModel {
     private let timeZone: TimeZone
     private let keepScreenOnPreference: KeepScreenOnPreference
     private let idleTimer: IdleTimerControlling
+    private let session: RideSession?
+    private let directions: DirectionsOpening
     private var isDashboardVisible = false
+
+    /// The ride's suggestion state as last read from `RideSession` (RULE-15/RULE-16).
+    private(set) var ledger = SuggestionLedger()
+    /// The stop sheet, when open (AC-49, AC-71).
+    var stopSheet: StopSheetItem?
 
     /// AC-37/AC-38: the rider's keep-screen-on choice, starting from the remembered value.
     private(set) var keepScreenOn: Bool
@@ -42,7 +49,8 @@ final class LiveRideViewModel {
     init(
         tracker: RideTracker, clock: Clock? = nil, locale: Locale = .current, timeZone: TimeZone = .current,
         keepScreenOnPreference: KeepScreenOnPreference = InMemoryKeepScreenOnPreference(),
-        idleTimer: IdleTimerControlling = NoIdleTimer()
+        idleTimer: IdleTimerControlling = NoIdleTimer(), session: RideSession? = nil,
+        directions: DirectionsOpening = NoDirections()
     ) {
         self.tracker = tracker
         self.clock = clock ?? tracker.clock
@@ -50,7 +58,106 @@ final class LiveRideViewModel {
         self.timeZone = timeZone
         self.keepScreenOnPreference = keepScreenOnPreference
         self.idleTimer = idleTimer
+        self.session = session
+        self.directions = directions
         self.keepScreenOn = keepScreenOnPreference.isEnabled
+    }
+
+    // MARK: - Suggestions (RULE-15/RULE-16, AC-45 to AC-57)
+
+    /// The suggestion on the card, if any.
+    var currentSuggestion: ApprovedSuggestion? { ledger.current }
+
+    /// AC-54: the card's "heading to" state.
+    var isHeadingToCurrent: Bool { ledger.isCurrentAccepted }
+
+    /// AC-48: the suggested stop's pin is highlighted.
+    var highlightedStopId: Int64? { ledger.current?.stopId }
+
+    /// AC-47: how far along the route the stop is from here.
+    func distanceAheadText(for suggestion: ApprovedSuggestion) -> String {
+        Self.distanceText(meters: max(suggestion.kmMarkMeters - tracker.distanceAlongRouteMeters, 0), locale: locale)
+    }
+
+    func detourText(for suggestion: ApprovedSuggestion) -> String {
+        Self.distanceText(meters: suggestion.detourMeters, locale: locale)
+    }
+
+    /// Listens for Guardrail-approved suggestions for as long as the dashboard is visible.
+    func listenForSuggestions() async {
+        guard let session else { return }
+        await refreshLedger()
+        for await _ in session.approvedSuggestions {
+            await refreshLedger()
+        }
+    }
+
+    func refreshLedger() async {
+        guard let session else { return }
+        ledger = await session.suggestionLedger()
+    }
+
+    /// AC-49: tapping the card opens the sheet for its suggestion.
+    func openSheetForCurrentSuggestion() {
+        guard let current = ledger.current else { return }
+        stopSheet = StopSheetItem(suggestion: current, offersAnswers: true)
+    }
+
+    /// AC-71 to AC-73: a sheet for a stop from a notification. A stop suggested earlier this ride
+    /// gets the answers for that suggestion; a stop never suggested gets Directions only.
+    func openSheet(forStop stop: PersistedPoiInput) {
+        if let earlier = ledger.suggestion(forStop: stop.osmId) {
+            stopSheet = StopSheetItem(suggestion: earlier, offersAnswers: true)
+        } else {
+            let unsuggested = ApprovedSuggestion(
+                id: "stop-\(stop.osmId)", stopId: stop.osmId, name: stop.name, type: stop.type,
+                latitude: stop.latitude, longitude: stop.longitude, kmMarkMeters: stop.kmMarkMeters,
+                detourMeters: stop.detourMeters, message: nil, suggestedAt: now ?? Date())
+            stopSheet = StopSheetItem(suggestion: unsuggested, offersAnswers: false)
+        }
+    }
+
+    /// AC-71/AC-72: opens the sheet for a tapped notification's stop if the route has it; an
+    /// unknown stop just leaves the dashboard showing.
+    func open(_ link: StopLink, routeStore: RouteStore) async {
+        await loadRoute(from: routeStore)
+        guard let stop = route?.pois.first(where: { $0.osmId == link.stopId }) else { return }
+        openSheet(forStop: stop)
+    }
+
+    /// AC-50/AC-51: Apple Maps directions; counts as accepting an unanswered suggestion.
+    func openDirections(for item: StopSheetItem) async {
+        let suggestion = item.suggestion
+        directions.openDirections(
+            toLatitude: suggestion.latitude, longitude: suggestion.longitude,
+            name: suggestion.name ?? Self.typeLabel(suggestion.type))
+        guard item.offersAnswers, let session else { return }
+        await session.directionsOpened(for: suggestion.id, at: await clock.now)
+        await refreshLedger()
+    }
+
+    /// AC-53/AC-54.
+    func accept(_ item: StopSheetItem) async {
+        await answer(.accepted, item)
+    }
+
+    /// AC-55/AC-56: records the decline, closes the sheet, and the card goes.
+    func decline(_ item: StopSheetItem) async {
+        await answer(.declined, item)
+        stopSheet = nil
+    }
+
+    private func answer(_ answer: SuggestionAnswer, _ item: StopSheetItem) async {
+        guard item.offersAnswers, let session else { return }
+        await session.respond(answer, to: item.suggestion.id, at: await clock.now)
+        await refreshLedger()
+    }
+
+    /// A readable label for an unnamed stop's OSM-derived type, e.g. `CAFE_BAKERY_RESTAURANT`.
+    nonisolated static func typeLabel(_ type: String) -> String {
+        let words = type.split(separator: "_").map { $0.lowercased() }
+        guard let first = words.first else { return "Stop" }
+        return ([first.capitalized] + words.dropFirst()).joined(separator: " ")
     }
 
     // MARK: - Keep screen on (RULE-13)
@@ -159,6 +266,8 @@ final class LiveRideViewModel {
         if isFollowingRider, let riderCoordinate {
             cameraCenter = riderCoordinate
         }
+        // The session advances the ledger as the rider passes a stop; pick that up here.
+        await refreshLedger()
         guard let lastFixAt = tracker.lastFixAt else {
             isGPSLost = true
             return
@@ -199,4 +308,13 @@ final class LiveRideViewModel {
                     numberFormatStyle: .number.precision(.fractionLength(1))
                 ).locale(locale))
     }
+}
+
+/// What the stop sheet shows: a stop, and whether Accept/Decline apply (they don't for a stop that
+/// was never suggested this ride — AC-73).
+struct StopSheetItem: Identifiable, Equatable {
+    let suggestion: ApprovedSuggestion
+    let offersAnswers: Bool
+
+    var id: String { suggestion.id }
 }

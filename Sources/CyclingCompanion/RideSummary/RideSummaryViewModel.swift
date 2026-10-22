@@ -54,10 +54,21 @@ final class RideSummaryViewModel {
         }
     }
 
-    /// Suggestion answers recorded this ride. Answers arrive with task-4.x; until then every
-    /// ride has none.
+    /// AC-78: the ride's suggestions counted by answer, from the state saved with the ride.
     var suggestionsText: String {
-        "No stop suggestions answered"
+        let state = savedRide?.suggestionState
+        let suggestions = state?.suggestions ?? []
+        guard !suggestions.isEmpty else { return "No stop suggestions" }
+        let answers = Dictionary(uniqueKeysWithValues: (state?.answers ?? []).map { ($0.suggestionId, $0.answer) })
+        let counts = suggestions.reduce(into: [String: Int]()) { counts, suggestion in
+            counts[answers[suggestion.id] ?? SuggestionAnswer.none.rawValue, default: 0] += 1
+        }
+        return [
+            (SuggestionAnswer.accepted.rawValue, "accepted"), (SuggestionAnswer.declined.rawValue, "declined"),
+            (SuggestionAnswer.none.rawValue, "no answer"),
+        ]
+        .compactMap { key, label in counts[key].map { "\($0) \(label)" } }
+        .joined(separator: " · ")
     }
 
     // MARK: - Upload (AC-79 to AC-83)

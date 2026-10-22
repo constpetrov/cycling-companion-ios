@@ -35,6 +35,9 @@ struct RideResumer {
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
             advisorClient: advisorClient)
         try? await tracker.resumeIfNeeded(from: rideStore)
+        if let suggestionState = checkpoint.suggestionState {
+            await session.restoreLedger(SuggestionLedger(persisted: suggestionState))
+        }
 
         Self.log.info("Resumed ride \(checkpoint.id, privacy: .public)")
         rideCoordinator.activate(startLiveRideTasks(tracker: tracker, session: session))

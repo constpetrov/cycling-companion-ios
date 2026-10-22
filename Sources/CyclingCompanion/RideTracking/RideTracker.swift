@@ -168,10 +168,22 @@ final class RideTracker {
     /// low-stakes and immediately superseded by the next one, so there's nothing a caller
     /// should do differently if one write fails.
     private func checkpoint() async {
+        let suggestionState = await suggestionStateProvider?()
         let snapshot = PersistedRide(
             id: rideId, routeId: routeId, startTime: startTime, endTime: nil,
-            totalDistanceMeters: distanceAlongRouteMeters, totalMovingTimeSeconds: movingTimeSeconds, track: track)
+            totalDistanceMeters: distanceAlongRouteMeters, totalMovingTimeSeconds: movingTimeSeconds, track: track,
+            suggestionState: suggestionState)
         try? await rideStore.persist(snapshot)
+    }
+
+    /// Supplies the ride's suggestion state for each checkpoint (RULE-17 in milestone 7's rules.md):
+    /// the tracker stays the only writer of the unfinished ride, so the track and the suggestion
+    /// answers can never overwrite each other.
+    var suggestionStateProvider: (@Sendable () async -> PersistedSuggestionState?)?
+
+    /// Writes a checkpoint now, outside the fix loop — after the rider answers a suggestion.
+    func checkpointNow() async {
+        await checkpoint()
     }
 
     /// AC-9/AC-10/AC-11: the interval since the previous fix counts as moving time only when

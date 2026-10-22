@@ -406,4 +406,75 @@ final class RideSessionTests: XCTestCase {
         let posted = await scheduling.addedRequests
         XCTAssertTrue(posted.isEmpty, "an invented stop must never reach the rider as a notification")
     }
+
+    // MARK: - Suggestion ledger and stream (task-4.3, RULE-15/RULE-16, AC-45, AC-46, AC-64, AC-65)
+
+    @MainActor
+    private func sessionWithRemoteSuggestion(stopId: Int64 = 1, transportOut: inout StubAdvisorTransport?) async
+        -> RideSession
+    {
+        let tracker = await trackerPastTheQuietWindow()
+        let notifier = Notifier(
+            scheduling: FakeNotificationScheduling(initialStatus: .authorized, grantOnRequest: true), log: DecisionLog())
+        let store = await routeStore(pois: [candidate(osmId: stopId)])
+        let (client, transport) = advisorClient(
+            decisionBody: #"{"suggest":true,"stopId":"\#(stopId)","urgency":"low","reason":"r","message":"Coffee?"}"#
+                .data(using: .utf8)!)
+        transportOut = transport
+        return await makeSession(
+            clock: ReplayClock(), tracker: tracker, routeStore: store, notifier: notifier, advisorClient: client)
+    }
+
+    @MainActor
+    func testAnApprovedSuggestionIsPublishedOnceAndRecordedInTheLedger() async throws {
+        var transport: StubAdvisorTransport?
+        let session = await sessionWithRemoteSuggestion(transportOut: &transport)
+        var iterator = session.approvedSuggestions.makeAsyncIterator()
+
+        await session.forceNextCheck()
+        try await session.step()
+
+        let published = await iterator.next()
+        XCTAssertEqual(published?.stopId, 1)
+        XCTAssertEqual(published?.message, "Coffee?")
+        let ledger = await session.suggestionLedger()
+        XCTAssertEqual(ledger.current?.id, published?.id)
+    }
+
+    @MainActor
+    func testARejectedVerdictPublishesNothing() async throws {
+        let tracker = await trackerPastTheQuietWindow()
+        let store = await routeStore(pois: [candidate(osmId: 1)])
+        let (client, _) = advisorClient(
+            decisionBody: #"{"suggest":true,"stopId":"999","urgency":"low","reason":"r","message":"m"}"#.data(using: .utf8)!)
+        let session = await makeSession(clock: ReplayClock(), tracker: tracker, routeStore: store, advisorClient: client)
+
+        await session.forceNextCheck()
+        try await session.step()
+
+        let ledger = await session.suggestionLedger()
+        XCTAssertNil(ledger.current, "an invented stop is rejected by the Guardrail Gate and never published")
+        XCTAssertTrue(ledger.suggestions.isEmpty)
+    }
+
+    @MainActor
+    func testADeclinedStopIsNeverSentToTheAdvisorAgain() async throws {
+        var transport: StubAdvisorTransport?
+        let session = await sessionWithRemoteSuggestion(transportOut: &transport)
+        await session.forceNextCheck()
+        try await session.step()
+        let ledgerAfterFirst = await session.suggestionLedger()
+        let suggestion = try XCTUnwrap(ledgerAfterFirst.current)
+        let callsBefore = await transport!.decisionCallCount
+
+        await session.respond(.declined, to: suggestion.id, at: Date())
+        await session.forceNextCheck()
+        try await session.step()
+
+        let callsAfter = await transport!.decisionCallCount
+        XCTAssertEqual(callsAfter, callsBefore, "the only candidate was declined, so there is nothing to ask about")
+        let ledger = await session.suggestionLedger()
+        XCTAssertNil(ledger.current)
+        XCTAssertEqual(ledger.suggestions.count, 1, "the declined stop is not suggested again")
+    }
 }

@@ -29,12 +29,13 @@ final class AppDependencies {
     let homeViewModel: HomeViewModel
     let keepScreenOnPreference: KeepScreenOnPreference
     let idleTimer: IdleTimerControlling
+    let directions: DirectionsOpening
 
     init(
         baseURL: URL, demoAccessToken: String?, routeStore: RouteStore, rideStore: RideStore,
         pendingUploadsFileURL: URL, pointer: CurrentRoutePointer, notificationScheduling: NotificationScheduling,
         keepScreenOnPreference: KeepScreenOnPreference, idleTimer: IdleTimerControlling,
-        transport: HTTPTransport = URLSession.shared
+        directions: DirectionsOpening = NoDirections(), transport: HTTPTransport = URLSession.shared
     ) {
         let decisionLog = DecisionLog()
         let notifier = Notifier(scheduling: notificationScheduling, log: decisionLog)
@@ -75,6 +76,7 @@ final class AppDependencies {
         self.homeViewModel = HomeViewModel(routeStore: routeStore, pointer: pointer)
         self.keepScreenOnPreference = keepScreenOnPreference
         self.idleTimer = idleTimer
+        self.directions = directions
     }
 
     /// The production graph for `configuration`, on the app's real files and `URLSession`.
@@ -92,7 +94,8 @@ final class AppDependencies {
                 fileURL: (try? RideStore.defaultFileURL()) ?? temporary.appendingPathComponent("rides.json")),
             pendingUploadsFileURL: pendingUploadsFileURL, pointer: CurrentRoutePointer(),
             notificationScheduling: UNUserNotificationCenter.current(),
-            keepScreenOnPreference: UserDefaultsKeepScreenOnPreference(), idleTimer: ApplicationIdleTimer())
+            keepScreenOnPreference: UserDefaultsKeepScreenOnPreference(), idleTimer: ApplicationIdleTimer(),
+            directions: AppleMapsDirections())
     }
 
     func makeRideResumer() -> RideResumer {

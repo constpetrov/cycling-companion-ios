@@ -18,6 +18,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     /// app-wiring task sets this once, early, after constructing the shared router. `nil`
     /// until then; `userNotificationCenter(_:didReceive:...)` is a no-op without it.
     var appRouter: AppRouter?
+    /// Set alongside `appRouter`; a tap is routed according to the ride's phase.
+    var rideCoordinator: RideCoordinator?
 
     func application(
         _ application: UIApplication,
@@ -57,14 +59,16 @@ extension AppDelegate: @preconcurrency UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        handleNotificationTap()
+        handleNotificationTap(userInfo: response.notification.request.content.userInfo)
         completionHandler()
     }
 
-    /// A notification tap needs no navigation of its own: an active ride is always on screen in
-    /// the ride cover, and with no ride the app stays where it is rather than showing a
-    /// placeholder (AC-76 in milestone 7's criteria.md). Routing the tapped stop into its sheet
-    /// arrives with `StopLink` (task-4.6). Kept as a seam, directly testable without a real
-    /// `UNNotificationResponse` (which has no public initializer).
-    func handleNotificationTap() {}
+    /// AC-71 to AC-76 (RULE-20): the tapped stop becomes a `StopLink` held by the router until the
+    /// dashboard can open its sheet; with no ride to show it on, the app stays where it is. Pulled
+    /// out of the delegate callback so it is testable without a real `UNNotificationResponse`,
+    /// which has no public initializer.
+    func handleNotificationTap(userInfo: [AnyHashable: Any]) {
+        guard let appRouter, let link = StopLink(userInfo: userInfo) else { return }
+        appRouter.handle(link, ridePhase: rideCoordinator?.phase ?? .idle)
+    }
 }
