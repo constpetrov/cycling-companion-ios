@@ -42,6 +42,7 @@ final class DemoModeViewModel {
 @MainActor
 struct DemoRideStarter {
     let routeStore: RouteStore
+    let rideStore: RideStore
     let pointer: CurrentRoutePointer
     let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
@@ -60,11 +61,7 @@ struct DemoRideStarter {
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
             return nil
         }
-        guard let rideStoreURL = try? RideStore.defaultFileURL() else {
-            return nil
-        }
         let clampedSpeed = DemoMode.clampSpeed(speed)
-        let rideStore = RideStore(fileURL: rideStoreURL)
         let driver = DemoModeReplayDriver(
             locationFixes: locationFixes, sensorSamples: sensorSamples, clock: SystemClock(), speed: clampedSpeed)
         let demoClock = SpeedScaledClock(base: SystemClock(), speed: clampedSpeed)

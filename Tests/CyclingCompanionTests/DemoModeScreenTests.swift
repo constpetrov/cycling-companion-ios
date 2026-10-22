@@ -26,15 +26,7 @@ final class DemoModeScreenTests: XCTestCase {
 
     @MainActor
     func testHomeViewShowsTheDemoModeEntryPointInDebug() {
-        let routeStore = RouteStore(
-            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)
-        let coordinator = CorridorImportCoordinator(
-            corridorPollingService: CorridorPollingService(
-                baseURL: URL(string: "https://backend.example.com")!, authClient: authClient),
-            routeStore: routeStore, pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!),
-            appRouter: AppRouter(), lazySignIn: LazySignIn(authClient: authClient))
-        let homeView = HomeView(routeStore: routeStore, coordinator: coordinator, onStartRide: {})
+        let homeView = HomeView()
 
         XCTAssertTrue(homeView.showsDemoModeEntryPoint)
     }

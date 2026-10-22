@@ -27,7 +27,10 @@ final class RideStarterTests: XCTestCase {
     @MainActor
     private func makeStarter(routeStore: RouteStore, pointer: CurrentRoutePointer, rideCoordinator: RideCoordinator) -> RideStarter {
         RideStarter(
-            routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: DecisionLog(),
+            routeStore: routeStore,
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")),
+            pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: DecisionLog(),
             notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: DecisionLog()))
     }
 

@@ -28,7 +28,10 @@ final class DemoRideStarterTests: XCTestCase {
                 latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 0.05)),
         ]
         return DemoRideStarter(
-            routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
+            routeStore: routeStore,
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")),
+            pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: decisionLog),
             locationFixes: fixes, sensorSamples: [])
     }

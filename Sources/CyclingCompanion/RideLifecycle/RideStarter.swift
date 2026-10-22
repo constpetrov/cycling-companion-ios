@@ -8,6 +8,7 @@ import RoutePersistence
 @MainActor
 struct RideStarter {
     let routeStore: RouteStore
+    let rideStore: RideStore
     let pointer: CurrentRoutePointer
     let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
@@ -20,10 +21,6 @@ struct RideStarter {
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
             return
         }
-        guard let rideStoreURL = try? RideStore.defaultFileURL() else {
-            return
-        }
-        let rideStore = RideStore(fileURL: rideStoreURL)
         let (tracker, session) = await makeTrackerAndSession(
             rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route,
             locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
