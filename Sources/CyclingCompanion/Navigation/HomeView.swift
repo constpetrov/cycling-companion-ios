@@ -2,6 +2,71 @@ import RoutePersistence
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Why a route import failed (RULE-23 in milestone 7's rules.md, AC-97 to AC-101), each with its
+/// own message.
+enum ImportError: Equatable {
+    case pickerFailed
+    case unreadableGPX
+    case noConnection
+    case authFailed
+    case backendRejected
+
+    var message: String {
+        switch self {
+        case .pickerFailed: "The file couldn't be opened. Try choosing it again."
+        case .unreadableGPX: "This file has no usable route. Choose a GPX file with a track."
+        case .noConnection: "No connection. Check your internet and try again."
+        case .authFailed: "Couldn't sign in to the server. Try again in a moment."
+        case .backendRejected: "The server couldn't import this route. Try again later."
+        }
+    }
+
+    init(networkError error: Error) {
+        switch error {
+        case is URLError:
+            self = .noConnection
+        case is AuthStubClientError:
+            self = .authFailed
+        case CorridorPollingError.rejected(let status) where status == 401 || status == 403:
+            self = .authFailed
+        default:
+            self = .backendRejected
+        }
+    }
+}
+
+/// The import step `HomeViewModel` needs from `CorridorImportCoordinator`.
+@MainActor
+protocol RouteImporting: AnyObject {
+    @discardableResult
+    func importRouteThrowing(_ route: ImportedRoute) async throws -> Task<Void, Never>
+    func isPolling(routeId: String) -> Bool
+    @discardableResult
+    func retry(routeId: String) async -> Task<Void, Never>?
+}
+
+/// What Home shows for the current route (RULE-26 in milestone 7's rules.md, AC-115 to AC-119).
+struct RouteCard: Equatable {
+    let routeId: String
+    let title: String
+    let distanceText: String
+    let climbingText: String?
+    let corridor: CorridorState
+
+    init(route: PersistedRoute, isPolling: Bool, locale: Locale) {
+        routeId = route.id
+        distanceText = LiveRideViewModel.distanceText(meters: route.totalDistanceMeters, locale: locale)
+        title = route.displayName ?? "Route · \(distanceText)"
+        climbingText = route.totalClimbingMeters.map {
+            Measurement(value: $0, unit: UnitLength.meters)
+                .formatted(.measurement(width: .abbreviated, usage: .asProvided).locale(locale))
+        }
+        corridor = CorridorState(route: route, isPolling: isPolling)
+    }
+}
+
+extension CorridorImportCoordinator: RouteImporting {}
+
 /// Backs `HomeView`'s observable state (RULE-16 in spec/rules.md): resolves the current route
 /// from `CurrentRoutePointer` + `RouteStore`. A missing pointer, or a pointer `RouteStore` no
 /// longer has an entry for (stale), both read as "show the import prompt" (AC-2) — never a
@@ -18,10 +83,89 @@ final class HomeViewModel {
 
     private let routeStore: RouteStore
     private let pointer: CurrentRoutePointer
+    private let importer: RouteImporting?
+    private let locale: Locale
+    private let rideStore: RideStore?
 
-    init(routeStore: RouteStore, pointer: CurrentRoutePointer) {
+    /// AC-120: an unfinished ride that can't be resumed because its route is gone.
+    private(set) var orphanedRideId: String?
+
+    /// AC-95/AC-96: an import is in progress; both import entry points are disabled.
+    private(set) var isImporting = false
+    /// AC-97 to AC-101: why the last import failed, until dismissed or the next import starts.
+    private(set) var importError: ImportError?
+
+    init(
+        routeStore: RouteStore, pointer: CurrentRoutePointer, importer: RouteImporting? = nil,
+        locale: Locale = .current, rideStore: RideStore? = nil
+    ) {
         self.routeStore = routeStore
         self.pointer = pointer
+        self.importer = importer
+        self.locale = locale
+        self.rideStore = rideStore
+    }
+
+    func reportOrphanedRide(id: String) {
+        orphanedRideId = id
+    }
+
+    /// AC-121: deletes the unfinished ride, so the notice doesn't come back on later launches.
+    func discardOrphanedRide() async {
+        guard let id = orphanedRideId else { return }
+        try? await rideStore?.delete(rideId: id)
+        orphanedRideId = nil
+    }
+
+    /// AC-115/AC-116.
+    var routeCard: RouteCard? {
+        currentRoute.map {
+            RouteCard(route: $0, isPolling: importer?.isPolling(routeId: $0.id) ?? false, locale: locale)
+        }
+    }
+
+    /// AC-105/AC-108 on Home.
+    func retryCorridor() async {
+        guard let routeId = currentRoute?.id, let importer else { return }
+        let poll = await importer.retry(routeId: routeId)
+        await refresh()
+        await poll?.value
+        await refresh()
+    }
+
+    /// The file picker failed (AC-97).
+    func pickerFailed() {
+        importError = .pickerFailed
+    }
+
+    func dismissImportError() {
+        importError = nil
+    }
+
+    /// Reads, parses and uploads the chosen GPX file (RULE-23). Ignored while an import is running;
+    /// on failure the current route is left as it was.
+    func importGPX(from fileURL: URL) async {
+        guard !isImporting, let importer else { return }
+        isImporting = true
+        importError = nil
+        defer { isImporting = false }
+
+        let imported: ImportedRoute
+        do {
+            let accessing = fileURL.startAccessingSecurityScopedResource()
+            defer { if accessing { fileURL.stopAccessingSecurityScopedResource() } }
+            imported = try RouteImporter.importGPX(fileURL: fileURL)
+        } catch {
+            importError = .unreadableGPX
+            return
+        }
+        do {
+            try await importer.importRouteThrowing(imported)
+        } catch {
+            importError = ImportError(networkError: error)
+            return
+        }
+        await refresh()
     }
 
     /// Re-resolves `currentRoute` from the pointer + `RouteStore`.
@@ -57,18 +201,40 @@ struct HomeView: View {
 
     var body: some View {
         let viewModel = dependencies.homeViewModel
-        let coordinator = dependencies.corridorImportCoordinator
         VStack(spacing: 16) {
+            if viewModel.orphanedRideId != nil {
+                HStack(alignment: .top) {
+                    Label("Couldn't restore your last ride", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button("Discard", role: .destructive) {
+                        Task { await viewModel.discardOrphanedRide() }
+                    }
+                }
+                .padding(12)
+                .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+            }
             if viewModel.showsImportPrompt {
                 Text("Import a route")
-                Button("Choose GPX File") { isImporterPresented = true }
-            } else if let route = viewModel.currentRoute {
-                Text("Route: \(route.id)")
-                Button("Start Ride") { Task { await dependencies.rideStarter.startRide() } }
-                Button("Choose GPX File") { isImporterPresented = true }
+                    .font(.title2.bold())
+                importButton("Choose GPX File")
+            } else if let card = viewModel.routeCard {
+                routeCard(card)
             }
-            if let importErrorMessage = coordinator.importErrorMessage {
-                Text(importErrorMessage)
+            if viewModel.isImporting {
+                ProgressView("Importing route…")
+            }
+            if let error = viewModel.importError {
+                HStack(alignment: .top) {
+                    Label(error.message, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Button {
+                        viewModel.dismissImportError()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .accessibilityLabel("Dismiss")
+                }
             }
             #if DEBUG
             NavigationLink("Demo Mode", value: HomeRoute.demo)
@@ -76,19 +242,62 @@ struct HomeView: View {
         }
         .padding()
         .task { await dependencies.homeViewModel.refresh() }
+        .onChange(of: dependencies.corridorImportCoordinator.pollingRouteIds) {
+            Task { await dependencies.homeViewModel.refresh() }
+        }
         .fileImporter(isPresented: $isImporterPresented, allowedContentTypes: [Self.gpxContentType]) { result in
-            guard case .success(let fileURL) = result else {
-                return
-            }
-            Task {
-                let accessing = fileURL.startAccessingSecurityScopedResource()
-                defer { if accessing { fileURL.stopAccessingSecurityScopedResource() } }
-                guard let imported = try? RouteImporter.importGPX(fileURL: fileURL) else {
-                    return
-                }
-                await dependencies.corridorImportCoordinator.importRoute(imported)
-                await dependencies.homeViewModel.refresh()
+            switch result {
+            case .success(let fileURL):
+                Task { await dependencies.homeViewModel.importGPX(from: fileURL) }
+            case .failure:
+                dependencies.homeViewModel.pickerFailed()
             }
         }
+    }
+
+    private func routeCard(_ card: RouteCard) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(card.title)
+                .font(.title2.bold())
+                .lineLimit(2)
+            HStack(spacing: 16) {
+                Label(card.distanceText, systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                if let climbing = card.climbingText {
+                    Label(climbing, systemImage: "arrow.up.right")
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            HStack {
+                if card.corridor == .finding {
+                    ProgressView()
+                }
+                Text(card.corridor.message)
+                    .font(.subheadline)
+                Spacer()
+                if card.corridor.offersRetry {
+                    Button("Retry") { Task { await dependencies.homeViewModel.retryCorridor() } }
+                }
+            }
+            Button {
+                Task { await dependencies.rideStartFlow.requestStart() }
+            } label: {
+                Text("Start Ride").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            HStack {
+                Button("View map") { dependencies.appRouter.open(.corridorMap(routeId: card.routeId)) }
+                Spacer()
+                importButton("Import another route")
+            }
+        }
+        .padding()
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func importButton(_ title: String) -> some View {
+        Button(title) { isImporterPresented = true }
+            .disabled(dependencies.homeViewModel.isImporting)
     }
 }

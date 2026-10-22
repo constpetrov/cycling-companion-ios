@@ -26,7 +26,7 @@ final class CoreLocationSource: NSObject, LocationSource, CLLocationManagerDeleg
         manager.activityType = .fitness
         manager.allowsBackgroundLocationUpdates = true
         manager.pausesLocationUpdatesAutomatically = false
-        manager.requestAlwaysAuthorization()
+        // Milestone 7 RULE-21: no permission prompt here — the pre-ride readiness check asks.
     }
 
     func locationUpdates() -> AsyncStream<LocationFix> {

@@ -143,6 +143,14 @@ public actor RideStore {
         try data.write(to: fileURL, options: .atomic)
     }
 
+    /// Removes one ride (milestone 7, RULE-27: discarding an unfinished ride that can't be resumed).
+    public func delete(rideId: String) throws {
+        var ridesById = try loadAll()
+        guard ridesById.removeValue(forKey: rideId) != nil else { return }
+        let data = try JSONEncoder().encode(ridesById)
+        try data.write(to: fileURL, options: .atomic)
+    }
+
     public func fetch(rideId: String) throws -> PersistedRide? {
         try loadAll()[rideId]
     }

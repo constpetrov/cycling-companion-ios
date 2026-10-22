@@ -30,12 +30,14 @@ final class AppDependencies {
     let keepScreenOnPreference: KeepScreenOnPreference
     let idleTimer: IdleTimerControlling
     let directions: DirectionsOpening
+    let rideStartFlow: RideStartFlow
 
     init(
         baseURL: URL, demoAccessToken: String?, routeStore: RouteStore, rideStore: RideStore,
         pendingUploadsFileURL: URL, pointer: CurrentRoutePointer, notificationScheduling: NotificationScheduling,
         keepScreenOnPreference: KeepScreenOnPreference, idleTimer: IdleTimerControlling,
-        directions: DirectionsOpening = NoDirections(), transport: HTTPTransport = URLSession.shared
+        directions: DirectionsOpening = NoDirections(), permissions: PermissionStatusProviding = GrantedPermissions(),
+        transport: HTTPTransport = URLSession.shared
     ) {
         let decisionLog = DecisionLog()
         let notifier = Notifier(scheduling: notificationScheduling, log: decisionLog)
@@ -60,12 +62,14 @@ final class AppDependencies {
         self.authClient = authClient
         self.lazySignIn = lazySignIn
         self.advisorClient = advisorClient
-        self.corridorImportCoordinator = CorridorImportCoordinator(
+        let corridorImportCoordinator = CorridorImportCoordinator(
             corridorPollingService: CorridorPollingService(baseURL: baseURL, authClient: authClient, transport: transport),
             routeStore: routeStore, pointer: pointer, appRouter: appRouter, lazySignIn: lazySignIn)
-        self.rideStarter = RideStarter(
+        self.corridorImportCoordinator = corridorImportCoordinator
+        let rideStarter = RideStarter(
             routeStore: routeStore, rideStore: rideStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: notifier, advisorClient: advisorClient)
+        self.rideStarter = rideStarter
         self.rideIngestClient = rideIngestClient
         self.pendingUploadQueue = pendingUploadQueue
         let rideUploader = RideUploader(ingestClient: rideIngestClient, queue: pendingUploadQueue)
@@ -73,10 +77,13 @@ final class AppDependencies {
         self.rideFinisher = RideFinisher(
             rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator,
             decisionLog: decisionLog, rideStore: rideStore, uploader: rideUploader)
-        self.homeViewModel = HomeViewModel(routeStore: routeStore, pointer: pointer)
+        self.homeViewModel = HomeViewModel(
+            routeStore: routeStore, pointer: pointer, importer: corridorImportCoordinator, rideStore: rideStore)
         self.keepScreenOnPreference = keepScreenOnPreference
         self.idleTimer = idleTimer
         self.directions = directions
+        self.rideStartFlow = RideStartFlow(
+            readiness: ReadinessViewModel(permissions: permissions), start: { await rideStarter.startRide() })
     }
 
     /// The production graph for `configuration`, on the app's real files and `URLSession`.
@@ -95,13 +102,15 @@ final class AppDependencies {
             pendingUploadsFileURL: pendingUploadsFileURL, pointer: CurrentRoutePointer(),
             notificationScheduling: UNUserNotificationCenter.current(),
             keepScreenOnPreference: UserDefaultsKeepScreenOnPreference(), idleTimer: ApplicationIdleTimer(),
-            directions: AppleMapsDirections())
+            directions: AppleMapsDirections(), permissions: SystemPermissions())
     }
 
     func makeRideResumer() -> RideResumer {
-        RideResumer(
+        let homeViewModel = homeViewModel
+        return RideResumer(
             rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
-            notifier: notifier, advisorClient: advisorClient)
+            notifier: notifier, advisorClient: advisorClient,
+            onOrphanedRide: { homeViewModel.reportOrphanedRide(id: $0) })
     }
 
     func makePendingRideUploadRetrier() -> PendingRideUploadRetrier {

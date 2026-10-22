@@ -49,6 +49,7 @@ struct CyclingCompanionApp: App {
                         #if DEBUG
                         if UITestFixtures.isEnabled { await UITestFixtures.seed(dependencies) }
                         #endif
+                        await dependencies.corridorImportCoordinator.resumePollingForBuildingRoutes()
                         await dependencies.makeRideResumer().resumeIfNeeded()
                         dependencies.appRouter.launchResumeFinished(
                             ridePhase: dependencies.rideCoordinator.phase)

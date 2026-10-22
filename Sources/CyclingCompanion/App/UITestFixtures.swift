@@ -8,6 +8,9 @@ import RoutePersistence
 enum UITestFixtures {
     static let launchArgument = "-uiTestFixtures"
     static let routeId = "ui-test-route"
+    /// With this too, permissions read as While Using location and no notifications, so Start Ride
+    /// shows the readiness sheet.
+    static let missingPermissionsArgument = "-uiTestMissingPermissions"
 
     static var isEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
@@ -28,6 +31,8 @@ enum UITestFixtures {
             pendingUploadsFileURL: directory.appendingPathComponent("pending_ride_uploads.json"),
             pointer: CurrentRoutePointer(defaults: defaults), notificationScheduling: PreviewNotificationScheduling(),
             keepScreenOnPreference: InMemoryKeepScreenOnPreference(), idleTimer: NoIdleTimer(),
+            permissions: ProcessInfo.processInfo.arguments.contains(missingPermissionsArgument)
+                ? PartialPermissions() : GrantedPermissions(),
             transport: StubBackendTransport())
     }
 
@@ -54,10 +59,24 @@ enum UITestFixtures {
         ]
         try? await dependencies.routeStore.persist(
             routeId: routeId, hash: "ui-test", totalDistanceMeters: points.last?.cumulativeDistanceMeters ?? 0,
-            totalClimbingMeters: 42, points: points, pois: pois, status: "ready")
+            totalClimbingMeters: 42, points: points, pois: pois, status: "ready", displayName: "Canal Loop")
         dependencies.pointer.routeId = routeId
         await dependencies.homeViewModel.refresh()
     }
+}
+
+/// While Using location, notifications denied: enough to start, with the warning and the
+/// "Start without suggestions" button.
+@MainActor
+struct PartialPermissions: PermissionStatusProviding {
+    func current() async -> PermissionSnapshot {
+        PermissionSnapshot(location: .whenInUse, preciseLocation: true, notifications: .denied)
+    }
+
+    func requestLocationWhenInUse() async {}
+    func requestLocationAlways() async {}
+    func requestNotifications() async {}
+    func openSettings() {}
 }
 
 /// Answers every backend call the app makes, offline: sign-in, an advisor decision suggesting the

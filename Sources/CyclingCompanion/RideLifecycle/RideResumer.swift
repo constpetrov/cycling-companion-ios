@@ -15,6 +15,8 @@ struct RideResumer {
     let decisionLog: DecisionLog
     let notifier: Notifier
     var advisorClient: AdvisorClient? = nil
+    /// Told about an unfinished ride whose route no longer exists (RULE-27 in milestone 7's rules.md).
+    var onOrphanedRide: (@MainActor (String) -> Void)? = nil
 
     func resumeIfNeeded() async {
         guard rideCoordinator.beginPreparingRide(resuming: true) else { return }
@@ -27,6 +29,7 @@ struct RideResumer {
             Self.log.error(
                 "Unfinished ride \(checkpoint.id, privacy: .public) references a missing route \(checkpoint.routeId, privacy: .public) — staying on Home"
             )
+            onOrphanedRide?(checkpoint.id)
             return
         }
         let (tracker, session) = await makeTrackerAndSession(

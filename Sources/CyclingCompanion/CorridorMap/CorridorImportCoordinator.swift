@@ -20,6 +20,9 @@ final class CorridorImportCoordinator {
     private(set) var points: [PersistedPointInput] = []
     private(set) var pois: [PersistedPoiInput] = []
     private(set) var importErrorMessage: String?
+    /// Routes with a corridor poll running (RULE-24 in milestone 7's rules.md): at most one each.
+    private(set) var pollingRouteIds: Set<String> = []
+    private var polls: [String: Task<Void, Never>] = [:]
 
     private let corridorPollingService: CorridorPollingService
     private let routeStore: RouteStore
@@ -43,6 +46,18 @@ final class CorridorImportCoordinator {
     /// (`importRoute` itself has already returned by the time it would ever complete).
     @discardableResult
     func importRoute(_ route: ImportedRoute) async -> Task<Void, Never>? {
+        do {
+            return try await importRouteThrowing(route)
+        } catch {
+            importErrorMessage = "Couldn't import this route. Please try again."
+            return nil
+        }
+    }
+
+    /// The import itself, letting the caller tell failures apart (milestone 7, RULE-23). Returns the
+    /// background poll `Task`, as `importRoute` does.
+    @discardableResult
+    func importRouteThrowing(_ route: ImportedRoute) async throws -> Task<Void, Never> {
         importErrorMessage = nil
         do {
             try await lazySignIn.ensureSignedIn()
@@ -51,7 +66,7 @@ final class CorridorImportCoordinator {
             try await routeStore.persist(
                 routeId: response.routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
                 totalClimbingMeters: route.totalClimbingMeters, points: persistedPoints, pois: [],
-                status: response.status)
+                status: response.status, displayName: route.displayName)
             points = persistedPoints
             pois = []
             pointer.routeId = response.routeId
@@ -59,31 +74,97 @@ final class CorridorImportCoordinator {
             Self.log.info("Imported route \(response.routeId, privacy: .public), status=\(response.status, privacy: .public)")
             return pollAndUpdate(routeId: response.routeId)
         } catch {
-            importErrorMessage = "Couldn't import this route. Please try again."
             Self.log.error("Route import failed: \(String(describing: error), privacy: .public)")
-            return nil
+            throw error
         }
     }
 
-    /// AC-8/AC-9: fires a background `Task` and returns immediately, so `importRoute` itself
-    /// doesn't wait on `pollUntilSettled` — the corridor map screen is already showing by the
-    /// time this runs. `pollUntilSettled`'s own contract (Milestone 1) returns exactly once
-    /// per full settle or throws, never progressively, so this is one terminal update.
+    /// AC-8/AC-9: polls in the background until the corridor settles, without blocking the import.
+    /// RULE-24 (milestone 7): at most one poll per route — asking again while one runs returns it;
+    /// the result is saved to that route only; a timeout or failure is saved as `failed`, so a
+    /// relaunch shows "Couldn't find stops" instead of polling forever.
+    @discardableResult
     private func pollAndUpdate(routeId: String) -> Task<Void, Never> {
-        Task {
-            guard let status = try? await corridorPollingService.pollUntilSettled(routeId: routeId) else {
-                return
-            }
-            guard let route = try? await routeStore.fetch(routeId: routeId) else {
-                return
-            }
-            let newPois = (status.pois ?? []).map(Self.persistedPoi)
-            try? await routeStore.persist(
-                routeId: routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
-                totalClimbingMeters: route.totalClimbingMeters, points: route.points, pois: newPois,
-                status: status.status)
-            pois = newPois
+        if let running = polls[routeId] {
+            return running
         }
+        pollingRouteIds.insert(routeId)
+        let task = Task {
+            defer {
+                polls[routeId] = nil
+                pollingRouteIds.remove(routeId)
+            }
+            do {
+                // A poll started at launch or on opening the map may come before any sign-in this run.
+                try await lazySignIn.ensureSignedIn()
+                let status = try await corridorPollingService.pollUntilSettled(routeId: routeId)
+                let newPois = (status.pois ?? []).map(Self.persistedPoi)
+                await save(routeId: routeId, status: status.status, pois: newPois)
+                // AC-112: a late result for a route that is no longer current only updates its own entry.
+                if pointer.routeId == routeId {
+                    pois = newPois
+                }
+            } catch {
+                Self.log.notice(
+                    "Corridor poll for route \(routeId, privacy: .public) ended without a result: \(String(describing: error), privacy: .public)")
+                await save(routeId: routeId, status: CorridorState.failedStatus, pois: nil)
+            }
+        }
+        polls[routeId] = task
+        return task
+    }
+
+    func isPolling(routeId: String) -> Bool {
+        pollingRouteIds.contains(routeId)
+    }
+
+    /// AC-108/AC-109: asks the backend to build the corridor again and polls; a no-op while a poll
+    /// for that route is already running.
+    @discardableResult
+    func retry(routeId: String) async -> Task<Void, Never>? {
+        guard polls[routeId] == nil else { return nil }
+        do {
+            try await lazySignIn.ensureSignedIn()
+            let response = try await corridorPollingService.retry(routeId: routeId)
+            await save(routeId: routeId, status: response.status, pois: nil)
+        } catch {
+            Self.log.notice("Corridor retry for route \(routeId, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+            return nil
+        }
+        return pollAndUpdate(routeId: routeId)
+    }
+
+    /// AC-110: at launch, polls again for every stored route still building.
+    func resumePollingForBuildingRoutes() async {
+        let routes = (try? await routeStore.fetchAll()) ?? []
+        for route in routes where route.status == CorridorState.buildingStatus {
+            pollAndUpdate(routeId: route.id)
+        }
+    }
+
+    /// AC-111: opening a route's corridor map polls again if it is building and nothing is polling.
+    @discardableResult
+    func ensurePolling(routeId: String) async -> Task<Void, Never>? {
+        guard polls[routeId] == nil,
+            let route = try? await routeStore.fetch(routeId: routeId),
+            route.status == CorridorState.buildingStatus
+        else { return nil }
+        return pollAndUpdate(routeId: routeId)
+    }
+
+    /// A stored route as saved in `RouteStore` — what the corridor map shows, so it works after a
+    /// relaunch (RULE-25 in milestone 7's rules.md).
+    func storedRoute(id routeId: String) async -> PersistedRoute? {
+        try? await routeStore.fetch(routeId: routeId)
+    }
+
+    /// Rewrites one stored route's status (and stops, when given), keeping everything else.
+    private func save(routeId: String, status: String, pois newPois: [PersistedPoiInput]?) async {
+        guard let route = try? await routeStore.fetch(routeId: routeId) else { return }
+        try? await routeStore.persist(
+            routeId: routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
+            totalClimbingMeters: route.totalClimbingMeters, points: route.points, pois: newPois ?? route.pois,
+            status: status)
     }
 
     private static func persistedPoint(_ point: ResampledPoint) -> PersistedPointInput {

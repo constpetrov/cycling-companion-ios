@@ -69,6 +69,30 @@ final class ScreenshotTourTests: XCTestCase {
         XCTAssertTrue(startRide.waitForExistence(timeout: 5), "Done returns Home")
     }
 
+    func testReadinessSheet() {
+        app.launchArguments += ["-uiTestMissingPermissions"]
+        app.launch()
+
+        let startRide = app.buttons["Start Ride"]
+        XCTAssertTrue(startRide.waitForExistence(timeout: 10))
+        dismissSystemAlerts()
+        startRide.tap()
+
+        XCTAssertTrue(app.buttons["Start without suggestions"].waitForExistence(timeout: 5), "the readiness sheet opens")
+        XCTAssertTrue(app.buttons["Open Settings"].exists, "denied notifications point to Settings")
+        snapshot("08-readiness-check")
+
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(startRide.waitForExistence(timeout: 5))
+
+        app.buttons["View map"].tap()
+        XCTAssertTrue(app.staticTexts["2 stops found"].waitForExistence(timeout: 5), "the corridor map loads the stored route")
+        sleep(2)  // let map tiles load
+        snapshot("09-corridor-map")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(startRide.waitForExistence(timeout: 5), "back returns Home")
+    }
+
     /// A location prompt left over from the unit tests in the same run (`CoreLocationSource.init`
     /// requests authorization until task-6.1) must not cover a screenshot.
     private func dismissSystemAlerts() {
