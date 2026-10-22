@@ -10,6 +10,21 @@ import Foundation
 struct SpeedScaledClock: Clock {
     let base: Clock
     let speed: Double
+    /// Where ride time and base time coincide; ride time runs `speed` times faster from here.
+    let origin: Date
+
+    init(base: Clock, speed: Double, origin: Date = Date()) {
+        self.base = base
+        self.speed = speed
+        self.origin = origin
+    }
+
+    var now: Date {
+        get async {
+            let baseNow = await base.now
+            return origin.addingTimeInterval(baseNow.timeIntervalSince(origin) * speed)
+        }
+    }
 
     func sleep(for seconds: TimeInterval) async throws {
         try await base.sleep(for: seconds / speed)

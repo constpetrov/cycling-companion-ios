@@ -26,10 +26,13 @@ final class AppDependencies {
     let rideIngestClient: RideIngestClient
     let pendingUploadQueue: PendingRideUploadQueue
     let homeViewModel: HomeViewModel
+    let keepScreenOnPreference: KeepScreenOnPreference
+    let idleTimer: IdleTimerControlling
 
     init(
         baseURL: URL, demoAccessToken: String?, routeStore: RouteStore, rideStore: RideStore,
         pendingUploadsFileURL: URL, pointer: CurrentRoutePointer, notificationScheduling: NotificationScheduling,
+        keepScreenOnPreference: KeepScreenOnPreference, idleTimer: IdleTimerControlling,
         transport: HTTPTransport = URLSession.shared
     ) {
         let decisionLog = DecisionLog()
@@ -68,6 +71,8 @@ final class AppDependencies {
             decisionLog: decisionLog, rideStore: rideStore, rideIngestClient: rideIngestClient,
             pendingUploadQueue: pendingUploadQueue)
         self.homeViewModel = HomeViewModel(routeStore: routeStore, pointer: pointer)
+        self.keepScreenOnPreference = keepScreenOnPreference
+        self.idleTimer = idleTimer
     }
 
     /// The production graph for `configuration`, on the app's real files and `URLSession`.
@@ -84,7 +89,8 @@ final class AppDependencies {
             rideStore: RideStore(
                 fileURL: (try? RideStore.defaultFileURL()) ?? temporary.appendingPathComponent("rides.json")),
             pendingUploadsFileURL: pendingUploadsFileURL, pointer: CurrentRoutePointer(),
-            notificationScheduling: UNUserNotificationCenter.current())
+            notificationScheduling: UNUserNotificationCenter.current(),
+            keepScreenOnPreference: UserDefaultsKeepScreenOnPreference(), idleTimer: ApplicationIdleTimer())
     }
 
     func makeRideResumer() -> RideResumer {
@@ -137,6 +143,7 @@ extension AppDependencies {
             rideStore: RideStore(fileURL: directory.appendingPathComponent("rides.json")),
             pendingUploadsFileURL: directory.appendingPathComponent("pending_ride_uploads.json"),
             pointer: CurrentRoutePointer(defaults: defaults), notificationScheduling: PreviewNotificationScheduling(),
+            keepScreenOnPreference: InMemoryKeepScreenOnPreference(), idleTimer: NoIdleTimer(),
             transport: OfflineTransport())
     }
 }

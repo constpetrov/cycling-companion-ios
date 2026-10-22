@@ -22,8 +22,10 @@ import RoutePersistence
 @MainActor
 @Observable
 final class RideTracker {
-    /// AC-2/AC-3: a fix projecting at exactly this distance still counts as in-corridor.
-    private static let corridorToleranceMeters: Double = 50
+    /// AC-2/AC-3: a fix projecting at exactly this distance still counts as in-corridor. The one
+    /// source of truth for "on route", also read by the dashboard's off-route badge (RULE-12 in
+    /// milestone 7's rules.md).
+    nonisolated static let corridorToleranceMeters: Double = 50
     /// AC-9/AC-10/AC-11: strictly above this counts as moving; at or below does not.
     private static let movingThresholdMetersPerSecond: Double = 0.5
     /// AC-7/AC-8: below this much accumulated moving time, pace is too noisy to report an
@@ -32,6 +34,12 @@ final class RideTracker {
     private static let minimumMovingTimeSecondsForETA: Double = 30
 
     private(set) var latestFix: LocationFix?
+    /// How far the latest fix was from the route (`nil` before the first fix). Above
+    /// `corridorToleranceMeters` means off route.
+    private(set) var latestOffRouteMeters: Double?
+    /// When the latest fix arrived, on `clock` (not the fix's own timestamp), so the dashboard can
+    /// measure a GPS gap against the same clock (RULE-12 in milestone 7's rules.md).
+    private(set) var lastFixAt: Date?
     private(set) var currentHeartRateBPM: Int?
     private(set) var currentCadenceRPM: Int?
     private(set) var distanceAlongRouteMeters: Double = 0
@@ -55,7 +63,9 @@ final class RideTracker {
     private let route: [ResampledPoint]
     private let locationSource: LocationSource
     private let sensorSource: SensorSource
-    private let clock: Clock
+    /// The ride's clock (wall time for a real ride, scaled ride time for Demo Mode); the dashboard
+    /// measures GPS gaps on the same clock (RULE-12 in milestone 7's rules.md).
+    let clock: Clock
     private let rideStore: RideStore
     private var previousFixTimestamp: Date?
     private var lastMatchedFix: LocationFix?
@@ -117,11 +127,13 @@ final class RideTracker {
     private func consumeLocationUpdates() async {
         for await fix in locationSource.locationUpdates() {
             latestFix = fix
+            lastFixAt = await clock.now
             accumulateMovingTime(upTo: fix)
 
             let closestPoint = GeoMath.closestPointOnRoute(
                 latitude: fix.latitude, longitude: fix.longitude, route: route,
                 progressRange: reachableProgress(for: fix))
+            latestOffRouteMeters = closestPoint.offRouteMeters
             if closestPoint.offRouteMeters <= Self.corridorToleranceMeters {
                 distanceAlongRouteMeters = closestPoint.distanceAlongRouteMeters
                 lastMatchedFix = fix

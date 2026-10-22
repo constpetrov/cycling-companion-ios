@@ -6,6 +6,8 @@ import XCTest
 private actor FakeClock: Clock {
     private var _sleepCalls: [TimeInterval] = []
 
+    var now: Date { Date(timeIntervalSince1970: _sleepCalls.reduce(0, +)) }
+
     var sleepCalls: [TimeInterval] {
         _sleepCalls
     }
