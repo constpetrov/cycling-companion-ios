@@ -77,7 +77,8 @@ final class AppDependencies {
         self.rideFinisher = RideFinisher(
             rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator,
             decisionLog: decisionLog, rideStore: rideStore, uploader: rideUploader)
-        self.homeViewModel = HomeViewModel(routeStore: routeStore, pointer: pointer, importer: corridorImportCoordinator)
+        self.homeViewModel = HomeViewModel(
+            routeStore: routeStore, pointer: pointer, importer: corridorImportCoordinator, rideStore: rideStore)
         self.keepScreenOnPreference = keepScreenOnPreference
         self.idleTimer = idleTimer
         self.directions = directions
@@ -105,9 +106,11 @@ final class AppDependencies {
     }
 
     func makeRideResumer() -> RideResumer {
-        RideResumer(
+        let homeViewModel = homeViewModel
+        return RideResumer(
             rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
-            notifier: notifier, advisorClient: advisorClient)
+            notifier: notifier, advisorClient: advisorClient,
+            onOrphanedRide: { homeViewModel.reportOrphanedRide(id: $0) })
     }
 
     func makePendingRideUploadRetrier() -> PendingRideUploadRetrier {

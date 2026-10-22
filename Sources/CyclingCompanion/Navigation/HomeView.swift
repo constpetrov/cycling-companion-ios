@@ -85,17 +85,36 @@ final class HomeViewModel {
     private let pointer: CurrentRoutePointer
     private let importer: RouteImporting?
     private let locale: Locale
+    private let rideStore: RideStore?
+
+    /// AC-120: an unfinished ride that can't be resumed because its route is gone.
+    private(set) var orphanedRideId: String?
 
     /// AC-95/AC-96: an import is in progress; both import entry points are disabled.
     private(set) var isImporting = false
     /// AC-97 to AC-101: why the last import failed, until dismissed or the next import starts.
     private(set) var importError: ImportError?
 
-    init(routeStore: RouteStore, pointer: CurrentRoutePointer, importer: RouteImporting? = nil, locale: Locale = .current) {
+    init(
+        routeStore: RouteStore, pointer: CurrentRoutePointer, importer: RouteImporting? = nil,
+        locale: Locale = .current, rideStore: RideStore? = nil
+    ) {
         self.routeStore = routeStore
         self.pointer = pointer
         self.importer = importer
         self.locale = locale
+        self.rideStore = rideStore
+    }
+
+    func reportOrphanedRide(id: String) {
+        orphanedRideId = id
+    }
+
+    /// AC-121: deletes the unfinished ride, so the notice doesn't come back on later launches.
+    func discardOrphanedRide() async {
+        guard let id = orphanedRideId else { return }
+        try? await rideStore?.delete(rideId: id)
+        orphanedRideId = nil
     }
 
     /// AC-115/AC-116.
@@ -183,6 +202,18 @@ struct HomeView: View {
     var body: some View {
         let viewModel = dependencies.homeViewModel
         VStack(spacing: 16) {
+            if viewModel.orphanedRideId != nil {
+                HStack(alignment: .top) {
+                    Label("Couldn't restore your last ride", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button("Discard", role: .destructive) {
+                        Task { await viewModel.discardOrphanedRide() }
+                    }
+                }
+                .padding(12)
+                .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+            }
             if viewModel.showsImportPrompt {
                 Text("Import a route")
                     .font(.title2.bold())
