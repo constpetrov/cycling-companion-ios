@@ -160,6 +160,7 @@
 		EEA7C79C3125304B6BD4C5AE /* RideUploaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BA1EB61FA9FA4B9181F4B6B /* RideUploaderTests.swift */; };
 		EEB3A2EC084F96880DBEA0B2 /* RideOutcomeCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 041039523401A74838743857 /* RideOutcomeCalculator.swift */; };
 		F6173D50EFA2AB6A5B8E77E0 /* LocationSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5409D239CA1A15FD28611FCF /* LocationSourceTests.swift */; };
+		F6527814D5822AFFAC3E868D /* CorridorMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F58FB3EE82F0F45295DF3F /* CorridorMapViewModel.swift */; };
 		F7728854BDE6EABF8A6D3F9A /* RideTrackerCheckpointingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354DF3EC3FF6B3D1939FE197 /* RideTrackerCheckpointingTests.swift */; };
 		F82F458949A4BC8D678EA758 /* DemoModeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 474A2AD9CD932626DB08AB90 /* DemoModeScreen.swift */; };
 		FBD752AE3DCBC71327683A28 /* RideUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314588114936F8FB1A90543E /* RideUploader.swift */; };
@@ -306,6 +307,7 @@
 		BFD933B493CA321272EF9890 /* FeatureEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureEngineTests.swift; sourceTree = "<group>"; };
 		C0AE4A397596CB6E859BD776 /* RideTrackerResumeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerResumeTests.swift; sourceTree = "<group>"; };
 		C4165FFBBD3426E86063BE50 /* CurrentRoutePointer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrentRoutePointer.swift; sourceTree = "<group>"; };
+		C4F58FB3EE82F0F45295DF3F /* CorridorMapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorMapViewModel.swift; sourceTree = "<group>"; };
 		C551D784749A3EC6C7C97B25 /* RideCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideCoordinatorTests.swift; sourceTree = "<group>"; };
 		C63064E063616D26510616DA /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		C73A82B1DDC4CE66F8730CC6 /* GatedTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatedTransport.swift; sourceTree = "<group>"; };
@@ -522,6 +524,7 @@
 				A0378A426E9092B748C387F9 /* CorridorImportCoordinator.swift */,
 				9B7B74FE9A36B5C2648E5CF0 /* CorridorMapScreen.swift */,
 				715933033BE0C1E6E0E0834A /* CorridorMapView.swift */,
+				C4F58FB3EE82F0F45295DF3F /* CorridorMapViewModel.swift */,
 				99F4F32ACAB6777564621067 /* CorridorPollingService.swift */,
 				FAE624D1E90215CE42C3D10B /* CorridorState.swift */,
 				1BF3B6B5B6A50418FEAB9B42 /* RouteAPIPayloads.swift */,
@@ -970,6 +973,7 @@
 				2BAA4F498D48B43CC147ED3C /* CorridorImportCoordinator.swift in Sources */,
 				24B18C1ABEEE37C5C26F0AB7 /* CorridorMapScreen.swift in Sources */,
 				C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */,
+				F6527814D5822AFFAC3E868D /* CorridorMapViewModel.swift in Sources */,
 				B38F8E00991F747791A69D43 /* CorridorPollingService.swift in Sources */,
 				AB9E61B299E0F02536BAD892 /* CorridorState.swift in Sources */,
 				7A99BC44A5673F68091904DC /* CurrentRoutePointer.swift in Sources */,

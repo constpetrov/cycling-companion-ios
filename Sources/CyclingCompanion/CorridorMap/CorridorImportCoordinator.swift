@@ -152,6 +152,12 @@ final class CorridorImportCoordinator {
         return pollAndUpdate(routeId: routeId)
     }
 
+    /// A stored route as saved in `RouteStore` — what the corridor map shows, so it works after a
+    /// relaunch (RULE-25 in milestone 7's rules.md).
+    func storedRoute(id routeId: String) async -> PersistedRoute? {
+        try? await routeStore.fetch(routeId: routeId)
+    }
+
     /// Rewrites one stored route's status (and stops, when given), keeping everything else.
     private func save(routeId: String, status: String, pois newPois: [PersistedPoiInput]?) async {
         guard let route = try? await routeStore.fetch(routeId: routeId) else { return }

@@ -1,23 +1,47 @@
 import RoutePersistence
 import SwiftUI
 
-/// The corridor map screen (RULE-13/RULE-16 in spec/rules.md, AC-8/AC-9/AC-10/AC-11): renders
-/// the imported route and POI pins via `CorridorMapView`, reactively bound to
-/// `CorridorImportCoordinator`'s observed `pois` (empty with no pins before settle, populated
-/// with pins after). Start Ride is never disabled or hidden regardless of settle state
-/// (RULE-13) — `startRideIsEnabled` is unconditionally `true`, not gated on anything.
+/// The corridor map (RULE-13/RULE-25): the stored route and its stops, the stop search state with
+/// Retry, and Start Ride, which is never disabled by the stop search (AC-114).
 struct CorridorMapScreen: View {
-    let coordinator: CorridorImportCoordinator
+    @State private var viewModel: CorridorMapViewModel
     let onStartRide: () -> Void
 
-    /// RULE-13: Start Ride is never gated on whether corridor POIs have finished building.
-    var startRideIsEnabled: Bool { true }
+    init(viewModel: CorridorMapViewModel, onStartRide: @escaping () -> Void) {
+        _viewModel = State(initialValue: viewModel)
+        self.onStartRide = onStartRide
+    }
+
+    var startRideIsEnabled: Bool { viewModel.startRideIsEnabled }
 
     var body: some View {
-        VStack {
-            CorridorMapView(points: coordinator.points, pois: coordinator.pois)
+        VStack(spacing: 12) {
+            CorridorMapView(points: viewModel.route?.points ?? [], pois: viewModel.route?.pois ?? [])
+            if let state = viewModel.state {
+                HStack {
+                    if state == .finding {
+                        ProgressView()
+                    }
+                    Text(state.message)
+                        .font(.subheadline)
+                    Spacer()
+                    if state.offersRetry {
+                        Button("Retry") { Task { await viewModel.retry() } }
+                    }
+                }
+                .padding(.horizontal)
+                .accessibilityElement(children: .combine)
+            }
             Button("Start Ride", action: onStartRide)
+                .buttonStyle(.borderedProminent)
                 .disabled(!startRideIsEnabled)
+                .padding(.bottom)
+        }
+        .navigationTitle("Route")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await viewModel.load() }
+        .onChange(of: viewModel.isPolling) { _, polling in
+            if !polling { Task { await viewModel.reload() } }
         }
     }
 }

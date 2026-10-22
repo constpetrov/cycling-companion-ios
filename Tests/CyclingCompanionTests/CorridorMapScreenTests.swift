@@ -72,7 +72,8 @@ final class CorridorMapScreenTests: XCTestCase {
         let coordinator = await makeCoordinator(readyImmediately: false)
         XCTAssertTrue(coordinator.pois.isEmpty)
 
-        let screen = CorridorMapScreen(coordinator: coordinator, onStartRide: {})
+        let screen = CorridorMapScreen(
+            viewModel: CorridorMapViewModel(routeId: "route-1", coordinator: coordinator), onStartRide: {})
 
         XCTAssertTrue(screen.startRideIsEnabled)
     }
@@ -82,7 +83,8 @@ final class CorridorMapScreenTests: XCTestCase {
         let coordinator = await makeCoordinator(readyImmediately: true)
         XCTAssertFalse(coordinator.pois.isEmpty)
 
-        let screen = CorridorMapScreen(coordinator: coordinator, onStartRide: {})
+        let screen = CorridorMapScreen(
+            viewModel: CorridorMapViewModel(routeId: "route-1", coordinator: coordinator), onStartRide: {})
 
         XCTAssertTrue(screen.startRideIsEnabled)
     }
@@ -98,10 +100,45 @@ final class CorridorMapScreenTests: XCTestCase {
             pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!), appRouter: AppRouter(),
             lazySignIn: LazySignIn(
                 authClient: AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)))
-        let screen = CorridorMapScreen(coordinator: coordinator, onStartRide: { tapped = true })
+        let screen = CorridorMapScreen(
+            viewModel: CorridorMapViewModel(routeId: "route-1", coordinator: coordinator),
+            onStartRide: { tapped = true })
 
         screen.onStartRide()
 
         XCTAssertTrue(tapped)
+    }
+
+    /// task-6.5 (RULE-25, AC-113): a fresh view model for a stored route shows its line and stops
+    /// with no import in this process — what happens after a relaunch.
+    @MainActor
+    func testTheMapLoadsAStoredRouteWithoutAnImport() async throws {
+        let store = RouteStore(
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        try await store.persist(
+            routeId: "stored", hash: "h", totalDistanceMeters: 1_000, totalClimbingMeters: nil,
+            points: [
+                PersistedPointInput(latitude: 52, longitude: 13, elevationMeters: nil, cumulativeDistanceMeters: 0),
+                PersistedPointInput(latitude: 52.009, longitude: 13, elevationMeters: nil, cumulativeDistanceMeters: 1_000),
+            ],
+            pois: [
+                PersistedPoiInput(
+                    osmId: 7, type: "CAFE", name: "Kaffee", latitude: 52.005, longitude: 13.001, kmMarkMeters: 500,
+                    detourMeters: 70, openingHours: nil)
+            ], status: "ready")
+        let auth = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)
+        let coordinator = CorridorImportCoordinator(
+            corridorPollingService: CorridorPollingService(baseURL: URL(string: "https://backend.example.com")!, authClient: auth),
+            routeStore: store, pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!),
+            appRouter: AppRouter(), lazySignIn: LazySignIn(authClient: auth))
+        XCTAssertTrue(coordinator.points.isEmpty, "nothing in memory, as after a relaunch")
+        let viewModel = CorridorMapViewModel(routeId: "stored", coordinator: coordinator)
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.route?.points.count, 2)
+        XCTAssertEqual(viewModel.route?.pois.map(\.osmId), [7])
+        XCTAssertEqual(viewModel.state, .ready(stopCount: 1))
+        XCTAssertFalse(viewModel.isPolling, "a ready route is not polled again")
     }
 }

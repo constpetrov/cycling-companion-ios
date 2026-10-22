@@ -71,9 +71,9 @@ struct ContentView: View {
     @ViewBuilder
     private func destination(for route: HomeRoute) -> some View {
         switch route {
-        case .corridorMap:
+        case .corridorMap(let routeId):
             CorridorMapScreen(
-                coordinator: dependencies.corridorImportCoordinator,
+                viewModel: CorridorMapViewModel(routeId: routeId, coordinator: dependencies.corridorImportCoordinator),
                 onStartRide: { Task { await dependencies.rideStartFlow.requestStart() } })
         #if DEBUG
         case .demo:
