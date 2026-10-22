@@ -195,6 +195,36 @@ final class CorridorStopsRefreshTests: XCTestCase {
         XCTAssertEqual(route?.status, "building")
     }
 
+    @MainActor
+    func testResumingRightAfterPausingStartsAFreshPoll() async throws {
+        let backend = ScriptedBackend(corridor: [Self.building])
+        let (coordinator, store, _) = make(backend, clock: GatedClock())
+        try await Self.seed("r", status: "building", in: store)
+        let first = await coordinator.ensurePolling(routeId: "r")
+
+        coordinator.pauseAllPolls()
+        await coordinator.appBecameActive()
+        await first?.value  // the cancelled poll finishes after the new one registered
+
+        XCTAssertTrue(coordinator.isPolling(routeId: "r"), "the fresh poll is still registered")
+        coordinator.pauseAllPolls()
+    }
+
+    @MainActor
+    func testNoPollStartsWhileTheAppIsInTheBackground() async throws {
+        let backend = ScriptedBackend(corridor: [Self.building])
+        let (coordinator, store, _) = make(backend, clock: GatedClock())
+        try await Self.seed("r", status: "building", in: store)
+
+        coordinator.pauseAllPolls()
+        await coordinator.resumePollingForBuildingRoutes()
+
+        XCTAssertFalse(coordinator.isPolling(routeId: "r"))
+        await coordinator.appBecameActive()
+        XCTAssertTrue(coordinator.isPolling(routeId: "r"))
+        coordinator.pauseAllPolls()
+    }
+
     // MARK: - Launch and foreground refresh (task-4.3: AC-35 to AC-41)
 
     /// AC-35, AC-36, AC-37.

@@ -1,6 +1,12 @@
 import Foundation
 import RoutePersistence
 
+/// Why the last Retry failed, shown next to Retry (milestone 8, RULE-19).
+enum CorridorActionError: Equatable, Sendable {
+    case noConnection
+    case server
+}
+
 /// Drives a GPX import through to the corridor map screen (RULE-8/RULE-12 in spec/rules.md,
 /// AC-6/AC-7/AC-8/AC-9): writes `RouteStore` *twice* for the same import, both times via
 /// `RouteStore`'s existing `persist(...)` method. First, as soon as
@@ -12,12 +18,6 @@ import RoutePersistence
 /// leaves the pointer and `RouteStore` both untouched and surfaces an error instead. `points`
 /// is set alongside `pois` at both moments — the app's wiring (not a formal milestone task)
 /// needs it to actually render `CorridorMapScreen`'s polyline.
-/// Why the last Retry failed, shown next to Retry (milestone 8, RULE-19).
-enum CorridorActionError: Equatable, Sendable {
-    case noConnection
-    case server
-}
-
 @MainActor
 @Observable
 final class CorridorImportCoordinator {
@@ -29,11 +29,20 @@ final class CorridorImportCoordinator {
     /// Routes with a corridor poll running (RULE-24 in milestone 7's rules.md): at most one each.
     private(set) var pollingRouteIds: Set<String> = []
     private var polls: [String: Task<Void, Never>] = [:]
+    /// Identifies the poll registered for a route, so a cancelled poll finishing late can't
+    /// unregister the one that replaced it.
+    private var pollTokens: [String: UUID] = [:]
+    /// False while the app isn't in the foreground: no poll starts then (RULE-18), even from work
+    /// that was already under way when the app left the foreground.
+    private var isActive = true
     /// Routes whose Retry request is in flight (milestone 8, RULE-19): the id goes in before the
     /// first `await`, so a second tap can't send a second request.
     private(set) var retryInFlight: Set<String> = []
     /// The last Retry failure per route, shown next to Retry; cleared when Retry is tried again.
     private(set) var retryErrors: [String: CorridorActionError] = [:]
+    /// Bumped on every stored-route update, so Home and the corridor map re-read `RouteStore` even
+    /// when no poll is running (e.g. after a foreground refresh).
+    private(set) var storeRevision = 0
 
     private let corridorPollingService: CorridorPollingService
     private let routeStore: RouteStore
@@ -101,11 +110,20 @@ final class CorridorImportCoordinator {
         if let running = polls[routeId] {
             return running
         }
+        guard isActive else {
+            // Not in the foreground: nothing to return; the next activation polls again.
+            return Task {}
+        }
         pollingRouteIds.insert(routeId)
+        let token = UUID()
         let task = Task {
             defer {
-                polls[routeId] = nil
-                pollingRouteIds.remove(routeId)
+                // Only unregister if this is still the route's registered poll (see pauseAllPolls).
+                if pollTokens[routeId] == token {
+                    polls[routeId] = nil
+                    pollTokens[routeId] = nil
+                    pollingRouteIds.remove(routeId)
+                }
             }
             var backoff = PollBackoff()
             while !Task.isCancelled {
@@ -120,12 +138,14 @@ final class CorridorImportCoordinator {
                 }
                 do {
                     try await clock.sleep(for: backoff.next())
+                    try Task.checkCancellation()  // in case a Clock returns from a cancelled sleep
                 } catch {
                     return  // cancelled: the app left the foreground
                 }
             }
         }
         polls[routeId] = task
+        pollTokens[routeId] = token
         return task
     }
 
@@ -182,6 +202,8 @@ final class CorridorImportCoordinator {
     func refreshCurrentRoute() async {
         guard let routeId = pointer.routeId, polls[routeId] == nil else { return }
         guard case .status(let payload) = await checkStatus(routeId: routeId) else { return }
+        // A poll or Retry may have started for this route while we waited; its answer is newer.
+        guard isActive, polls[routeId] == nil, !retryInFlight.contains(routeId) else { return }
         if payload.status == CorridorState.buildingStatus {
             await save(routeId: routeId, status: payload.status, pois: nil)
             pollAndUpdate(routeId: routeId)
@@ -193,9 +215,23 @@ final class CorridorImportCoordinator {
     /// Milestone 8 (RULE-18): no polling while the app isn't active; every route keeps its stored
     /// status and polling picks up again on return (`resumePollingForBuildingRoutes`).
     func pauseAllPolls() {
+        isActive = false
         for task in polls.values {
             task.cancel()
         }
+        // Unregister now rather than in each task's `defer`, so returning to the foreground right
+        // away starts fresh polls instead of finding the cancelled ones still registered.
+        polls = [:]
+        pollTokens = [:]
+        pollingRouteIds = []
+    }
+
+    /// The app is in the foreground again (RULE-17/RULE-18): resume building routes' polls, then
+    /// refresh the current route once.
+    func appBecameActive() async {
+        isActive = true
+        await resumePollingForBuildingRoutes()
+        await refreshCurrentRoute()
     }
 
     /// AC-110: at launch, polls again for every stored route still building.
@@ -233,6 +269,7 @@ final class CorridorImportCoordinator {
             routeId: routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
             totalClimbingMeters: route.totalClimbingMeters, points: route.points, pois: newPois ?? route.pois,
             status: status, coverageRegion: coverageRegion, outsideMeters: outsideMeters)
+        storeRevision += 1
     }
 
     private static func persistedPoint(_ point: ResampledPoint) -> PersistedPointInput {

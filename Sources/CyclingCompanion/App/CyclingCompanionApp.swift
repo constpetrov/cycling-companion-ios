@@ -49,6 +49,7 @@ struct CyclingCompanionApp: App {
                     .task {
                         #if DEBUG
                         if UITestFixtures.isEnabled { await UITestFixtures.seed(dependencies) }
+                        await EndToEndHooks.importIfRequested(dependencies)
                         #endif
                         await dependencies.makeRideResumer().resumeIfNeeded()
                         dependencies.appRouter.launchResumeFinished(
@@ -64,10 +65,7 @@ struct CyclingCompanionApp: App {
                     .onChange(of: scenePhase, initial: true) { _, phase in
                         let coordinator = dependencies.corridorImportCoordinator
                         if phase == .active {
-                            Task {
-                                await coordinator.resumePollingForBuildingRoutes()
-                                await coordinator.refreshCurrentRoute()
-                            }
+                            Task { await coordinator.appBecameActive() }
                         } else {
                             coordinator.pauseAllPolls()
                         }

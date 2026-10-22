@@ -43,6 +43,9 @@ protocol RouteImporting: AnyObject {
     func isPolling(routeId: String) -> Bool
     @discardableResult
     func retry(routeId: String) async -> Task<Void, Never>?
+    /// Milestone 8 (RULE-19): Retry's in-flight state and last error per route.
+    var retryInFlight: Set<String> { get }
+    var retryErrors: [String: CorridorActionError] { get }
 }
 
 /// What Home shows for the current route (RULE-26 in milestone 7's rules.md, AC-115 to AC-119).
@@ -52,6 +55,8 @@ struct RouteCard: Equatable {
     let distanceText: String
     let climbingText: String?
     let corridor: CorridorState
+    /// Milestone 8 (AC-42 to AC-46): how much of the route the stop data covers, if not all of it.
+    let coverageText: String?
 
     init(route: PersistedRoute, isPolling: Bool, locale: Locale) {
         routeId = route.id
@@ -62,6 +67,7 @@ struct RouteCard: Equatable {
                 .formatted(.measurement(width: .abbreviated, usage: .asProvided).locale(locale))
         }
         corridor = CorridorState(route: route, isPolling: isPolling)
+        coverageText = CoverageMessage.text(for: route)
     }
 }
 
@@ -122,6 +128,16 @@ final class HomeViewModel {
         currentRoute.map {
             RouteCard(route: $0, isPolling: importer?.isPolling(routeId: $0.id) ?? false, locale: locale)
         }
+    }
+
+    /// Milestone 8 (RULE-19): Retry feedback for the current route.
+    var retryInFlight: Bool {
+        guard let routeId = currentRoute?.id else { return false }
+        return importer?.retryInFlight.contains(routeId) ?? false
+    }
+
+    var retryError: CorridorActionError? {
+        currentRoute.flatMap { importer?.retryErrors[$0.id] }
     }
 
     /// AC-105/AC-108 on Home.
@@ -187,6 +203,7 @@ final class HomeViewModel {
 /// coordinator and the start actions from `AppDependencies`.
 struct HomeView: View {
     @Environment(AppDependencies.self) private var dependencies
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isImporterPresented = false
 
     private static let gpxContentType = UTType(filenameExtension: "gpx") ?? .xml
@@ -240,6 +257,9 @@ struct HomeView: View {
         }
         .padding()
         .task { await dependencies.homeViewModel.refresh() }
+        .onChange(of: dependencies.corridorImportCoordinator.storeRevision) {
+            Task { await dependencies.homeViewModel.refresh() }
+        }
         .onChange(of: dependencies.corridorImportCoordinator.pollingRouteIds) {
             Task { await dependencies.homeViewModel.refresh() }
         }
@@ -258,24 +278,21 @@ struct HomeView: View {
             Text(card.title)
                 .font(.title2.bold())
                 .lineLimit(2)
-            HStack(spacing: 16) {
+            // Stacked at accessibility text sizes so neither figure clips (milestone 8, AC-58 audit).
+            let figuresLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 16))
+            figuresLayout {
                 Label(card.distanceText, systemImage: "point.topleft.down.to.point.bottomright.curvepath")
                 if let climbing = card.climbingText {
                     Label(climbing, systemImage: "arrow.up.right")
                 }
             }
             .font(.subheadline)
-            HStack {
-                if card.corridor == .finding {
-                    ProgressView()
-                }
-                Text(card.corridor.message)
-                    .font(.subheadline)
-                Spacer()
-                if card.corridor.offersRetry {
-                    Button("Retry") { Task { await dependencies.homeViewModel.retryCorridor() } }
-                }
-            }
+            CorridorStatusRow(
+                state: card.corridor, coverageText: card.coverageText,
+                retryInFlight: dependencies.homeViewModel.retryInFlight,
+                retryError: dependencies.homeViewModel.retryError,
+                onRetry: { Task { await dependencies.homeViewModel.retryCorridor() } })
             Button {
                 Task { await dependencies.rideStartFlow.requestStart() }
             } label: {
@@ -283,10 +300,17 @@ struct HomeView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            HStack {
-                Button("View map") { dependencies.appRouter.open(.corridorMap(routeId: card.routeId)) }
-                Spacer()
-                importButton("Import another route")
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button("View map") { dependencies.appRouter.open(.corridorMap(routeId: card.routeId)) }
+                    importButton("Import another route")
+                }
+            } else {
+                HStack {
+                    Button("View map") { dependencies.appRouter.open(.corridorMap(routeId: card.routeId)) }
+                    Spacer()
+                    importButton("Import another route")
+                }
             }
         }
         .padding()
@@ -294,7 +318,12 @@ struct HomeView: View {
     }
 
     private func importButton(_ title: String) -> some View {
-        Button(title) { isImporterPresented = true }
-            .disabled(dependencies.homeViewModel.isImporting)
+        Button { isImporterPresented = true } label: {
+            // Wraps rather than truncating at the largest text sizes.
+            Text(title)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .disabled(dependencies.homeViewModel.isImporting)
     }
 }

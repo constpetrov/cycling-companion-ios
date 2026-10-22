@@ -14,6 +14,9 @@ enum UITestFixtures {
     /// With this too, the app behaves as if a stop notification was tapped after launch, with no
     /// ride to show it on (AC-76).
     static let staleStopLinkArgument = "-uiTestStaleStopLink"
+    /// With this too, the seeded route is stored as partly outside the stop data's region, so Home
+    /// and the corridor map show the coverage message (milestone 8, RULE-21).
+    static let partlyOutsideArgument = "-uiTestPartlyOutside"
 
     static var isEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
@@ -62,7 +65,9 @@ enum UITestFixtures {
         ]
         try? await dependencies.routeStore.persist(
             routeId: routeId, hash: "ui-test", totalDistanceMeters: points.last?.cumulativeDistanceMeters ?? 0,
-            totalClimbingMeters: 42, points: points, pois: pois, status: "ready", displayName: "Canal Loop")
+            totalClimbingMeters: 42, points: points, pois: pois, status: "ready", displayName: "Canal Loop",
+            coverageRegion: ProcessInfo.processInfo.arguments.contains(partlyOutsideArgument) ? "Netherlands" : nil,
+            outsideMeters: ProcessInfo.processInfo.arguments.contains(partlyOutsideArgument) ? 1_400 : nil)
         dependencies.pointer.routeId = routeId
         await dependencies.homeViewModel.refresh()
     }
@@ -105,6 +110,18 @@ struct StubBackendTransport: HTTPTransport {
         }
         let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
         return (Data(body.utf8), response)
+    }
+}
+/// Debug-only end-to-end hook (milestone 8 task-5.3): `-e2eImportGPX <path>` imports that GPX file
+/// at launch through the same path as the file picker, against whatever backend the build points at.
+enum EndToEndHooks {
+    static let importArgument = "-e2eImportGPX"
+
+    @MainActor
+    static func importIfRequested(_ dependencies: AppDependencies) async {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: importArgument), index + 1 < arguments.count else { return }
+        await dependencies.homeViewModel.importGPX(from: URL(fileURLWithPath: arguments[index + 1]))
     }
 }
 #endif
