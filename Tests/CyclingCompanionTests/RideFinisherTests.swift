@@ -17,20 +17,23 @@ private struct AlwaysSucceedsTransport: HTTPTransport {
     }
 }
 
-/// Records each ride-ingest request together with the screen showing when it was sent, so
-/// tests can check ordering (navigate first, upload second) and duplicate uploads.
+/// Records each ride-ingest request together with whether the summary was already showing when
+/// it was sent, so tests can check ordering (summary first, upload second) and duplicate uploads.
 private actor RecordingTransport: HTTPTransport {
-    private let appRouter: AppRouter
-    /// `true` per ingest request if Home was already showing when it was sent.
+    private let rideCoordinator: RideCoordinator
+    /// `true` per ingest request if the summary was already showing when it was sent.
     private(set) var homeShownAtIngest: [Bool] = []
 
-    init(appRouter: AppRouter) {
-        self.appRouter = appRouter
+    init(rideCoordinator: RideCoordinator) {
+        self.rideCoordinator = rideCoordinator
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         if !request.url!.path.hasSuffix("sign-in") {
-            let isHome = await MainActor.run { appRouter.currentScreen == .home }
+            let isHome = await MainActor.run { () -> Bool in
+                if case .summary = rideCoordinator.presentation { return true }
+                return false
+            }
             homeShownAtIngest.append(isHome)
         }
         return try await AlwaysSucceedsTransport().data(for: request)
@@ -46,7 +49,7 @@ final class RideFinisherTests: XCTestCase {
 
     @MainActor
     private func makeFinisher(
-        rideRecorder: RideRecorder, appRouter: AppRouter, rideStore: RideStore,
+        rideRecorder: RideRecorder, rideCoordinator: RideCoordinator, rideStore: RideStore,
         transport: HTTPTransport = AlwaysSucceedsTransport()
     ) -> RideFinisher {
         let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
@@ -57,7 +60,7 @@ final class RideFinisherTests: XCTestCase {
         let pendingQueue = PendingRideUploadQueue(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         return RideFinisher(
-            rideRecorder: rideRecorder, appRouter: appRouter, decisionLog: DecisionLog(), rideStore: rideStore,
+            rideRecorder: rideRecorder, rideCoordinator: rideCoordinator, decisionLog: DecisionLog(), rideStore: rideStore,
             rideIngestClient: ingestClient, pendingUploadQueue: pendingQueue)
     }
 
@@ -90,8 +93,8 @@ final class RideFinisherTests: XCTestCase {
         let trackingTask = Task<Void, Never> { try? await Task.sleep(nanoseconds: .max) }
         let sessionTask = Task<Void, Never> { try? await Task.sleep(nanoseconds: .max) }
         let liveRide = LiveRide(tracker: tracker, session: session, trackingTask: trackingTask, sessionTask: sessionTask)
-        let appRouter = AppRouter()
-        let finisher = makeFinisher(rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, rideStore: rideStore)
+        let rideCoordinator = RideCoordinator()
+        let finisher = makeFinisher(rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, rideStore: rideStore)
 
         await finisher.finishRide(liveRide)
 
@@ -109,14 +112,18 @@ final class RideFinisherTests: XCTestCase {
         let trackingTask = Task<Void, Never> {}
         let sessionTask = Task<Void, Never> {}
         let liveRide = LiveRide(tracker: tracker, session: session, trackingTask: trackingTask, sessionTask: sessionTask)
-        let appRouter = AppRouter()
-        let finisher = makeFinisher(rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, rideStore: rideStore)
+        let rideCoordinator = RideCoordinator()
+        let finisher = makeFinisher(rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, rideStore: rideStore)
 
         await finisher.finishRide(liveRide)
 
         let persisted = try await rideStore.fetch(rideId: "ride-1")
         XCTAssertNotNil(persisted?.endTime, "finalize must set a real endTime, not leave the checkpoint's nil")
-        XCTAssertEqual(appRouter.currentScreen, .home)
+        XCTAssertNil(rideCoordinator.activeRide)
+        guard case .summary(.saved(let saved)) = rideCoordinator.presentation else {
+            return XCTFail("expected the summary of the saved ride")
+        }
+        XCTAssertEqual(saved.id, "ride-1")
     }
 
     @MainActor
@@ -133,11 +140,11 @@ final class RideFinisherTests: XCTestCase {
     func testFinishRideNavigatesHomeBeforeTheUploadIsSent() async {
         let rideStore = freshRideStore()
         let liveRide = liveRideWithIdleTasks(rideStore: rideStore)
-        let appRouter = AppRouter()
-        appRouter.show(.liveRide(liveRide))
-        let transport = RecordingTransport(appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        rideCoordinator.activate(liveRide)
+        let transport = RecordingTransport(rideCoordinator: rideCoordinator)
         let finisher = makeFinisher(
-            rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, rideStore: rideStore,
+            rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, rideStore: rideStore,
             transport: transport)
 
         await finisher.finishRide(liveRide)
@@ -150,11 +157,11 @@ final class RideFinisherTests: XCTestCase {
     func testADoubleTapOnFinishFinalizesAndUploadsTheRideOnce() async {
         let rideStore = freshRideStore()
         let liveRide = liveRideWithIdleTasks(rideStore: rideStore)
-        let appRouter = AppRouter()
-        appRouter.show(.liveRide(liveRide))
-        let transport = RecordingTransport(appRouter: appRouter)
+        let rideCoordinator = RideCoordinator()
+        rideCoordinator.activate(liveRide)
+        let transport = RecordingTransport(rideCoordinator: rideCoordinator)
         let finisher = makeFinisher(
-            rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, rideStore: rideStore,
+            rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, rideStore: rideStore,
             transport: transport)
 
         async let first: Void = finisher.finishRide(liveRide)
@@ -165,12 +172,4 @@ final class RideFinisherTests: XCTestCase {
         XCTAssertEqual(uploads, 1)
     }
 
-    @MainActor
-    func testFinishCanRunAgainAfterAPreviousFinishCompleted() async {
-        let appRouter = AppRouter()
-        XCTAssertTrue(appRouter.beginFinishingRide())
-        XCTAssertFalse(appRouter.beginFinishingRide())
-        appRouter.endFinishingRide()
-        XCTAssertTrue(appRouter.beginFinishingRide())
-    }
 }

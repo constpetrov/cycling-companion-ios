@@ -18,7 +18,7 @@ final class DemoRideStarterTests: XCTestCase {
 
     @MainActor
     private func makeStarter(
-        routeStore: RouteStore, pointer: CurrentRoutePointer, appRouter: AppRouter, decisionLog: DecisionLog
+        routeStore: RouteStore, pointer: CurrentRoutePointer, rideCoordinator: RideCoordinator, decisionLog: DecisionLog
     ) -> DemoRideStarter {
         // Fixture gaps are tiny real-world seconds apart — at max speed (20x) the real pacing
         // delay (gap / speed) stays well under a test timeout regardless.
@@ -28,7 +28,7 @@ final class DemoRideStarterTests: XCTestCase {
                 latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 0.05)),
         ]
         return DemoRideStarter(
-            routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: decisionLog,
+            routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: decisionLog),
             locationFixes: fixes, sensorSamples: [])
     }
@@ -44,12 +44,13 @@ final class DemoRideStarterTests: XCTestCase {
                     latitude: 52.0, longitude: 13.1, elevationMeters: 100, cumulativeDistanceMeters: 10_000),
             ], pois: [], status: "ready")
         let pointer = freshPointer(routeId: "route-1")
-        let appRouter = AppRouter()
-        let starter = makeStarter(routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: DecisionLog())
+        let rideCoordinator = RideCoordinator()
+        let starter = makeStarter(routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: DecisionLog())
 
         await starter.startDemoRide(speed: 20)
 
-        guard case .liveRide(let liveRide) = appRouter.currentScreen else {
+        let liveRide = rideCoordinator.activeRide
+        guard liveRide != nil else {
             XCTFail("expected the live ride screen")
             return
         }
@@ -68,9 +69,9 @@ final class DemoRideStarterTests: XCTestCase {
                 PersistedPointInput(latitude: 52, longitude: 13, elevationMeters: nil, cumulativeDistanceMeters: 0),
                 PersistedPointInput(latitude: 52, longitude: 13.01, elevationMeters: nil, cumulativeDistanceMeters: 1_000),
             ], pois: [], status: "ready")
-        let router = AppRouter()
+        let router = RideCoordinator()
         let starter = makeStarter(
-            routeStore: routeStore, pointer: freshPointer(routeId: "route-1"), appRouter: router,
+            routeStore: routeStore, pointer: freshPointer(routeId: "route-1"), rideCoordinator: router,
             decisionLog: DecisionLog())
 
         let first = Task { @MainActor in await starter.startDemoRide(speed: 20) }
@@ -78,7 +79,7 @@ final class DemoRideStarterTests: XCTestCase {
         let sessions = [await first.value, await second.value].compactMap { $0 }
 
         XCTAssertEqual(sessions.count, 1)
-        router.show(.home)
+        if let ride = router.activeRide { router.end(ride) }
     }
 
     @MainActor
@@ -92,13 +93,13 @@ final class DemoRideStarterTests: XCTestCase {
                     latitude: 52.0, longitude: 13.1, elevationMeters: 100, cumulativeDistanceMeters: 10_000),
             ], pois: [], status: "ready")
         let pointer = freshPointer(routeId: "route-1")
-        let appRouter = AppRouter()
+        let rideCoordinator = RideCoordinator()
         let decisionLog = DecisionLog()
-        let starter = makeStarter(routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: decisionLog)
+        let starter = makeStarter(routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog)
 
         await starter.startDemoRide(speed: 20)
 
-        guard case .liveRide(let liveRide) = appRouter.currentScreen, let liveRide else {
+        guard let liveRide = rideCoordinator.activeRide else {
             XCTFail("expected the live ride screen")
             return
         }

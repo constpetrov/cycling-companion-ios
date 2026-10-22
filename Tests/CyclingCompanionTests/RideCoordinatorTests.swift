@@ -42,7 +42,7 @@ final class RideCoordinatorTests: XCTestCase {
         XCTAssertTrue(first.trackingTask.isCancelled)
         XCTAssertTrue(first.sessionTask.isCancelled)
         XCTAssertFalse(second.sessionTask.isCancelled)
-        coordinator.end(second, outcome: .notSaved)
+        coordinator.end(second)
         XCTAssertTrue(second.trackingTask.isCancelled)
         XCTAssertTrue(second.sessionTask.isCancelled)
     }
@@ -61,7 +61,7 @@ final class RideCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.activeRide?.tracker === ride.tracker)
         XCTAssertFalse(ride.sessionTask.isCancelled)
         XCTAssertFalse(ride.trackingTask.isCancelled)
-        coordinator.end(ride, outcome: .notSaved)
+        coordinator.end(ride)
     }
 
     @MainActor
@@ -74,7 +74,7 @@ final class RideCoordinatorTests: XCTestCase {
 
         XCTAssertFalse(ride.trackingTask.isCancelled)
         XCTAssertFalse(ride.sessionTask.isCancelled)
-        coordinator.end(ride, outcome: .notSaved)
+        coordinator.end(ride)
     }
 
     // MARK: - Start/resume lock (AC-3, AC-4)
@@ -99,7 +99,7 @@ final class RideCoordinatorTests: XCTestCase {
 
         XCTAssertFalse(coordinator.beginPreparingRide())
         XCTAssertTrue(coordinator.activeRide?.tracker === ride.tracker)
-        coordinator.end(ride, outcome: .notSaved)
+        coordinator.end(ride)
     }
 
     @MainActor
@@ -116,7 +116,7 @@ final class RideCoordinatorTests: XCTestCase {
 
         _ = coordinator.beginFinishingRide()
         XCTAssertEqual(coordinator.phase, .finishing)
-        coordinator.end(ride, outcome: .notSaved)
+        coordinator.end(ride)
         coordinator.endFinishingRide()
         XCTAssertEqual(coordinator.phase, .idle)
     }
@@ -140,7 +140,7 @@ final class RideCoordinatorTests: XCTestCase {
         let ride = liveRide()
         coordinator.activate(ride)
 
-        coordinator.end(ride, outcome: .notSaved)
+        coordinator.end(ride)
 
         XCTAssertTrue(ride.trackingTask.isCancelled)
         XCTAssertTrue(ride.sessionTask.isCancelled)
@@ -158,7 +158,9 @@ final class RideCoordinatorTests: XCTestCase {
         coordinator.activate(ride)
         guard case .live = coordinator.presentation else { return XCTFail("expected .live") }
 
-        coordinator.end(ride, outcome: .notSaved)
+        coordinator.end(ride)
+        guard case .live = coordinator.presentation else { return XCTFail("cover stays until the outcome is known") }
+        coordinator.presentSummary(.notSaved)
         guard case .summary = coordinator.presentation else { return XCTFail("expected .summary") }
 
         coordinator.dismissSummary()
@@ -174,6 +176,6 @@ final class RideCoordinatorTests: XCTestCase {
         coordinator.dismissSummary()
 
         guard case .live = coordinator.presentation else { return XCTFail("expected .live") }
-        coordinator.end(ride, outcome: .notSaved)
+        coordinator.end(ride)
     }
 }

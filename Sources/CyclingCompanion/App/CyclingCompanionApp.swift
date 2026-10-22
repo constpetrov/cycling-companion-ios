@@ -8,6 +8,7 @@ struct CyclingCompanionApp: App {
 
     private let configurationError: String?
     private let appRouter: AppRouter
+    private let rideCoordinator: RideCoordinator
     private let routeStore: RouteStore
     private let rideStore: RideStore
     private let pointer: CurrentRoutePointer
@@ -46,6 +47,7 @@ struct CyclingCompanionApp: App {
         // The HTTP deadline uses wall-clock time, even during an accelerated demo replay.
         let advisorClient = AdvisorClient(baseURL: configuration.baseURL, authClient: authClient, lazySignIn: lazySignIn)
         let appRouter = AppRouter()
+        let rideCoordinator = RideCoordinator()
         let pointer = CurrentRoutePointer()
 
         self.routeStore = routeStore
@@ -56,17 +58,18 @@ struct CyclingCompanionApp: App {
         self.lazySignIn = lazySignIn
         self.advisorClient = advisorClient
         self.appRouter = appRouter
+        self.rideCoordinator = rideCoordinator
         self.pointer = pointer
         self.coordinator = CorridorImportCoordinator(
             corridorPollingService: CorridorPollingService(baseURL: configuration.baseURL, authClient: authClient),
             routeStore: routeStore, pointer: pointer, appRouter: appRouter, lazySignIn: lazySignIn)
         self.rideStarter = RideStarter(
-            routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: decisionLog,
+            routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: notifier, advisorClient: advisorClient)
         self.rideIngestClient = RideIngestClient(baseURL: configuration.baseURL, authClient: authClient, lazySignIn: lazySignIn)
         self.pendingUploadQueue = PendingRideUploadQueue(fileURL: pendingUploadsFileURL)
         self.rideFinisher = RideFinisher(
-            rideRecorder: RideRecorder(rideStore: rideStore), appRouter: appRouter, decisionLog: decisionLog,
+            rideRecorder: RideRecorder(rideStore: rideStore), rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             rideStore: rideStore, rideIngestClient: rideIngestClient, pendingUploadQueue: pendingUploadQueue)
 
         appDelegate.appRouter = appRouter
@@ -80,12 +83,13 @@ struct CyclingCompanionApp: App {
                     description: Text(configurationError))
             } else {
                 ContentView(
-                    appRouter: appRouter, routeStore: routeStore, coordinator: coordinator, rideStarter: rideStarter,
+                    appRouter: appRouter, rideCoordinator: rideCoordinator, routeStore: routeStore,
+                    coordinator: coordinator, rideStarter: rideStarter,
                     rideFinisher: rideFinisher, onStartDemoRide: startDemoRide
                 )
                 .task {
                     await RideResumer(
-                        rideStore: rideStore, routeStore: routeStore, appRouter: appRouter, decisionLog: decisionLog,
+                        rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
                         notifier: notifier, advisorClient: advisorClient
                     ).resumeIfNeeded()
                     await PendingRideUploadRetrier(pendingUploadQueue: pendingUploadQueue, rideIngestClient: rideIngestClient)
@@ -102,7 +106,7 @@ struct CyclingCompanionApp: App {
         #if DEBUG
         let fixture = DemoFixture.loadBundled()
         let starter = DemoRideStarter(
-            routeStore: routeStore, pointer: pointer, appRouter: appRouter, decisionLog: decisionLog,
+            routeStore: routeStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: notifier, locationFixes: fixture.locationFixes, sensorSamples: fixture.sensorSamples,
             advisorClient: advisorClient)
         return await starter.startDemoRide(speed: speed)

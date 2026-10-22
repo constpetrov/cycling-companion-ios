@@ -25,7 +25,7 @@ enum RidePresentation: Identifiable {
 /// Owns the ride lifecycle (RULE-1/RULE-2 in milestone 7's rules.md): which ride is active, the
 /// locks that stop Start/Resume/Demo and Finish from running twice, and cancelling a ride's
 /// background tasks. Moved out of `AppRouter` so that navigation can never stop a ride — only
-/// `activate(_:)` (replacing a ride) and `end(_:outcome:)` cancel tasks.
+/// `activate(_:)` (replacing a ride) and `end(_:)` cancel tasks.
 @MainActor
 @Observable
 final class RideCoordinator {
@@ -91,14 +91,19 @@ final class RideCoordinator {
         }
     }
 
-    /// Stops `ride`'s tracking and advisor loop and switches the cover to the summary. Ignored for
-    /// a ride that isn't the active one.
-    func end(_ ride: LiveRide, outcome: FinishOutcome) {
+    /// Stops `ride`'s tracking and advisor loop and clears it as the active ride. Called before the
+    /// ride is finalized, so no further checkpoint can overwrite the final record. The cover keeps
+    /// showing the ride until `presentSummary(_:)`.
+    func end(_ ride: LiveRide) {
         ride.trackingTask.cancel()
         ride.sessionTask.cancel()
         guard activeRide?.tracker === ride.tracker else { return }
         activeRide = nil
         phase = finishingRide ? .finishing : .idle
+    }
+
+    /// Switches the cover to the finished ride's summary.
+    func presentSummary(_ outcome: FinishOutcome) {
         presentation = .summary(outcome)
     }
 

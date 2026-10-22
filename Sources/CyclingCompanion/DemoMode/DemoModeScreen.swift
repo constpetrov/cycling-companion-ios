@@ -43,7 +43,7 @@ final class DemoModeViewModel {
 struct DemoRideStarter {
     let routeStore: RouteStore
     let pointer: CurrentRoutePointer
-    let appRouter: AppRouter
+    let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
     let notifier: Notifier
     let locationFixes: [LocationFix]
@@ -55,8 +55,8 @@ struct DemoRideStarter {
     /// force-check control (task-4.4) to reach later.
     @discardableResult
     func startDemoRide(speed: Double) async -> RideSession? {
-        guard appRouter.beginPreparingRide() else { return nil }
-        defer { appRouter.endPreparingRide() }
+        guard rideCoordinator.beginPreparingRide() else { return nil }
+        defer { rideCoordinator.endPreparingRide() }
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
             return nil
         }
@@ -74,7 +74,7 @@ struct DemoRideStarter {
             sensorSource: driver, clock: demoClock, rideStore: rideStore, routeStore: routeStore,
             decisionLog: decisionLog, notifier: notifier, advisorClient: advisorClient)
 
-        appRouter.show(.liveRide(startLiveRideTasks(tracker: tracker, session: session)))
+        rideCoordinator.activate(startLiveRideTasks(tracker: tracker, session: session))
         return session
     }
 }

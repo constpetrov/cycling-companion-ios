@@ -9,14 +9,14 @@ import RoutePersistence
 struct RideStarter {
     let routeStore: RouteStore
     let pointer: CurrentRoutePointer
-    let appRouter: AppRouter
+    let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
     let notifier: Notifier
     var advisorClient: AdvisorClient? = nil
 
     func startRide() async {
-        guard appRouter.beginPreparingRide() else { return }
-        defer { appRouter.endPreparingRide() }
+        guard rideCoordinator.beginPreparingRide() else { return }
+        defer { rideCoordinator.endPreparingRide() }
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
             return
         }
@@ -30,6 +30,6 @@ struct RideStarter {
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
             advisorClient: advisorClient)
 
-        appRouter.show(.liveRide(startLiveRideTasks(tracker: tracker, session: session)))
+        rideCoordinator.activate(startLiveRideTasks(tracker: tracker, session: session))
     }
 }

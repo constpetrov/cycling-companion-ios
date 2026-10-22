@@ -61,20 +61,10 @@ extension AppDelegate: @preconcurrency UNUserNotificationCenterDelegate {
         completionHandler()
     }
 
-    /// AC-18/AC-19: unconditionally shows the live ride screen on any notification tap,
-    /// regardless of which screen is currently showing — the same callback fires for both the
-    /// already-running case and the terminated-then-relaunched case (iOS itself relaunches a
-    /// terminated app and still delivers this). Never downgrades an already-resumed/started
-    /// ride's real tracker back to the placeholder `nil` — if `.liveRide` already carries one,
-    /// there's nothing to change. Pulled out of the delegate callback itself (which never reads
-    /// `response` at all — RULE-10's "no `userInfo` inspection needed") so it's directly
-    /// testable without constructing a real `UNNotificationResponse`, which has no public
-    /// initializer.
-    func handleNotificationTap() {
-        if case .liveRide(.some) = appRouter?.currentScreen {
-            // already showing a real ride — nothing to overwrite.
-        } else {
-            appRouter?.show(.liveRide(nil))
-        }
-    }
+    /// A notification tap needs no navigation of its own: an active ride is always on screen in
+    /// the ride cover, and with no ride the app stays where it is rather than showing a
+    /// placeholder (AC-76 in milestone 7's criteria.md). Routing the tapped stop into its sheet
+    /// arrives with `StopLink` (task-4.6). Kept as a seam, directly testable without a real
+    /// `UNNotificationResponse` (which has no public initializer).
+    func handleNotificationTap() {}
 }

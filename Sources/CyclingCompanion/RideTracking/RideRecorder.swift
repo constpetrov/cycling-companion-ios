@@ -14,13 +14,15 @@ struct RideRecorder {
 
     /// AC-18: persists the completed Ride record — route id, start/end time, total distance,
     /// total moving time, and the full raw track — to the local store.
+    @discardableResult
     func finalize(
         rideId: String, routeId: String, startTime: Date, endTime: Date, totalDistanceMeters: Double,
         totalMovingTimeSeconds: Double, track: [PersistedRideSample]
-    ) async throws {
+    ) async throws -> PersistedRide {
         let ride = PersistedRide(
             id: rideId, routeId: routeId, startTime: startTime, endTime: endTime,
             totalDistanceMeters: totalDistanceMeters, totalMovingTimeSeconds: totalMovingTimeSeconds, track: track)
         try await rideStore.persist(ride)
+        return ride
     }
 }

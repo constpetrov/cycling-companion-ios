@@ -4,13 +4,13 @@ import RoutePersistence
 /// Stops a live ride and finalizes it (RULE-9 in spec/rules.md, AC-16): cancels both of
 /// `LiveRide`'s background `Task`s — which is what actually stops `CoreLocationSource` (see
 /// `LiveRide`'s own doc comment) and `RideSession`'s loop — then writes the final
-/// `PersistedRide` through `RideRecorder` and navigates back to Home.
+/// `PersistedRide` through `RideRecorder` and hands the outcome to `RideCoordinator`.
 @MainActor
 struct RideFinisher {
     private static let log = Log.logger(category: "RideTracking")
 
     let rideRecorder: RideRecorder
-    let appRouter: AppRouter
+    let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
     let rideStore: RideStore
     let rideIngestClient: RideIngestClient
@@ -21,30 +21,32 @@ struct RideFinisher {
     /// feature* without reading the live clock; this is the instant the rider tapped Finish
     /// Ride, which has no track-derived equivalent to fall back to.
     ///
-    /// Navigates Home as soon as the ride is finalized locally, before the upload: the upload
-    /// can take as long as the network allows, and the rider shouldn't be left on a frozen live
-    /// screen meanwhile. A failed finalize leaves the unfinished checkpoint in `RideStore`, so
+    /// Hands the outcome to the coordinator as soon as the ride is finalized locally, before the
+    /// upload: the upload can take as long as the network allows, and the rider shouldn't be left
+    /// on a frozen live screen meanwhile. A failed finalize leaves the unfinished checkpoint in `RideStore`, so
     /// the next launch resumes the ride rather than losing it.
     func finishRide(_ liveRide: LiveRide) async {
-        guard appRouter.beginFinishingRide() else { return }
-        defer { appRouter.endFinishingRide() }
+        guard rideCoordinator.beginFinishingRide() else { return }
+        defer { rideCoordinator.endFinishingRide() }
 
-        liveRide.trackingTask.cancel()
-        liveRide.sessionTask.cancel()
+        rideCoordinator.end(liveRide)
 
         let tracker = liveRide.tracker
         let endTime = Date()
+        let outcome: FinishOutcome
         do {
-            try await rideRecorder.finalize(
+            let saved = try await rideRecorder.finalize(
                 rideId: tracker.rideId, routeId: tracker.routeId, startTime: tracker.startTime, endTime: endTime,
                 totalDistanceMeters: tracker.distanceAlongRouteMeters,
                 totalMovingTimeSeconds: tracker.movingTimeSeconds, track: tracker.track)
+            outcome = .saved(saved)
         } catch {
+            outcome = .notSaved
             Self.log.error(
                 "Finalizing ride \(tracker.rideId, privacy: .public) failed: \(String(describing: error), privacy: .public) — it will resume on next launch")
         }
 
-        appRouter.show(.home)
+        rideCoordinator.presentSummary(outcome)
 
         await uploadRide(tracker: tracker, session: liveRide.session, endTime: endTime)
     }
