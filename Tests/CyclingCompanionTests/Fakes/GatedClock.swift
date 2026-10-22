@@ -17,6 +17,8 @@ actor GatedClock: Clock {
     /// later `sleep(for:)` call would suspend forever with nothing left to wake it.
     private var released = false
 
+    var now: Date { Date() }
+
     func sleep(for seconds: TimeInterval) async throws {
         if released { return }
         try await withTaskCancellationHandler {
