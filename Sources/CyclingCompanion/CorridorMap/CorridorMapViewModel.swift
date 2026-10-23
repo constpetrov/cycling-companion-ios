@@ -36,6 +36,17 @@ final class CorridorMapViewModel {
         route.map { CorridorState(route: $0, isPolling: isPolling) }
     }
 
+    /// Milestone 8 (AC-42 to AC-46).
+    var coverageText: String? {
+        route.flatMap { CoverageMessage.text(for: $0) }
+    }
+
+    var retryInFlight: Bool { coordinator.retryInFlight.contains(routeId) }
+
+    var retryError: CorridorActionError? { coordinator.retryErrors[routeId] }
+
+    var storeRevision: Int { coordinator.storeRevision }
+
     /// AC-108.
     func retry() async {
         let poll = await coordinator.retry(routeId: routeId)

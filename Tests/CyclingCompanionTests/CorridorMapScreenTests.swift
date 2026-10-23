@@ -52,13 +52,12 @@ final class CorridorMapScreenTests: XCTestCase {
         ])
         let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
         let service = CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, transport: transport,
-            clock: SystemClock(), pollIntervalSeconds: 0.01, timeoutSeconds: 0.05)
+            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, transport: transport)
         let coordinator = CorridorImportCoordinator(
             corridorPollingService: service, routeStore: RouteStore(
                 fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")),
             pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!), appRouter: AppRouter(),
-            lazySignIn: LazySignIn(authClient: authClient))
+            lazySignIn: LazySignIn(authClient: authClient), clock: StoppingClock(stopAfterSeconds: 60))
 
         let pollTask = await coordinator.importRoute(sampleRoute())
         if readyImmediately {

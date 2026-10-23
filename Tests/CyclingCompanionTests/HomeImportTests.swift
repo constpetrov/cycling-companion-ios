@@ -9,6 +9,8 @@ private final class FakeImporter: RouteImporting {
     private(set) var imports = 0
     var gate: CheckedContinuation<Void, Never>?
     var holdsUntilReleased = false
+    var retryInFlight: Set<String> = []
+    var retryErrors: [String: CorridorActionError] = [:]
 
     nonisolated init() {}
 

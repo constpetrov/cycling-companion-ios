@@ -75,12 +75,11 @@ final class CorridorImportCoordinatorTests: XCTestCase {
     {
         let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
         let service = CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, transport: transport,
-            clock: SystemClock(), pollIntervalSeconds: 0.01, timeoutSeconds: 0.05)
+            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, transport: transport)
         let lazySignIn = LazySignIn(authClient: authClient)
         return CorridorImportCoordinator(
             corridorPollingService: service, routeStore: routeStore, pointer: pointer, appRouter: appRouter,
-            lazySignIn: lazySignIn)
+            lazySignIn: lazySignIn, clock: StoppingClock(stopAfterSeconds: 60))
     }
 
     // MARK: - Success: immediate persist, pointer, and navigation (AC-6)
@@ -103,8 +102,8 @@ final class CorridorImportCoordinatorTests: XCTestCase {
 
         await coordinator.importRoute(sampleRoute())
 
-        // The "/corridor" stub only ever answers "building" (times out after a few
-        // iterations), so the background poll Task can never reach its second RouteStore
+        // The "/corridor" stub only ever answers "building" (the stopping clock ends
+        // the poll after a minute of simulated time), so the background poll Task can never reach its second RouteStore
         // write regardless of scheduling — these assertions hold no matter how far it's run.
         XCTAssertEqual(pointer.routeId, "route-123")
         XCTAssertEqual(appRouter.path, [.corridorMap(routeId: "route-123")])

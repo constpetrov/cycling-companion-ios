@@ -48,18 +48,17 @@ final class CorridorPollingRegistryTests: XCTestCase {
 
     @MainActor
     private func coordinator(
-        _ backend: ScriptedCorridorBackend, clock: ReplayClock = ReplayClock(), timeoutSeconds: TimeInterval = 600
+        _ backend: ScriptedCorridorBackend, clock: Clock = ReplayClock()
     ) -> (CorridorImportCoordinator, RouteStore, CurrentRoutePointer) {
         let auth = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: backend)
         let service = CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: auth, transport: backend, clock: clock,
-            pollIntervalSeconds: 2, timeoutSeconds: timeoutSeconds)
+            baseURL: URL(string: "https://backend.example.com")!, authClient: auth, transport: backend)
         let store = RouteStore(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         let pointer = CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!)
         let coordinator = CorridorImportCoordinator(
             corridorPollingService: service, routeStore: store, pointer: pointer, appRouter: AppRouter(),
-            lazySignIn: LazySignIn(authClient: auth))
+            lazySignIn: LazySignIn(authClient: auth), clock: clock)
         return (coordinator, store, pointer)
     }
 
@@ -92,24 +91,23 @@ final class CorridorPollingRegistryTests: XCTestCase {
         XCTAssertFalse(CorridorState.finding.offersRetry)
     }
 
-    // MARK: - Timeout (AC-106, AC-107)
+    // MARK: - No time-based give-up (milestone 8: AC-50, RULE-18)
 
     @MainActor
-    func testStillBuildingBeforeTheTimeoutAndFailedAtIt() async throws {
+    func testAStillBuildingRouteIsNeverStoredAsFailed() async throws {
         let backend = ScriptedCorridorBackend()
-        let clock = ReplayClock()
-        let (coordinator, store, _) = coordinator(backend, clock: clock, timeoutSeconds: 600)
+        let clock = StoppingClock(stopAfterSeconds: 30 * 60)
+        let (coordinator, store, _) = coordinator(backend, clock: clock)
         try await Self.storeRoute("r1", status: "building", in: store)
 
         let started = await coordinator.ensurePolling(routeId: "r1")
         let poll = try XCTUnwrap(started)
         await poll.value
 
-        let slept = await clock.sleepCalls.reduce(0, +)
-        XCTAssertEqual(slept, 600, "polled for exactly the 10-minute window")
+        let slept = await clock.totalSlept
+        XCTAssertGreaterThanOrEqual(slept, 30 * 60, "still polling after 30 simulated minutes")
         let route = try await store.fetch(routeId: "r1")
-        XCTAssertEqual(route?.status, "failed")
-        XCTAssertEqual(CorridorState(route: route!, isPolling: false), .failed)
+        XCTAssertEqual(route?.status, "building")
     }
 
     @MainActor

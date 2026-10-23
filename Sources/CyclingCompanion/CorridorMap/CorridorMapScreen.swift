@@ -18,23 +18,10 @@ struct CorridorMapScreen: View {
         VStack(spacing: 12) {
             CorridorMapView(points: viewModel.route?.points ?? [], pois: viewModel.route?.pois ?? [])
             if let state = viewModel.state {
-                HStack {
-                    // Only the status is combined; Retry stays its own element so VoiceOver can
-                    // activate it.
-                    HStack {
-                        if state == .finding {
-                            ProgressView()
-                        }
-                        Text(state.message)
-                            .font(.subheadline)
-                    }
-                    .accessibilityElement(children: .combine)
-                    Spacer()
-                    if state.offersRetry {
-                        Button("Retry") { Task { await viewModel.retry() } }
-                    }
-                }
-                .padding(.horizontal)
+                CorridorStatusRow(
+                    state: state, coverageText: viewModel.coverageText, retryInFlight: viewModel.retryInFlight,
+                    retryError: viewModel.retryError, onRetry: { Task { await viewModel.retry() } })
+                    .padding(.horizontal)
             }
             Button("Start Ride", action: onStartRide)
                 .buttonStyle(.borderedProminent)
@@ -44,6 +31,9 @@ struct CorridorMapScreen: View {
         .navigationTitle("Route")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load() }
+        .onChange(of: viewModel.storeRevision) {
+            Task { await viewModel.reload() }
+        }
         .onChange(of: viewModel.isPolling) { _, polling in
             if !polling { Task { await viewModel.reload() } }
         }
