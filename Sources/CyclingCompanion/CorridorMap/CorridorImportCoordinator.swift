@@ -129,6 +129,8 @@ final class CorridorImportCoordinator {
             while !Task.isCancelled {
                 switch await checkStatus(routeId: routeId) {
                 case .status(let payload) where payload.status != CorridorState.buildingStatus:
+                    // A poll cancelled or replaced while its request was out doesn't save a late answer.
+                    guard !Task.isCancelled, pollTokens[routeId] == token else { return }
                     await apply(payload, to: routeId)
                     return
                 case .notFound:
@@ -188,7 +190,10 @@ final class CorridorImportCoordinator {
             let response = try await corridorPollingService.retry(routeId: routeId)
             await save(routeId: routeId, status: response.status, pois: nil)
         } catch {
-            retryErrors[routeId] = error is URLError ? .noConnection : .server
+            // A Retry cancelled because the screen went away isn't a failure worth showing.
+            if !Task.isCancelled, !(error is CancellationError), (error as? URLError)?.code != .cancelled {
+                retryErrors[routeId] = error is URLError ? .noConnection : .server
+            }
             Self.log.notice("Corridor retry for route \(routeId, privacy: .public) failed: \(String(describing: error), privacy: .public)")
             return nil
         }
@@ -200,7 +205,7 @@ final class CorridorImportCoordinator {
     /// answer changes anything: `ready`/`failed` are saved, `building` starts the poll; offline,
     /// a server error, a sign-in failure or a 404 leave the stored route as it is.
     func refreshCurrentRoute() async {
-        guard let routeId = pointer.routeId, polls[routeId] == nil else { return }
+        guard isActive, let routeId = pointer.routeId, polls[routeId] == nil else { return }
         guard case .status(let payload) = await checkStatus(routeId: routeId) else { return }
         // A poll or Retry may have started for this route while we waited; its answer is newer.
         guard isActive, polls[routeId] == nil, !retryInFlight.contains(routeId) else { return }
@@ -264,11 +269,14 @@ final class CorridorImportCoordinator {
         routeId: String, status: String, pois newPois: [PersistedPoiInput]?, coverageRegion: String? = nil,
         outsideMeters: Double? = nil
     ) async {
-        guard let route = try? await routeStore.fetch(routeId: routeId) else { return }
-        try? await routeStore.persist(
-            routeId: routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
-            totalClimbingMeters: route.totalClimbingMeters, points: route.points, pois: newPois ?? route.pois,
-            status: status, coverageRegion: coverageRegion, outsideMeters: outsideMeters)
+        // One actor call, so another write to this route can't land between a read and this write.
+        do {
+            try await routeStore.update(
+                routeId: routeId, status: status, pois: newPois, coverageRegion: coverageRegion,
+                outsideMeters: outsideMeters)
+        } catch {
+            Self.log.error("Saving route \(routeId, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+        }
         storeRevision += 1
     }
 

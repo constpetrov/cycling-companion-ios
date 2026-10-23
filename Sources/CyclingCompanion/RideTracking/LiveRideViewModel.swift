@@ -220,12 +220,31 @@ final class LiveRideViewModel {
         tracker.latestFix.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
     }
 
-    var routeCoordinates: [CLLocationCoordinate2D] {
-        route?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
-    }
+    /// Built once when the route loads, not on every map redraw.
+    private(set) var routeCoordinates: [CLLocationCoordinate2D] = []
 
+    /// Every stop of the route (used for notification taps and the sheet).
     var stops: [PersistedPoiInput] {
         route?.pois ?? []
+    }
+
+    /// What the map draws: the 2 nearest stops of each type ahead of the rider, plus the suggested
+    /// stop (milestone 8 review). Recomputed only when the rider has moved on by
+    /// `visibleStopsStepMeters`, has passed a shown stop, or the suggestion changes — not every second.
+    private(set) var visibleStops: [PersistedPoiInput] = []
+    private var visibleStopsProgress = -Double.infinity
+    private var visibleStopsHighlight: Int64?
+    static let visibleStopsStepMeters: Double = 100
+
+    func updateVisibleStops(force: Bool = false) {
+        let progress = tracker.distanceAlongRouteMeters
+        let passedAShownStop = visibleStops.contains { $0.kmMarkMeters < progress && $0.osmId != highlightedStopId }
+        guard force || passedAShownStop || highlightedStopId != visibleStopsHighlight
+            || progress - visibleStopsProgress >= Self.visibleStopsStepMeters
+        else { return }
+        visibleStops = MapStopSelection.nearestAhead(stops, from: progress, alwaysInclude: highlightedStopId)
+        visibleStopsProgress = progress
+        visibleStopsHighlight = highlightedStopId
     }
 
     /// AC-132: a stop as VoiceOver reads it — name and how far ahead (or behind).
@@ -239,6 +258,8 @@ final class LiveRideViewModel {
     func loadRoute(from routeStore: RouteStore) async {
         guard route == nil else { return }
         route = try? await routeStore.fetch(routeId: tracker.routeId)
+        routeCoordinates = route?.points.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } ?? []
+        updateVisibleStops(force: true)
     }
 
     /// AC-18: the rider moved the map themselves.
@@ -279,6 +300,7 @@ final class LiveRideViewModel {
         }
         // The session advances the ledger as the rider passes a stop; pick that up here.
         await refreshLedger()
+        updateVisibleStops()
         guard let lastFixAt = tracker.lastFixAt else {
             isGPSLost = true
             return

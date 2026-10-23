@@ -18,7 +18,7 @@ struct LiveRideMapView: View {
                 MapPolyline(coordinates: viewModel.routeCoordinates)
                     .stroke(.blue, lineWidth: 4)
             }
-            ForEach(viewModel.stops, id: \.osmId) { stop in
+            ForEach(viewModel.visibleStops, id: \.osmId) { stop in
                 Marker(
                     stop.name ?? LiveRideViewModel.typeLabel(stop.type),
                     coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude))
@@ -38,7 +38,7 @@ struct LiveRideMapView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Route map")
         .accessibilityChildren {
-            ForEach(viewModel.stops, id: \.osmId) { stop in
+            ForEach(viewModel.visibleStops, id: \.osmId) { stop in
                 Text(viewModel.stopAccessibilityLabel(stop))
                     .accessibilityIdentifier("mapStop")
             }

@@ -122,10 +122,18 @@ public struct PersistedPoiInput: Codable, Sendable {
 /// persist/fetch calls can't interleave reads and writes of the same file.
 public actor RouteStore {
     private let fileURL: URL
+    /// The decoded file, kept after the first read (milestone 8 review): with complete stop data a
+    /// route can carry thousands of stops (about 1.2 MB for a dense city route), and the ride reads
+    /// its route every advisor cycle. Safe because each process has one `RouteStore` per file and
+    /// every write goes through it.
+    private var cache: [String: PersistedRoute]?
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
     }
+
+    /// The backing file, so tests can open a second store on it and check what reached disk.
+    public nonisolated var fileURLForTests: URL { fileURL }
 
     /// The real app's default store location, under Application Support.
     public static func defaultFileURL() throws -> URL {
@@ -149,8 +157,30 @@ public actor RouteStore {
             displayName: displayName ?? stored?.displayName,
             coverageRegion: coverageRegion ?? stored?.coverageRegion,
             outsideMeters: outsideMeters ?? stored?.outsideMeters)
+        try write(routesById)
+    }
+
+    /// Changes one stored route's status — and its stops and coverage when given — in a single
+    /// actor turn, so a concurrent write to the same route can't be lost between a read and a
+    /// write (milestone 8 review). Does nothing if the route isn't stored.
+    public func update(
+        routeId: String, status: String, pois: [PersistedPoiInput]? = nil, coverageRegion: String? = nil,
+        outsideMeters: Double? = nil
+    ) throws {
+        var routesById = try loadAll()
+        guard let route = routesById[routeId] else { return }
+        routesById[routeId] = PersistedRoute(
+            id: routeId, hash: route.hash, totalDistanceMeters: route.totalDistanceMeters,
+            totalClimbingMeters: route.totalClimbingMeters, status: status, points: route.points,
+            pois: pois ?? route.pois, displayName: route.displayName,
+            coverageRegion: coverageRegion ?? route.coverageRegion, outsideMeters: outsideMeters ?? route.outsideMeters)
+        try write(routesById)
+    }
+
+    private func write(_ routesById: [String: PersistedRoute]) throws {
         let data = try JSONEncoder().encode(routesById)
         try data.write(to: fileURL, options: .atomic)
+        cache = routesById
     }
 
     public func fetch(routeId: String) throws -> PersistedRoute? {
@@ -162,10 +192,13 @@ public actor RouteStore {
     }
 
     private func loadAll() throws -> [String: PersistedRoute] {
+        if let cache { return cache }
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             return [:]
         }
         let data = try Data(contentsOf: fileURL)
-        return try JSONDecoder().decode([String: PersistedRoute].self, from: data)
+        let routes = try JSONDecoder().decode([String: PersistedRoute].self, from: data)
+        cache = routes
+        return routes
     }
 }

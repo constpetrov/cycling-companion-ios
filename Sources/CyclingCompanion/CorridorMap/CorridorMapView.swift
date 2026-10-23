@@ -22,7 +22,8 @@ struct CorridorMapView: View {
         self.routeCoordinates = points.map {
             CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
         }
-        self.pins = pois.map {
+        // Before the ride: the 2 nearest stops of each type from the start (milestone 8 review).
+        self.pins = MapStopSelection.nearestAhead(pois, from: 0).map {
             CorridorMapPin(
                 id: $0.osmId, name: $0.name, type: $0.type,
                 coordinate: CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude),
@@ -55,7 +56,9 @@ struct CorridorMapView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Route map")
         .accessibilityChildren {
-            ForEach(stopAccessibilityLabels, id: \.self) { Text($0).accessibilityIdentifier("mapStop") }
+            ForEach(Array(stopAccessibilityLabels.enumerated()), id: \.offset) {
+                Text($0.element).accessibilityIdentifier("mapStop")
+            }
         }
     }
 }

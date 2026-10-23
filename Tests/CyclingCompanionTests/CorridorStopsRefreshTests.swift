@@ -189,10 +189,36 @@ final class CorridorStopsRefreshTests: XCTestCase {
 
         coordinator.pauseAllPolls()
         await poll?.value
+        let callsAtPause = await backend.corridorCalls
+        await gate.release()  // even if the clock lets sleeps through, a paused app asks nothing more
+        await coordinator.refreshCurrentRoute()
+        await coordinator.resumePollingForBuildingRoutes()
 
         XCTAssertFalse(coordinator.isPolling(routeId: "r"))
+        let callsAfter = await backend.corridorCalls
+        XCTAssertEqual(callsAfter, callsAtPause, "no request while paused")
+        XCTAssertLessThanOrEqual(callsAtPause, 1)
         let route = try await store.fetch(routeId: "r")
         XCTAssertEqual(route?.status, "building")
+    }
+
+    /// AC-47 to AC-50: however long the problems last, a route is never stored as failed.
+    @MainActor
+    func testOnlyTransientProblemsNeverStoreFailed() async throws {
+        let backend = ScriptedBackend(corridor: [
+            .fail(.notConnectedToInternet), .fail(.timedOut), .http(503, ""), .http(408, ""), .http(429, ""),
+            .http(200, #"{"rideId":"x"}"#),
+        ])
+        let (coordinator, store, _) = make(backend, clock: StoppingClock(stopAfterSeconds: 20 * 60))
+        try await Self.seed("r", status: "building", pois: [Self.oldStop], in: store)
+
+        await coordinator.ensurePolling(routeId: "r")?.value
+
+        let calls = await backend.corridorCalls
+        XCTAssertGreaterThan(calls, 6, "kept asking through every kind of problem")
+        let route = try await store.fetch(routeId: "r")
+        XCTAssertEqual(route?.status, "building")
+        XCTAssertEqual(route?.pois.map(\.osmId), [1])
     }
 
     @MainActor
@@ -379,5 +405,23 @@ final class CorridorStopsRefreshTests: XCTestCase {
         XCTAssertEqual(route?.displayName, "Old")
         XCTAssertNil(route?.coverageRegion)
         XCTAssertNil(route?.outsideMeters)
+    }
+
+    func testUpdateChangesStatusStopsAndCoverageInOneStepAndKeepsTheRest() async throws {
+        let store = RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
+        try await Self.seed("r", status: "building", pois: [Self.oldStop], in: store)
+
+        try await store.update(routeId: "r", status: "ready", coverageRegion: "Netherlands", outsideMeters: 10)
+        try await store.update(routeId: "missing", status: "ready")
+
+        let route = try await store.fetch(routeId: "r")
+        XCTAssertEqual(route?.status, "ready")
+        XCTAssertEqual(route?.pois.map(\.osmId), [1], "stops kept when none are given")
+        XCTAssertEqual(route?.displayName, "Loop")
+        XCTAssertEqual(route?.outsideMeters, 10)
+        let all = try await store.fetchAll()
+        XCTAssertEqual(all.count, 1, "an unknown route isn't created")
+        let reread = try await RouteStore(fileURL: store.fileURLForTests).fetch(routeId: "r")
+        XCTAssertEqual(reread?.status, "ready", "written to disk, not only the cache")
     }
 }

@@ -14,6 +14,7 @@
 		076094899B63B963B8116606 /* RideLoopSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCFDE8A450A981A73424465 /* RideLoopSmokeTests.swift */; };
 		082A2ACFD56B5B87614C9D2E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3E90750A92DFCB77548D0C /* AppDelegate.swift */; };
 		0B0D87938CEF695390FEE9E5 /* SensorSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */; };
+		0BF3CF526F32EB4389985DAB /* MapStopSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335D46D502D129D7EE449E80 /* MapStopSelection.swift */; };
 		0D899AD4F7F972CF82968366 /* HoldToConfirmButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A5E0D633439013FE445B8F /* HoldToConfirmButton.swift */; };
 		0F23C009677B556EAC02F5C2 /* LiveRideViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB92AEA5F1486E5AA65653B5 /* LiveRideViewModelTests.swift */; };
 		145A60907A6529DB4B6F647F /* RideFinisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9797E4C259E02E6414A8240A /* RideFinisher.swift */; };
@@ -34,6 +35,7 @@
 		28BD773A41F531DEEEF41448 /* FakeNotificationScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1FA165D4F4FA4CA0F07583 /* FakeNotificationScheduling.swift */; };
 		2A252CD64E4C9FCEAD590E72 /* AdvisorClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F73C336BB66E87351EEBD6D /* AdvisorClient.swift */; };
 		2BAA4F498D48B43CC147ED3C /* CorridorImportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0378A426E9092B748C387F9 /* CorridorImportCoordinator.swift */; };
+		2E8CE9F16C39BA7E355B2C66 /* MapStopSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FEEC2A333546DF2268417F /* MapStopSelectionTests.swift */; };
 		3336C7A56AD63E0A3A37879A /* RideRecorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45665B1BF4F1EDBBD1B81E52 /* RideRecorderTests.swift */; };
 		33BA0D409164CB5AF026DD51 /* BackendConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AC249BE204A937B6E0301EE /* BackendConfigurationTests.swift */; };
 		33FC6CB41DC71802E797E2B4 /* DemoFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750874F3FF8CCE60CE37917F /* DemoFixture.swift */; };
@@ -230,6 +232,7 @@
 		2F61F5D51396778D9C6FADA3 /* PermissionStatusProviding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionStatusProviding.swift; sourceTree = "<group>"; };
 		314588114936F8FB1A90543E /* RideUploader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideUploader.swift; sourceTree = "<group>"; };
 		32A612A2D5C1A437EAE300EF /* RideTrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerTests.swift; sourceTree = "<group>"; };
+		335D46D502D129D7EE449E80 /* MapStopSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapStopSelection.swift; sourceTree = "<group>"; };
 		354DF3EC3FF6B3D1939FE197 /* RideTrackerCheckpointingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerCheckpointingTests.swift; sourceTree = "<group>"; };
 		370F4B9D9BE47A8DF5BBED3D /* RideProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideProgressView.swift; sourceTree = "<group>"; };
 		3724F00CDC6BCD4101B6847A /* RouteImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteImporterTests.swift; sourceTree = "<group>"; };
@@ -321,6 +324,7 @@
 		AFBAA4F0D14EFEFAF713F4FC /* StoppingClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoppingClock.swift; sourceTree = "<group>"; };
 		B3B20A2F7E8A635AF1CC4F85 /* CoverageMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverageMessage.swift; sourceTree = "<group>"; };
 		B408DF240A051E683A2D87CC /* GatedClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatedClock.swift; sourceTree = "<group>"; };
+		B4FEEC2A333546DF2268417F /* MapStopSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapStopSelectionTests.swift; sourceTree = "<group>"; };
 		B81D7F9F4933773427941D7C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B93C35A18A4C67B37D4A53DF /* RideSummaryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSummaryViewModel.swift; sourceTree = "<group>"; };
 		BC0030EA6B1CCB72DEFA53EC /* CorridorPollingRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorPollingRegistryTests.swift; sourceTree = "<group>"; };
@@ -557,6 +561,7 @@
 				FAE624D1E90215CE42C3D10B /* CorridorState.swift */,
 				13D600E5219D34163ECE1154 /* CorridorStatusRow.swift */,
 				B3B20A2F7E8A635AF1CC4F85 /* CoverageMessage.swift */,
+				335D46D502D129D7EE449E80 /* MapStopSelection.swift */,
 				DABA4ABC9D4FF68D9CB92A7A /* PollBackoff.swift */,
 				1BF3B6B5B6A50418FEAB9B42 /* RouteAPIPayloads.swift */,
 			);
@@ -604,6 +609,7 @@
 				F66098AD0937AE1CE1EB6B82 /* LocalAdvisorTests.swift */,
 				449B68D27D68AB48CC8A1251 /* LocalTriggerTests.swift */,
 				5409D239CA1A15FD28611FCF /* LocationSourceTests.swift */,
+				B4FEEC2A333546DF2268417F /* MapStopSelectionTests.swift */,
 				DD2B28EE20780FB25674A4AF /* NormalizedOpeningHoursPayloadTests.swift */,
 				A9A18133D236192433808BDC /* NotifierTests.swift */,
 				A6B48982B6D4007BE4D819AA /* OrphanedRideTests.swift */,
@@ -955,6 +961,7 @@
 				21D0FD55341ADB92934504BB /* LocalAdvisorTests.swift in Sources */,
 				D42957A529A740F76A10BC04 /* LocalTriggerTests.swift in Sources */,
 				F6173D50EFA2AB6A5B8E77E0 /* LocationSourceTests.swift in Sources */,
+				2E8CE9F16C39BA7E355B2C66 /* MapStopSelectionTests.swift in Sources */,
 				C13A5649FE7FDC7A9508E3C0 /* NormalizedOpeningHoursPayloadTests.swift in Sources */,
 				52F2A0A59473CA40DF1266BE /* NotifierTests.swift in Sources */,
 				BE174C80C25DC488B6041B15 /* OrphanedRideTests.swift in Sources */,
@@ -1046,6 +1053,7 @@
 				89F678BBFC6822AFACCB9DBF /* LocalTrigger.swift in Sources */,
 				51E421657DEA413D6DB86130 /* LocationSource.swift in Sources */,
 				1ED49D4F4904D7271E0E28E0 /* Log.swift in Sources */,
+				0BF3CF526F32EB4389985DAB /* MapStopSelection.swift in Sources */,
 				58BC0DAAC6CEEB9A124F45A0 /* NotificationScheduling.swift in Sources */,
 				B02D1AC1E915F36E872051E9 /* Notifier.swift in Sources */,
 				3E5692939A100932A9BA848E /* POILookahead.swift in Sources */,

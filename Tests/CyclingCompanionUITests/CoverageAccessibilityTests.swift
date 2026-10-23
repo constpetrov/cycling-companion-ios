@@ -72,7 +72,11 @@ final class CoverageAccessibilityTests: XCTestCase {
                 print("Accessibility warning on \(screen): \(issue.compactDescription) — pre-existing, no element")
                 return true
             }
-            if issue.auditType == .contrast, issue.compactDescription.localizedCaseInsensitiveContains("nearly") {
+            // "Nearly passed" contrast on Apple's own button styles is logged, not failed — but never
+            // on the coverage message, which is what this test is about.
+            if issue.auditType == .contrast, issue.compactDescription.localizedCaseInsensitiveContains("nearly"),
+                issue.element?.identifier != "coverageMessage"
+            {
                 print("Accessibility warning on \(screen): \(issue.compactDescription) — \(issue.element?.label ?? "?")")
                 return true
             }
