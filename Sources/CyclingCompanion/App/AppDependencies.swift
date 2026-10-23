@@ -28,6 +28,7 @@ final class AppDependencies {
     let rideUploader: RideUploader
     let homeViewModel: HomeViewModel
     let keepScreenOnPreference: KeepScreenOnPreference
+    let stopTypeSettings: StopTypeSettings
     let idleTimer: IdleTimerControlling
     let directions: DirectionsOpening
     let rideStartFlow: RideStartFlow
@@ -36,6 +37,7 @@ final class AppDependencies {
         baseURL: URL, demoAccessToken: String?, routeStore: RouteStore, rideStore: RideStore,
         pendingUploadsFileURL: URL, pointer: CurrentRoutePointer, notificationScheduling: NotificationScheduling,
         keepScreenOnPreference: KeepScreenOnPreference, idleTimer: IdleTimerControlling,
+        stopTypeSettings: StopTypeSettings,
         directions: DirectionsOpening = NoDirections(), permissions: PermissionStatusProviding = GrantedPermissions(),
         transport: HTTPTransport = URLSession.shared
     ) {
@@ -68,7 +70,7 @@ final class AppDependencies {
         self.corridorImportCoordinator = corridorImportCoordinator
         let rideStarter = RideStarter(
             routeStore: routeStore, rideStore: rideStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
-            notifier: notifier, advisorClient: advisorClient)
+            notifier: notifier, advisorClient: advisorClient, stopTypeFilter: stopTypeSettings.filter)
         self.rideStarter = rideStarter
         self.rideIngestClient = rideIngestClient
         self.pendingUploadQueue = pendingUploadQueue
@@ -80,6 +82,7 @@ final class AppDependencies {
         self.homeViewModel = HomeViewModel(
             routeStore: routeStore, pointer: pointer, importer: corridorImportCoordinator, rideStore: rideStore)
         self.keepScreenOnPreference = keepScreenOnPreference
+        self.stopTypeSettings = stopTypeSettings
         self.idleTimer = idleTimer
         self.directions = directions
         self.rideStartFlow = RideStartFlow(
@@ -102,6 +105,7 @@ final class AppDependencies {
             pendingUploadsFileURL: pendingUploadsFileURL, pointer: CurrentRoutePointer(),
             notificationScheduling: UNUserNotificationCenter.current(),
             keepScreenOnPreference: UserDefaultsKeepScreenOnPreference(), idleTimer: ApplicationIdleTimer(),
+            stopTypeSettings: StopTypeSettings(),
             directions: AppleMapsDirections(), permissions: SystemPermissions())
     }
 
@@ -109,7 +113,7 @@ final class AppDependencies {
         let homeViewModel = homeViewModel
         return RideResumer(
             rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
-            notifier: notifier, advisorClient: advisorClient,
+            notifier: notifier, advisorClient: advisorClient, stopTypeFilter: stopTypeSettings.filter,
             onOrphanedRide: { homeViewModel.reportOrphanedRide(id: $0) })
     }
 
@@ -125,7 +129,7 @@ final class AppDependencies {
         let starter = DemoRideStarter(
             routeStore: routeStore, rideStore: rideStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: notifier, locationFixes: fixture.locationFixes, sensorSamples: fixture.sensorSamples,
-            advisorClient: advisorClient)
+            advisorClient: advisorClient, stopTypeFilter: stopTypeSettings.filter)
         return await starter.startDemoRide(speed: speed)
         #else
         return nil
@@ -158,7 +162,7 @@ extension AppDependencies {
             pendingUploadsFileURL: directory.appendingPathComponent("pending_ride_uploads.json"),
             pointer: CurrentRoutePointer(defaults: defaults), notificationScheduling: PreviewNotificationScheduling(),
             keepScreenOnPreference: InMemoryKeepScreenOnPreference(), idleTimer: NoIdleTimer(),
-            transport: OfflineTransport())
+            stopTypeSettings: StopTypeSettings(defaults: defaults), transport: OfflineTransport())
     }
 }
 

@@ -19,6 +19,7 @@ actor RideSession {
     private let decisionLog: DecisionLog
     private let notifier: Notifier
     private let advisorClient: AdvisorClient?
+    private let stopTypeFilter: StopTypeFilter
 
     private let routeId: String
     private let routeStore: RouteStore
@@ -40,7 +41,8 @@ actor RideSession {
     init(
         rideTracker: RideTracker, featureEngine: FeatureEngine, clock: Clock, routeId: String, routeStore: RouteStore,
         decisionLog: DecisionLog, notifier: Notifier, snapshotIntervalSeconds: TimeInterval = 60.0,
-        pollGranularitySeconds: TimeInterval = 1.0, advisorClient: AdvisorClient? = nil
+        pollGranularitySeconds: TimeInterval = 1.0, advisorClient: AdvisorClient? = nil,
+        stopTypeFilter: StopTypeFilter = .allEnabled
     ) {
         self.rideTracker = rideTracker
         self.featureEngine = featureEngine
@@ -52,6 +54,7 @@ actor RideSession {
         self.snapshotIntervalSeconds = snapshotIntervalSeconds
         self.pollGranularitySeconds = pollGranularitySeconds
         self.advisorClient = advisorClient
+        self.stopTypeFilter = stopTypeFilter
         (approvedSuggestions, approvedSuggestionsContinuation) = AsyncStream.makeStream(
             of: ApprovedSuggestion.self, bufferingPolicy: .bufferingNewest(1))
     }
@@ -153,8 +156,9 @@ actor RideSession {
         // AC-64/AC-65: a stop the rider declined this ride is never a candidate again, so neither
         // the trigger, the advisor nor the Guardrail Gate (which rejects non-candidates) can pick it.
         let declined = ledger.declinedStopIds
+        // Stop types turned off in Settings are never candidates, so they can't be suggested.
         let candidates = POILookahead.candidates(
-            pois: pois, currentKmMarkMeters: currentKmMarkMeters, etaDayOfWeek: etaDayOfWeek,
+            pois: stopTypeFilter.apply(pois), currentKmMarkMeters: currentKmMarkMeters, etaDayOfWeek: etaDayOfWeek,
             etaMinuteOfDay: etaMinuteOfDay
         ).filter { !declined.contains($0.osmId) }
         let hasQualifyingStopAhead = !candidates.isEmpty

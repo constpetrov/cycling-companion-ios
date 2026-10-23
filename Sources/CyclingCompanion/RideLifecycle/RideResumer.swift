@@ -15,6 +15,8 @@ struct RideResumer {
     let decisionLog: DecisionLog
     let notifier: Notifier
     var advisorClient: AdvisorClient? = nil
+    /// The stop types the rider turned off in Settings are never suggested.
+    var stopTypeFilter: StopTypeFilter = .allEnabled
     /// Told about an unfinished ride whose route no longer exists (RULE-27 in milestone 7's rules.md).
     var onOrphanedRide: (@MainActor (String) -> Void)? = nil
 
@@ -36,7 +38,7 @@ struct RideResumer {
             rideId: checkpoint.id, routeId: checkpoint.routeId, startTime: checkpoint.startTime, route: route,
             locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
-            advisorClient: advisorClient)
+            advisorClient: advisorClient, stopTypeFilter: stopTypeFilter)
         try? await tracker.resumeIfNeeded(from: rideStore)
         if let suggestionState = checkpoint.suggestionState {
             await session.restoreLedger(SuggestionLedger(persisted: suggestionState))

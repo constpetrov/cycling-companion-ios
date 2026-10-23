@@ -50,8 +50,9 @@ final class LiveRideViewModel {
         tracker: RideTracker, clock: Clock? = nil, locale: Locale = .current, timeZone: TimeZone = .current,
         keepScreenOnPreference: KeepScreenOnPreference = InMemoryKeepScreenOnPreference(),
         idleTimer: IdleTimerControlling = NoIdleTimer(), session: RideSession? = nil,
-        directions: DirectionsOpening = NoDirections()
+        directions: DirectionsOpening = NoDirections(), stopTypeFilter: StopTypeFilter = .allEnabled
     ) {
+        self.stopTypeFilter = stopTypeFilter
         self.tracker = tracker
         self.clock = clock ?? tracker.clock
         self.locale = locale
@@ -234,6 +235,8 @@ final class LiveRideViewModel {
     private(set) var visibleStops: [PersistedPoiInput] = []
     private var visibleStopsProgress = -Double.infinity
     private var visibleStopsHighlight: Int64?
+    /// Stop types turned off in Settings aren't drawn (the suggested stop always is).
+    private let stopTypeFilter: StopTypeFilter
     static let visibleStopsStepMeters: Double = 100
 
     func updateVisibleStops(force: Bool = false) {
@@ -242,7 +245,8 @@ final class LiveRideViewModel {
         guard force || passedAShownStop || highlightedStopId != visibleStopsHighlight
             || progress - visibleStopsProgress >= Self.visibleStopsStepMeters
         else { return }
-        visibleStops = MapStopSelection.nearestAhead(stops, from: progress, alwaysInclude: highlightedStopId)
+        visibleStops = MapStopSelection.nearestAhead(
+            stopTypeFilter.apply(stops), from: progress, alwaysInclude: highlightedStopId)
         visibleStopsProgress = progress
         visibleStopsHighlight = highlightedStopId
     }

@@ -4,6 +4,7 @@ import Foundation
 /// carry ids only, never live objects.
 enum HomeRoute: Hashable {
     case corridorMap(routeId: String)
+    case settings
     #if DEBUG
     case demo
     #endif
