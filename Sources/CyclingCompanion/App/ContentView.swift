@@ -23,7 +23,7 @@ struct ContentView: View {
                         viewModel: LiveRideViewModel(
                             tracker: liveRide.tracker, keepScreenOnPreference: dependencies.keepScreenOnPreference,
                             idleTimer: dependencies.idleTimer, session: liveRide.session,
-                            directions: dependencies.directions),
+                            directions: dependencies.directions, stopTypeFilter: dependencies.stopTypeSettings.filter),
                         onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } },
                         forceCheck: Self.forceCheck(liveRide))
                 case .summary(let outcome):
@@ -74,7 +74,10 @@ struct ContentView: View {
         case .corridorMap(let routeId):
             CorridorMapScreen(
                 viewModel: CorridorMapViewModel(routeId: routeId, coordinator: dependencies.corridorImportCoordinator),
+                hiddenStopTypes: dependencies.stopTypeSettings.disabledTypes,
                 onStartRide: { Task { await dependencies.rideStartFlow.requestStart() } })
+        case .settings:
+            SettingsView()
         #if DEBUG
         case .demo:
             DemoModeScreen(onStart: dependencies.startDemoRide(speed:))

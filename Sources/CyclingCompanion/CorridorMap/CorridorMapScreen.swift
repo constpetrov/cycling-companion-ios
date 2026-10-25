@@ -6,9 +6,12 @@ import SwiftUI
 struct CorridorMapScreen: View {
     @State private var viewModel: CorridorMapViewModel
     let onStartRide: () -> Void
+    /// Stop types turned off in Settings; not drawn.
+    let hiddenStopTypes: Set<String>
 
-    init(viewModel: CorridorMapViewModel, onStartRide: @escaping () -> Void) {
+    init(viewModel: CorridorMapViewModel, hiddenStopTypes: Set<String> = [], onStartRide: @escaping () -> Void) {
         _viewModel = State(initialValue: viewModel)
+        self.hiddenStopTypes = hiddenStopTypes
         self.onStartRide = onStartRide
     }
 
@@ -16,7 +19,9 @@ struct CorridorMapScreen: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            CorridorMapView(points: viewModel.route?.points ?? [], pois: viewModel.route?.pois ?? [])
+            CorridorMapView(
+                points: viewModel.route?.points ?? [],
+                pois: StopTypeFilter.removing(hiddenStopTypes, from: viewModel.route?.pois ?? []))
             if let state = viewModel.state {
                 CorridorStatusRow(
                     state: state, coverageText: viewModel.coverageText, retryInFlight: viewModel.retryInFlight,

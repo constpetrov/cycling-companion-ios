@@ -14,6 +14,8 @@ struct RideStarter {
     let decisionLog: DecisionLog
     let notifier: Notifier
     var advisorClient: AdvisorClient? = nil
+    /// The stop types the rider turned off in Settings are never suggested.
+    var stopTypeFilter: StopTypeFilter = .allEnabled
 
     func startRide() async {
         guard rideCoordinator.beginPreparingRide() else { return }
@@ -25,7 +27,7 @@ struct RideStarter {
             rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route,
             locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
-            advisorClient: advisorClient)
+            advisorClient: advisorClient, stopTypeFilter: stopTypeFilter)
 
         rideCoordinator.activate(startLiveRideTasks(tracker: tracker, session: session))
     }

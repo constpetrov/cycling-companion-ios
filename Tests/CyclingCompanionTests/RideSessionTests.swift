@@ -70,7 +70,8 @@ final class RideSessionTests: XCTestCase {
     @MainActor
     private func makeSession(
         clock: Clock, tracker: RideTracker? = nil, routeStore: RouteStore? = nil, notifier: Notifier? = nil,
-        snapshotIntervalSeconds: TimeInterval = 60, decisionLog: DecisionLog? = nil, advisorClient: AdvisorClient? = nil
+        snapshotIntervalSeconds: TimeInterval = 60, decisionLog: DecisionLog? = nil, advisorClient: AdvisorClient? = nil,
+        stopTypeFilter: StopTypeFilter = .allEnabled
     ) async -> RideSession {
         let tracker = tracker ?? freshRideTracker(route: flatRoute())
         let engine = FeatureEngine(rideTracker: tracker, route: flatRoute(), clock: clock)
@@ -84,7 +85,7 @@ final class RideSessionTests: XCTestCase {
         return RideSession(
             rideTracker: tracker, featureEngine: engine, clock: clock, routeId: Self.routeId, routeStore: store,
             decisionLog: decisionLog ?? DecisionLog(), notifier: notifier, snapshotIntervalSeconds: snapshotIntervalSeconds,
-            pollGranularitySeconds: 1.0, advisorClient: advisorClient)
+            pollGranularitySeconds: 1.0, advisorClient: advisorClient, stopTypeFilter: stopTypeFilter)
     }
 
     /// Builds a real `AdvisorClient` backed by `StubAdvisorTransport` — matching this project's
@@ -293,6 +294,22 @@ final class RideSessionTests: XCTestCase {
 
         let decisionCalls = await transport.decisionCallCount
         XCTAssertEqual(decisionCalls, 0, "the remote Advisor must never be called when there are no candidates")
+    }
+
+    @MainActor
+    func testAStopOfATypeTurnedOffInSettingsIsNeverACandidate() async throws {
+        let tracker = await trackerPastTheQuietWindow()
+        let store = await routeStore(pois: [candidate()])
+        let (client, transport) = advisorClient(decisionBody: #"{"suggest":false}"#.data(using: .utf8)!)
+        let session = await makeSession(
+            clock: ReplayClock(), tracker: tracker, routeStore: store, advisorClient: client,
+            stopTypeFilter: StopTypeFilter { ["CAFE_BAKERY_RESTAURANT"] })
+
+        await session.forceNextCheck()
+        try await session.step()
+
+        let decisionCalls = await transport.decisionCallCount
+        XCTAssertEqual(decisionCalls, 0, "the only stop is a café and cafés are off, so there is nothing to ask about")
     }
 
     @MainActor

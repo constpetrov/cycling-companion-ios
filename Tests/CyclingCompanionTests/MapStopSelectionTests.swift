@@ -42,7 +42,9 @@ final class MapStopSelectionTests: XCTestCase {
     // MARK: - Live map
 
     @MainActor
-    func testTheLiveMapShowsTheNearestStopsAheadOfTheRider() async throws {
+    private func liveRideViewModel(stopTypeFilter: StopTypeFilter = .allEnabled) async throws
+        -> (LiveRideViewModel, RouteStore)
+    {
         let routeStore = RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         try await routeStore.persist(
             routeId: "route-1", hash: "h", totalDistanceMeters: 685, totalClimbingMeters: nil,
@@ -66,12 +68,27 @@ final class MapStopSelectionTests: XCTestCase {
             sensorSource: ReplaySensorSource(samples: []), clock: clock,
             rideStore: RideStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
         await tracker.start()  // rider at about 342 m
-        let viewModel = LiveRideViewModel(tracker: tracker, clock: clock)
+        return (LiveRideViewModel(tracker: tracker, clock: clock, stopTypeFilter: stopTypeFilter), routeStore)
+    }
+
+    @MainActor
+    func testTheLiveMapShowsTheNearestStopsAheadOfTheRider() async throws {
+        let (viewModel, routeStore) = try await liveRideViewModel()
 
         await viewModel.loadRoute(from: routeStore)
 
         XCTAssertEqual(viewModel.visibleStops.map(\.osmId), [3, 5, 4], "the café behind and the third café ahead aren't drawn")
         XCTAssertEqual(viewModel.stops.count, 5, "every stop is still known")
         XCTAssertEqual(viewModel.routeCoordinates.count, 2)
+    }
+
+    @MainActor
+    func testTheLiveMapLeavesOutStopTypesTurnedOffInSettings() async throws {
+        let (viewModel, routeStore) = try await liveRideViewModel(stopTypeFilter: StopTypeFilter { ["WATER"] })
+
+        await viewModel.loadRoute(from: routeStore)
+
+        XCTAssertEqual(viewModel.visibleStops.map(\.osmId), [3, 4], "the water tap isn't drawn")
+        XCTAssertEqual(viewModel.stops.count, 5, "it is still known, e.g. for a notification tap")
     }
 }

@@ -37,6 +37,7 @@ enum UITestFixtures {
             pendingUploadsFileURL: directory.appendingPathComponent("pending_ride_uploads.json"),
             pointer: CurrentRoutePointer(defaults: defaults), notificationScheduling: PreviewNotificationScheduling(),
             keepScreenOnPreference: InMemoryKeepScreenOnPreference(), idleTimer: NoIdleTimer(),
+            stopTypeSettings: StopTypeSettings(defaults: defaults),
             permissions: ProcessInfo.processInfo.arguments.contains(missingPermissionsArgument)
                 ? PartialPermissions() : GrantedPermissions(),
             transport: StubBackendTransport())

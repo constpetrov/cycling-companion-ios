@@ -251,6 +251,11 @@ struct HomeView: View {
                     .accessibilityLabel("Dismiss")
                 }
             }
+            // In the body, not the toolbar: an icon-only bar button doesn't scale with Dynamic Type.
+            NavigationLink(value: HomeRoute.settings) {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .accessibilityIdentifier("settingsButton")
             #if DEBUG
             NavigationLink("Demo Mode", value: HomeRoute.demo)
             #endif

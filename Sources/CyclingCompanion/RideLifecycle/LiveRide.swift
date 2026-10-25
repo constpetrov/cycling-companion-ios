@@ -25,7 +25,8 @@ struct LiveRide {
 func makeTrackerAndSession(
     rideId: String, routeId: String, startTime: Date, route: PersistedRoute, locationSource: LocationSource,
     sensorSource: SensorSource, clock: Clock, rideStore: RideStore, routeStore: RouteStore,
-    decisionLog: DecisionLog, notifier: Notifier, advisorClient: AdvisorClient? = nil
+    decisionLog: DecisionLog, notifier: Notifier, advisorClient: AdvisorClient? = nil,
+    stopTypeFilter: StopTypeFilter = .allEnabled
 ) async -> (tracker: RideTracker, session: RideSession) {
     let resampledPoints = route.points.map {
         ResampledPoint(
@@ -40,7 +41,7 @@ func makeTrackerAndSession(
     let engine = FeatureEngine(rideTracker: tracker, route: resampledPoints, clock: clock, baselines: baselines)
     let session = RideSession(
         rideTracker: tracker, featureEngine: engine, clock: clock, routeId: routeId, routeStore: routeStore,
-        decisionLog: decisionLog, notifier: notifier, advisorClient: advisorClient)
+        decisionLog: decisionLog, notifier: notifier, advisorClient: advisorClient, stopTypeFilter: stopTypeFilter)
     // Weak: the session holds the tracker, so a strong capture would keep every finished ride alive.
     tracker.suggestionStateProvider = { [weak session] in await session?.suggestionLedger().persisted }
     return (tracker, session)
