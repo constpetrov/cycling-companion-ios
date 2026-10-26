@@ -36,6 +36,31 @@ final class SuggestionUploadTests: XCTestCase {
         XCTAssertEqual(Set(first.keys), ["stopId", "suggestedAt", "response", "respondedAt"])
     }
 
+    /// Milestone 9 AC-111: a remote suggestion's answer is uploaded with its trace id.
+    func testAResponseIsUploadedWithItsTraceId() throws {
+        let response = SuggestionResponsePayload(
+            SuggestionResponse(
+                suggestionId: "a", stopId: 1001, suggestedAt: t0, answer: .declined, respondedAt: t0 + 30,
+                traceId: "0f8a3c1e-2b4d-4e6f-8a9b-1c2d3e4f5a6b"))
+
+        let json = try encoded(payload(responses: [response]))
+
+        let first = try XCTUnwrap((json["suggestionResponses"] as? [[String: Any]])?.first)
+        XCTAssertEqual(first["traceId"] as? String, "0f8a3c1e-2b4d-4e6f-8a9b-1c2d3e4f5a6b")
+    }
+
+    /// Milestone 9 AC-112: without a trace id the key is left out and the response still goes.
+    func testAResponseWithoutATraceIdOmitsTheKey() throws {
+        let response = SuggestionResponsePayload(
+            SuggestionResponse(suggestionId: "a", stopId: 1001, suggestedAt: t0, answer: .none, respondedAt: nil))
+
+        let json = try encoded(payload(responses: [response]))
+
+        let first = try XCTUnwrap((json["suggestionResponses"] as? [[String: Any]])?.first)
+        XCTAssertNil(first["traceId"])
+        XCTAssertEqual(first["stopId"] as? Int, 1001)
+    }
+
     func testANoAnswerResponseHasNoResponseTime() throws {
         let response = SuggestionResponsePayload(
             SuggestionResponse(suggestionId: "a", stopId: 1001, suggestedAt: t0, answer: .none, respondedAt: nil))

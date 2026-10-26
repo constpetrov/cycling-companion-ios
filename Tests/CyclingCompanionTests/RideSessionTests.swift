@@ -7,13 +7,16 @@ import XCTest
 /// advisor-decision response. Tracks call counts per path so tests can assert whether the
 /// remote Advisor was ever attempted.
 private actor StubAdvisorTransport: HTTPTransport {
-    private let decisionStatusCode: Int
-    private let decisionBody: Data
+    /// One response per decision call, in order; the last one repeats.
+    private let decisions: [(statusCode: Int, body: Data)]
     private(set) var decisionCallCount = 0
 
     init(decisionStatusCode: Int = 200, decisionBody: Data) {
-        self.decisionStatusCode = decisionStatusCode
-        self.decisionBody = decisionBody
+        self.init(decisions: [(decisionStatusCode, decisionBody)])
+    }
+
+    init(decisions: [(statusCode: Int, body: Data)]) {
+        self.decisions = decisions
     }
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
@@ -24,10 +27,11 @@ private actor StubAdvisorTransport: HTTPTransport {
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return (body, response)
         }
+        let decision = decisions[min(decisionCallCount, decisions.count - 1)]
         decisionCallCount += 1
         let response = HTTPURLResponse(
-            url: request.url!, statusCode: decisionStatusCode, httpVersion: nil, headerFields: nil)!
-        return (decisionBody, response)
+            url: request.url!, statusCode: decision.statusCode, httpVersion: nil, headerFields: nil)!
+        return (decision.body, response)
     }
 }
 
@@ -95,7 +99,11 @@ final class RideSessionTests: XCTestCase {
     private func advisorClient(
         decisionStatusCode: Int = 200, decisionBody: Data
     ) -> (client: AdvisorClient, transport: StubAdvisorTransport) {
-        let transport = StubAdvisorTransport(decisionStatusCode: decisionStatusCode, decisionBody: decisionBody)
+        advisorClient(transport: StubAdvisorTransport(decisionStatusCode: decisionStatusCode, decisionBody: decisionBody))
+    }
+
+    @MainActor
+    private func advisorClient(transport: StubAdvisorTransport) -> (client: AdvisorClient, transport: StubAdvisorTransport) {
         let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
         let lazySignIn = LazySignIn(authClient: authClient)
         let client = AdvisorClient(
@@ -422,6 +430,83 @@ final class RideSessionTests: XCTestCase {
         XCTAssertEqual(logged.first?.stopId, "999", "the logged decision must still be the remote one, not a fallback")
         let posted = await scheduling.addedRequests
         XCTAssertTrue(posted.isEmpty, "an invented stop must never reach the rider as a notification")
+    }
+
+    // MARK: - Trace ids (milestone 9 task-3.3, RULE-32, AC-75, AC-76, review hotspot 2)
+
+    private static let remoteTraceId = "0f8a3c1e-2b4d-4e6f-8a9b-1c2d3e4f5a6b"
+
+    @MainActor
+    private func ledgerAfterOneCycle(decisionStatusCode: Int = 200, decisionBody: String, candidates: [PersistedPoiInput])
+        async throws -> SuggestionLedger
+    {
+        let tracker = await trackerPastTheQuietWindow()
+        let store = await routeStore(pois: candidates)
+        let (client, _) = advisorClient(decisionStatusCode: decisionStatusCode, decisionBody: Data(decisionBody.utf8))
+        let session = await makeSession(clock: ReplayClock(), tracker: tracker, routeStore: store, advisorClient: client)
+        await session.forceNextCheck()
+        try await session.step()
+        return await session.suggestionLedger()
+    }
+
+    /// AC-75.
+    @MainActor
+    func testARemoteSuggestionKeepsItsTraceId() async throws {
+        let ledger = try await ledgerAfterOneCycle(
+            decisionBody: #"{"suggest":true,"stopId":"1","urgency":"low","reason":"r","message":"Coffee?","traceId":"\#(Self.remoteTraceId)"}"#,
+            candidates: [candidate(osmId: 1)])
+
+        XCTAssertEqual(ledger.current?.traceId, Self.remoteTraceId)
+        XCTAssertEqual(ledger.finalResponses.first?.traceId, Self.remoteTraceId)
+    }
+
+    /// RULE-32, review hotspot 2: a traced remote decision the Guardrail Gate rejects suggests nothing,
+    /// and its trace id does not reach the LocalAdvisor suggestion of the next cycle.
+    @MainActor
+    func testATraceIdFromARejectedRemoteDecisionDoesNotReachALaterLocalSuggestion() async throws {
+        let tracker = await trackerPastTheQuietWindow()
+        let store = await routeStore(pois: [candidate(osmId: 1)])
+        let transport = StubAdvisorTransport(decisions: [
+            (200, Data(#"{"suggest":true,"stopId":"999","urgency":"low","reason":"r","message":"m","traceId":"\#(Self.remoteTraceId)"}"#.utf8)),
+            (502, Data(#"{"status":502}"#.utf8)),
+        ])
+        let (client, _) = advisorClient(transport: transport)
+        let session = await makeSession(clock: ReplayClock(), tracker: tracker, routeStore: store, advisorClient: client)
+
+        await session.forceNextCheck()
+        try await session.step()
+        let afterRejection = await session.suggestionLedger()
+        XCTAssertTrue(afterRejection.suggestions.isEmpty, "the gate rejects the invented stop")
+
+        await session.forceNextCheck()
+        try await session.step()
+        let ledger = await session.suggestionLedger()
+        let suggestion = try XCTUnwrap(ledger.current, "LocalAdvisor suggests the real candidate")
+        XCTAssertNil(suggestion.traceId)
+        XCTAssertNil(ledger.finalResponses.first?.traceId)
+    }
+
+    /// AC-76: the backend answered 502 (its trace exists, but the app never sees an id); LocalAdvisor's
+    /// suggestion carries none.
+    @MainActor
+    func testAFallbackSuggestionAfterARemoteFailureHasNoTraceId() async throws {
+        let ledger = try await ledgerAfterOneCycle(
+            decisionStatusCode: 502, decisionBody: #"{"status":502}"#, candidates: [candidate(osmId: 1)])
+
+        let suggestion = try XCTUnwrap(ledger.current, "LocalAdvisor still suggests the candidate")
+        XCTAssertNil(suggestion.traceId)
+        XCTAssertNil(ledger.finalResponses.first?.traceId)
+    }
+
+    /// A backend from before milestone 9 sends no traceId; the remote suggestion simply has none.
+    @MainActor
+    func testARemoteSuggestionFromAnOlderBackendHasNoTraceId() async throws {
+        let ledger = try await ledgerAfterOneCycle(
+            decisionBody: #"{"suggest":true,"stopId":"1","urgency":"low","reason":"r","message":"Coffee?"}"#,
+            candidates: [candidate(osmId: 1)])
+
+        XCTAssertNotNil(ledger.current)
+        XCTAssertNil(ledger.current?.traceId)
     }
 
     // MARK: - Suggestion ledger and stream (task-4.3, RULE-15/RULE-16, AC-45, AC-46, AC-64, AC-65)

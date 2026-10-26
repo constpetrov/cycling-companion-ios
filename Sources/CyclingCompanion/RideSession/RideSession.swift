@@ -209,7 +209,10 @@ actor RideSession {
                 let suggestion = ApprovedSuggestion(
                     id: UUID().uuidString, stopId: stop.osmId, name: stop.name, type: stop.type,
                     latitude: stop.latitude, longitude: stop.longitude, kmMarkMeters: stop.kmMarkMeters,
-                    detourMeters: stop.detourMeters, message: verdict.message, suggestedAt: now)
+                    detourMeters: stop.detourMeters, message: verdict.message, suggestedAt: now,
+                    // Milestone 9 (RULE-32): the gate approves a decision unchanged, so this is the remote
+                    // decision's trace id; a LocalAdvisor decision has none.
+                    traceId: verdict.traceId)
                 ledger.approve(suggestion)
                 approvedSuggestionsContinuation.yield(suggestion)
             }

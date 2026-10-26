@@ -52,7 +52,8 @@ public struct PersistedRide: Codable, Sendable {
     }
 }
 
-/// A stop suggestion as saved with its ride.
+/// A stop suggestion as saved with its ride. `traceId` (milestone 9) is optional, so checkpoints
+/// saved by earlier builds still decode.
 public struct PersistedSuggestion: Codable, Sendable, Equatable {
     public let id: String
     public let stopId: Int64
@@ -64,10 +65,11 @@ public struct PersistedSuggestion: Codable, Sendable, Equatable {
     public let detourMeters: Double
     public let message: String?
     public let suggestedAt: Date
+    public let traceId: String?
 
     public init(
         id: String, stopId: Int64, name: String?, type: String, latitude: Double, longitude: Double,
-        kmMarkMeters: Double, detourMeters: Double, message: String?, suggestedAt: Date
+        kmMarkMeters: Double, detourMeters: Double, message: String?, suggestedAt: Date, traceId: String? = nil
     ) {
         self.id = id
         self.stopId = stopId
@@ -79,6 +81,7 @@ public struct PersistedSuggestion: Codable, Sendable, Equatable {
         self.detourMeters = detourMeters
         self.message = message
         self.suggestedAt = suggestedAt
+        self.traceId = traceId
     }
 }
 

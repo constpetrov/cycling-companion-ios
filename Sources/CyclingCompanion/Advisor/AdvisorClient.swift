@@ -58,6 +58,8 @@ struct AdvisorDecisionResponsePayload: Decodable {
     let urgency: String?
     let reason: String?
     let message: String?
+    /// Milestone 9: absent from backends before it.
+    let traceId: String?
 }
 
 /// Calls the backend's real Advisor endpoint (RULE-2/RULE-13/RULE-14/RULE-19 in
@@ -134,7 +136,7 @@ actor AdvisorClient {
         let decoded = try decoder.decode(AdvisorDecisionResponsePayload.self, from: data)
         return AdvisorDecision(
             suggest: decoded.suggest, stopId: decoded.stopId, urgency: decoded.urgency, reason: decoded.reason,
-            message: decoded.message)
+            message: decoded.message, traceId: decoded.traceId)
     }
 }
 

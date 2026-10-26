@@ -13,21 +13,35 @@ struct RideIngestRequestPayload: Codable {
     /// Optional, so queued uploads written before it existed still decode, and omitted from the
     /// JSON when absent.
     var suggestionResponses: [SuggestionResponsePayload]? = nil
+    /// Milestone 9 (RULE-19): the local ride id the advisor calls were made with, so the backend can
+    /// link this ride to its traces. Filled in at send time when missing, so uploads queued before it
+    /// existed get it too.
+    var clientRideId: String? = nil
+
+    /// This payload linked to the ride with local id `rideId`; a ride id it already carries is kept.
+    func linked(toRide rideId: String) -> RideIngestRequestPayload {
+        var linked = self
+        linked.clientRideId = clientRideId ?? rideId
+        return linked
+    }
 }
 
 /// One suggestion answer as uploaded: stop id only — no coordinates (AC-68) — and the uppercase
-/// answer, matching `outcome`'s wire form.
+/// answer, matching `outcome`'s wire form. `traceId` (milestone 9) links it to the advisor trace
+/// of a remote suggestion; it is left out of the JSON when the suggestion has none.
 struct SuggestionResponsePayload: Codable, Equatable {
     let stopId: Int64
     let suggestedAt: Date
     let response: String
     let respondedAt: Date?
+    let traceId: String?
 
     init(_ response: SuggestionResponse) {
         self.stopId = response.stopId
         self.suggestedAt = response.suggestedAt
         self.response = response.answer.rawValue
         self.respondedAt = response.respondedAt
+        self.traceId = response.traceId
     }
 }
 
@@ -54,8 +68,11 @@ actor RideIngestClient {
         self.transport = transport
     }
 
+    /// Sends `payload` linked to `rideId`, the local id of the ride it describes (RULE-19). `nil` only
+    /// for an old queued upload whose ride can't be told; it then goes unlinked.
     @discardableResult
-    func ingest(_ payload: RideIngestRequestPayload) async -> Bool {
+    func ingest(_ payload: RideIngestRequestPayload, rideId: String?) async -> Bool {
+        let payload = rideId.map(payload.linked(toRide:)) ?? payload
         do {
             try await lazySignIn.ensureSignedIn()
 
