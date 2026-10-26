@@ -25,6 +25,7 @@ final class RideUploader {
     }
 
     func upload(_ payload: RideIngestRequestPayload, rideId: String) async {
+        let payload = payload.linked(toRide: rideId)
         current = (rideId, payload)
         status = .uploading
         if await ingestClient.ingest(payload) {
@@ -39,7 +40,7 @@ final class RideUploader {
     func retryNow() async {
         guard status == .queued, let current else { return }
         status = .uploading
-        if await ingestClient.ingest(current.payload) {
+        if await ingestClient.ingest(current.payload.linked(toRide: current.rideId)) {
             try? await queue.remove(id: current.rideId)
             status = .saved
         } else {

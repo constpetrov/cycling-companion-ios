@@ -13,21 +13,34 @@ struct RideIngestRequestPayload: Codable {
     /// Optional, so queued uploads written before it existed still decode, and omitted from the
     /// JSON when absent.
     var suggestionResponses: [SuggestionResponsePayload]? = nil
+    /// Milestone 9 (RULE-19): the local ride id the advisor calls were made with, so the backend can
+    /// link this ride to its traces. Set at send time, so uploads queued before it existed get it too.
+    var clientRideId: String? = nil
+
+    /// This payload as sent for the ride with local id `rideId`.
+    func linked(toRide rideId: String) -> RideIngestRequestPayload {
+        var linked = self
+        linked.clientRideId = rideId
+        return linked
+    }
 }
 
 /// One suggestion answer as uploaded: stop id only — no coordinates (AC-68) — and the uppercase
-/// answer, matching `outcome`'s wire form.
+/// answer, matching `outcome`'s wire form. `traceId` (milestone 9) links it to the advisor trace
+/// of a remote suggestion; it is left out of the JSON when the suggestion has none.
 struct SuggestionResponsePayload: Codable, Equatable {
     let stopId: Int64
     let suggestedAt: Date
     let response: String
     let respondedAt: Date?
+    let traceId: String?
 
     init(_ response: SuggestionResponse) {
         self.stopId = response.stopId
         self.suggestedAt = response.suggestedAt
         self.response = response.answer.rawValue
         self.respondedAt = response.respondedAt
+        self.traceId = response.traceId
     }
 }
 

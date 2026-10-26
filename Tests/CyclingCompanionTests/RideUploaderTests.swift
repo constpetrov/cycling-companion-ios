@@ -29,6 +29,35 @@ private actor SwitchableIngestTransport: HTTPTransport {
     }
 }
 
+/// Records every ride ingest body it is sent; ingest succeeds or fails on demand.
+private actor RecordingIngestTransport: HTTPTransport {
+    var ingestSucceeds: Bool
+    /// The `clientRideId` of each ingest request, in order (`nil` where absent).
+    private(set) var sentClientRideIds: [String?] = []
+
+    init(ingestSucceeds: Bool) {
+        self.ingestSucceeds = ingestSucceeds
+    }
+
+    func setIngestSucceeds(_ value: Bool) {
+        ingestSucceeds = value
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        let path = request.url!.path
+        let status: Int
+        let body: String
+        if path.hasSuffix("sign-in") {
+            (status, body) = (200, #"{"token":"t","riderId":"11111111-1111-1111-1111-111111111111"}"#)
+        } else {
+            let json = try JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any]
+            sentClientRideIds.append(json?["clientRideId"] as? String)
+            (status, body) = ingestSucceeds ? (200, #"{"rideId":"22222222-2222-2222-2222-222222222222"}"#) : (503, "")
+        }
+        return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+    }
+}
+
 /// task-3.2 (RULE-22): AC-79 to AC-83.
 final class RideUploaderTests: XCTestCase {
 
@@ -132,6 +161,37 @@ final class RideUploaderTests: XCTestCase {
         let calls = await transport.ingestCalls
         XCTAssertEqual(calls, callsAfterUpload)
         XCTAssertEqual(uploader.status, .saved)
+    }
+
+    // MARK: - Milestone 9 task-3.4 (RULE-19): AC-68, AC-69
+
+    /// AC-68.
+    @MainActor
+    func testAnUploadSendsTheLocalRideIdAsTheClientRideId() async {
+        let transport = RecordingIngestTransport(ingestSucceeds: true)
+        let (uploader, _) = uploader(transport)
+
+        await uploader.upload(payload(), rideId: "local-ride-7")
+
+        let sent = await transport.sentClientRideIds
+        XCTAssertEqual(sent, ["local-ride-7"])
+    }
+
+    /// AC-69: Retry now sends it again, and the queued copy carries it too.
+    @MainActor
+    func testRetryNowSendsTheClientRideIdAndTheQueuedCopyKeepsIt() async throws {
+        let transport = RecordingIngestTransport(ingestSucceeds: false)
+        let (uploader, queue) = uploader(transport)
+        await uploader.upload(payload(), rideId: "local-ride-8")
+        await transport.setIngestSucceeds(true)
+
+        await uploader.retryNow()
+
+        let sent = await transport.sentClientRideIds
+        XCTAssertEqual(sent, ["local-ride-8", "local-ride-8"])
+        XCTAssertEqual(uploader.status, .saved)
+        let queued = try await queue.fetchAllOldestFirst()
+        XCTAssertTrue(queued.isEmpty)
     }
 }
 

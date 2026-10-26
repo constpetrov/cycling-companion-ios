@@ -127,4 +127,45 @@ final class PendingRideUploadRetrierTests: XCTestCase {
         let calls = await transport.ridesCallCount
         XCTAssertEqual(calls, PendingRideUploadRetrier.maxUploadsPerLaunch)
     }
+
+    private actor RecordingTransport: HTTPTransport {
+        /// The `clientRideId` of each ingest request, in order (`nil` where absent).
+        private(set) var sentClientRideIds: [String?] = []
+
+        func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+            let body: Data
+            if request.url!.path.hasSuffix("sign-in") {
+                body = Data(#"{"token":"stub-jwt","riderId":"11111111-1111-1111-1111-111111111111"}"#.utf8)
+            } else {
+                let json = try JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any]
+                sentClientRideIds.append(json?["clientRideId"] as? String)
+                body = Data(#"{"rideId":"22222222-2222-2222-2222-222222222222"}"#.utf8)
+            }
+            return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+    }
+
+    /// Milestone 9 AC-69 (RULE-19): an upload queued by a build without clientRideId is sent with the
+    /// queue's ride id.
+    @MainActor
+    func testAnUploadQueuedByAnOlderBuildIsSentWithItsRideId() async throws {
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        let legacyQueue = #"""
+            [{"id":"local-ride-old","enqueuedAt":0,
+              "payload":{"routeId":"route-1","startTime":0,"endTime":3600,"totalDistanceMeters":20000,
+                         "totalMovingTimeSeconds":3600,"stopsTaken":0,"outcome":"TYPICAL","featureSnapshots":[]}}]
+            """#
+        try Data(legacyQueue.utf8).write(to: fileURL)
+        let queue = PendingRideUploadQueue(fileURL: fileURL)
+        let transport = RecordingTransport()
+        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
+        let ingestClient = RideIngestClient(
+            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient,
+            lazySignIn: LazySignIn(authClient: authClient), transport: transport)
+
+        await PendingRideUploadRetrier(pendingUploadQueue: queue, rideIngestClient: ingestClient).retryPendingUploads()
+
+        let sent = await transport.sentClientRideIds
+        XCTAssertEqual(sent, ["local-ride-old"])
+    }
 }

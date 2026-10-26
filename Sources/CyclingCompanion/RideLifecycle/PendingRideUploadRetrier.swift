@@ -16,7 +16,9 @@ struct PendingRideUploadRetrier {
         }
         var succeeded = 0
         for upload in pending.prefix(Self.maxUploadsPerLaunch) {
-            if await rideIngestClient.ingest(upload.payload) {
+            // Milestone 9 (RULE-19): the queue is keyed by the local ride id, so even an upload queued
+            // before clientRideId existed is sent linked to its ride.
+            if await rideIngestClient.ingest(upload.payload.linked(toRide: upload.id)) {
                 try? await pendingUploadQueue.remove(id: upload.id)
                 succeeded += 1
             }
