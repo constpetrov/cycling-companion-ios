@@ -424,6 +424,67 @@ final class RideSessionTests: XCTestCase {
         XCTAssertTrue(posted.isEmpty, "an invented stop must never reach the rider as a notification")
     }
 
+    // MARK: - Trace ids (milestone 9 task-3.3, RULE-32, AC-75, AC-76, review hotspot 2)
+
+    private static let remoteTraceId = "0f8a3c1e-2b4d-4e6f-8a9b-1c2d3e4f5a6b"
+
+    @MainActor
+    private func ledgerAfterOneCycle(decisionStatusCode: Int = 200, decisionBody: String, candidates: [PersistedPoiInput])
+        async throws -> SuggestionLedger
+    {
+        let tracker = await trackerPastTheQuietWindow()
+        let store = await routeStore(pois: candidates)
+        let (client, _) = advisorClient(decisionStatusCode: decisionStatusCode, decisionBody: Data(decisionBody.utf8))
+        let session = await makeSession(clock: ReplayClock(), tracker: tracker, routeStore: store, advisorClient: client)
+        await session.forceNextCheck()
+        try await session.step()
+        return await session.suggestionLedger()
+    }
+
+    /// AC-75.
+    @MainActor
+    func testARemoteSuggestionKeepsItsTraceId() async throws {
+        let ledger = try await ledgerAfterOneCycle(
+            decisionBody: #"{"suggest":true,"stopId":"1","urgency":"low","reason":"r","message":"Coffee?","traceId":"\#(Self.remoteTraceId)"}"#,
+            candidates: [candidate(osmId: 1)])
+
+        XCTAssertEqual(ledger.current?.traceId, Self.remoteTraceId)
+        XCTAssertEqual(ledger.finalResponses.first?.traceId, Self.remoteTraceId)
+    }
+
+    /// RULE-32: a remote decision the Guardrail Gate rejects makes no suggestion, so no trace id lands anywhere.
+    @MainActor
+    func testARemoteDecisionRejectedByTheGateLeavesNoTracedSuggestion() async throws {
+        let ledger = try await ledgerAfterOneCycle(
+            decisionBody: #"{"suggest":true,"stopId":"999","urgency":"low","reason":"r","message":"m","traceId":"\#(Self.remoteTraceId)"}"#,
+            candidates: [candidate(osmId: 1)])
+
+        XCTAssertTrue(ledger.suggestions.isEmpty)
+    }
+
+    /// AC-76: the backend answered 502 (its trace exists, but the app never sees an id); LocalAdvisor's
+    /// suggestion carries none.
+    @MainActor
+    func testAFallbackSuggestionAfterARemoteFailureHasNoTraceId() async throws {
+        let ledger = try await ledgerAfterOneCycle(
+            decisionStatusCode: 502, decisionBody: #"{"status":502}"#, candidates: [candidate(osmId: 1)])
+
+        let suggestion = try XCTUnwrap(ledger.current, "LocalAdvisor still suggests the candidate")
+        XCTAssertNil(suggestion.traceId)
+        XCTAssertNil(ledger.finalResponses.first?.traceId)
+    }
+
+    /// A backend from before milestone 9 sends no traceId; the remote suggestion simply has none.
+    @MainActor
+    func testARemoteSuggestionFromAnOlderBackendHasNoTraceId() async throws {
+        let ledger = try await ledgerAfterOneCycle(
+            decisionBody: #"{"suggest":true,"stopId":"1","urgency":"low","reason":"r","message":"Coffee?"}"#,
+            candidates: [candidate(osmId: 1)])
+
+        XCTAssertNotNil(ledger.current)
+        XCTAssertNil(ledger.current?.traceId)
+    }
+
     // MARK: - Suggestion ledger and stream (task-4.3, RULE-15/RULE-16, AC-45, AC-46, AC-64, AC-65)
 
     @MainActor

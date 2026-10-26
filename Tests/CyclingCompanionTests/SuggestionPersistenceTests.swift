@@ -54,6 +54,56 @@ final class SuggestionPersistenceTests: XCTestCase {
         XCTAssertTrue(ledger.answers.isEmpty)
     }
 
+    // MARK: - Trace ids (milestone 9 task-3.3, AC-77)
+
+    /// AC-77, first case: a suggestion's trace id, and its answer's, survive the checkpoint.
+    func testTraceIdsSurviveTheCheckpointRoundTrip() throws {
+        var ledger = SuggestionLedger()
+        var traced = suggestion("a", stop: 1)
+        traced.traceId = "trace-a"
+        ledger.approve(traced)
+        ledger.respond(.accepted, to: "a", at: t0 + 10)
+        ledger.approve(suggestion("b", stop: 2))
+
+        let ride = PersistedRide(
+            id: "ride-1", routeId: "route-1", startTime: t0, endTime: nil, totalDistanceMeters: 0,
+            totalMovingTimeSeconds: 0, track: [], suggestionState: ledger.persisted)
+        let decoded = try JSONDecoder().decode(PersistedRide.self, from: JSONEncoder().encode(ride))
+        let restored = SuggestionLedger(persisted: try XCTUnwrap(decoded.suggestionState))
+
+        XCTAssertEqual(restored, ledger)
+        XCTAssertEqual(restored.suggestions.map(\.traceId), ["trace-a", nil])
+        XCTAssertEqual(restored.response(to: "a")?.traceId, "trace-a")
+    }
+
+    /// AC-77, second case: a checkpoint from a build before milestone 9 has suggestions without trace ids.
+    func testASuggestionCheckpointedByAnOlderBuildRestoresWithoutATraceId() throws {
+        let legacy = #"""
+            {"id":"ride-1","routeId":"route-1","startTime":0,"totalDistanceMeters":100,"totalMovingTimeSeconds":20,"track":[],
+             "suggestionState":{"currentSuggestionId":"a","declinedStopIds":[],
+               "suggestions":[{"id":"a","stopId":1,"name":"Stop 1","type":"CAFE","latitude":52,"longitude":13,
+                               "kmMarkMeters":5000,"detourMeters":100,"message":"Coffee?","suggestedAt":1000}],
+               "answers":[{"suggestionId":"a","stopId":1,"suggestedAt":1000,"answer":"ACCEPTED","respondedAt":1010}]}}
+            """#
+        let ride = try JSONDecoder().decode(PersistedRide.self, from: Data(legacy.utf8))
+        let ledger = SuggestionLedger(persisted: try XCTUnwrap(ride.suggestionState))
+
+        XCTAssertEqual(ledger.current?.id, "a")
+        XCTAssertNil(ledger.current?.traceId)
+        XCTAssertEqual(ledger.response(to: "a")?.answer, .accepted)
+        XCTAssertNil(ledger.response(to: "a")?.traceId)
+    }
+
+    /// A nil trace id is left out of the checkpoint JSON rather than written as null.
+    func testANilTraceIdIsOmittedFromTheCheckpoint() throws {
+        var ledger = SuggestionLedger()
+        ledger.approve(suggestion("a", stop: 1))
+
+        let json = String(decoding: try JSONEncoder().encode(ledger.persisted), as: UTF8.self)
+
+        XCTAssertFalse(json.contains("traceId"))
+    }
+
     @MainActor
     private func trackerAndSession(rideStore: RideStore, fixes: [LocationFix] = []) async -> (RideTracker, RideSession) {
         let routeStore = RouteStore(

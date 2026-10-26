@@ -52,7 +52,8 @@ public struct PersistedRide: Codable, Sendable {
     }
 }
 
-/// A stop suggestion as saved with its ride.
+/// A stop suggestion as saved with its ride. `traceId` (milestone 9) is optional, so checkpoints
+/// saved by earlier builds still decode.
 public struct PersistedSuggestion: Codable, Sendable, Equatable {
     public let id: String
     public let stopId: Int64
@@ -64,10 +65,11 @@ public struct PersistedSuggestion: Codable, Sendable, Equatable {
     public let detourMeters: Double
     public let message: String?
     public let suggestedAt: Date
+    public let traceId: String?
 
     public init(
         id: String, stopId: Int64, name: String?, type: String, latitude: Double, longitude: Double,
-        kmMarkMeters: Double, detourMeters: Double, message: String?, suggestedAt: Date
+        kmMarkMeters: Double, detourMeters: Double, message: String?, suggestedAt: Date, traceId: String? = nil
     ) {
         self.id = id
         self.stopId = stopId
@@ -79,24 +81,30 @@ public struct PersistedSuggestion: Codable, Sendable, Equatable {
         self.detourMeters = detourMeters
         self.message = message
         self.suggestedAt = suggestedAt
+        self.traceId = traceId
     }
 }
 
 /// The rider's answer to a suggestion as saved with its ride. `answer` is the wire value
-/// (`ACCEPTED`, `DECLINED` or `NONE`).
+/// (`ACCEPTED`, `DECLINED` or `NONE`). `traceId` (milestone 9) is optional, like the suggestion's.
 public struct PersistedSuggestionAnswer: Codable, Sendable, Equatable {
     public let suggestionId: String
     public let stopId: Int64
     public let suggestedAt: Date
     public let answer: String
     public let respondedAt: Date?
+    public let traceId: String?
 
-    public init(suggestionId: String, stopId: Int64, suggestedAt: Date, answer: String, respondedAt: Date?) {
+    public init(
+        suggestionId: String, stopId: Int64, suggestedAt: Date, answer: String, respondedAt: Date?,
+        traceId: String? = nil
+    ) {
         self.suggestionId = suggestionId
         self.stopId = stopId
         self.suggestedAt = suggestedAt
         self.answer = answer
         self.respondedAt = respondedAt
+        self.traceId = traceId
     }
 }
 
