@@ -33,7 +33,8 @@ struct SuggestionResponse: Sendable, Equatable, Codable {
     let answer: SuggestionAnswer
     /// When the rider answered; `nil` for `.none`.
     let respondedAt: Date?
-    /// The suggestion's trace id, uploaded with the answer (milestone 9).
+    /// The suggestion's trace id, uploaded with the answer (milestone 9). Always copied from the
+    /// suggestion, and not saved with the answer: a restored answer takes it from its suggestion.
     var traceId: String? = nil
 }
 
@@ -147,7 +148,7 @@ extension SuggestionLedger {
             answers: answers.values.sorted { $0.suggestedAt < $1.suggestedAt }.map {
                 PersistedSuggestionAnswer(
                     suggestionId: $0.suggestionId, stopId: $0.stopId, suggestedAt: $0.suggestedAt,
-                    answer: $0.answer.rawValue, respondedAt: $0.respondedAt, traceId: $0.traceId)
+                    answer: $0.answer.rawValue, respondedAt: $0.respondedAt)
             },
             declinedStopIds: declinedStopIds.sorted())
     }
@@ -162,9 +163,10 @@ extension SuggestionLedger {
         }
         for answer in state.answers {
             guard let kind = SuggestionAnswer(rawValue: answer.answer) else { continue }
+            let traceId = suggestions.first { $0.id == answer.suggestionId }?.traceId
             answers[answer.suggestionId] = SuggestionResponse(
                 suggestionId: answer.suggestionId, stopId: answer.stopId, suggestedAt: answer.suggestedAt,
-                answer: kind, respondedAt: answer.respondedAt, traceId: answer.traceId)
+                answer: kind, respondedAt: answer.respondedAt, traceId: traceId)
         }
         declinedStopIds = Set(state.declinedStopIds)
         current = state.currentSuggestionId.flatMap { id in suggestions.first { $0.id == id } }

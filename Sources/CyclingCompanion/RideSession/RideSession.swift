@@ -206,13 +206,13 @@ actor RideSession {
         if verdict.suggest {
             lastApprovedSuggestionTimestamp = now
             if let stopId = verdict.stopId, let stop = candidates.first(where: { String($0.osmId) == stopId }) {
-                // Milestone 9 (RULE-32): link the suggestion to the backend trace only when it is the
-                // remote decision's own stop; a LocalAdvisor fallback never carries a trace id.
-                let traceId = remoteDecision.flatMap { $0.stopId == stopId ? $0.traceId : nil }
                 let suggestion = ApprovedSuggestion(
                     id: UUID().uuidString, stopId: stop.osmId, name: stop.name, type: stop.type,
                     latitude: stop.latitude, longitude: stop.longitude, kmMarkMeters: stop.kmMarkMeters,
-                    detourMeters: stop.detourMeters, message: verdict.message, suggestedAt: now, traceId: traceId)
+                    detourMeters: stop.detourMeters, message: verdict.message, suggestedAt: now,
+                    // Milestone 9 (RULE-32): the gate approves a decision unchanged, so this is the remote
+                    // decision's trace id; a LocalAdvisor decision has none.
+                    traceId: verdict.traceId)
                 ledger.approve(suggestion)
                 approvedSuggestionsContinuation.yield(suggestion)
             }

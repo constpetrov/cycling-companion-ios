@@ -2,40 +2,16 @@ import XCTest
 
 @testable import CyclingCompanion
 
-/// Fails or succeeds ride ingest on demand; sign-in always succeeds.
-private actor SwitchableIngestTransport: HTTPTransport {
-    var ingestSucceeds: Bool
-    private(set) var ingestCalls = 0
-
-    init(ingestSucceeds: Bool) {
-        self.ingestSucceeds = ingestSucceeds
-    }
-
-    func setIngestSucceeds(_ value: Bool) {
-        ingestSucceeds = value
-    }
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        let path = request.url!.path
-        let status: Int
-        let body: String
-        if path.hasSuffix("sign-in") {
-            (status, body) = (200, #"{"token":"t","riderId":"11111111-1111-1111-1111-111111111111"}"#)
-        } else {
-            ingestCalls += 1
-            (status, body) = ingestSucceeds ? (200, #"{"rideId":"22222222-2222-2222-2222-222222222222"}"#) : (503, "")
-        }
-        return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
-    }
-}
-
-/// Records every ride ingest body it is sent; ingest succeeds or fails on demand.
-private actor RecordingIngestTransport: HTTPTransport {
+/// Records the `clientRideId` of every ride ingest it is sent; ingest succeeds or fails on demand and
+/// sign-in always succeeds. Shared by the upload and queue retry tests.
+actor RecordingIngestTransport: HTTPTransport {
     var ingestSucceeds: Bool
     /// The `clientRideId` of each ingest request, in order (`nil` where absent).
     private(set) var sentClientRideIds: [String?] = []
 
-    init(ingestSucceeds: Bool) {
+    var ingestCalls: Int { sentClientRideIds.count }
+
+    init(ingestSucceeds: Bool = true) {
         self.ingestSucceeds = ingestSucceeds
     }
 
@@ -81,14 +57,14 @@ final class RideUploaderTests: XCTestCase {
 
     @MainActor
     func testNoStatusBeforeAnyUpload() {
-        let (uploader, _) = uploader(SwitchableIngestTransport(ingestSucceeds: true))
+        let (uploader, _) = uploader(RecordingIngestTransport(ingestSucceeds: true))
         XCTAssertNil(uploader.status)
     }
 
     /// AC-79/AC-80: uploading, then saved; nothing queued.
     @MainActor
     func testSuccessfulUploadEndsSaved() async throws {
-        let (uploader, queue) = uploader(SwitchableIngestTransport(ingestSucceeds: true))
+        let (uploader, queue) = uploader(RecordingIngestTransport(ingestSucceeds: true))
 
         await uploader.upload(payload(), rideId: "ride-1")
 
@@ -100,7 +76,7 @@ final class RideUploaderTests: XCTestCase {
     /// AC-79: while the request is in flight the status is uploading.
     @MainActor
     func testStatusIsUploadingWhileTheRequestIsInFlight() async {
-        let (uploader, _) = uploader(SwitchableIngestTransport(ingestSucceeds: true))
+        let (uploader, _) = uploader(RecordingIngestTransport(ingestSucceeds: true))
 
         let task = Task { await uploader.upload(payload(), rideId: "ride-1") }
         await Task.yield()
@@ -111,7 +87,7 @@ final class RideUploaderTests: XCTestCase {
     /// AC-81: a failed upload is queued once, under the ride's id.
     @MainActor
     func testFailedUploadIsQueuedUnderTheRideId() async throws {
-        let (uploader, queue) = uploader(SwitchableIngestTransport(ingestSucceeds: false))
+        let (uploader, queue) = uploader(RecordingIngestTransport(ingestSucceeds: false))
 
         await uploader.upload(payload(), rideId: "ride-1")
 
@@ -123,7 +99,7 @@ final class RideUploaderTests: XCTestCase {
     /// AC-82: Retry now succeeding empties the queue and shows saved.
     @MainActor
     func testRetryNowSuccessRemovesTheRideFromTheQueue() async throws {
-        let transport = SwitchableIngestTransport(ingestSucceeds: false)
+        let transport = RecordingIngestTransport(ingestSucceeds: false)
         let (uploader, queue) = uploader(transport)
         await uploader.upload(payload(), rideId: "ride-1")
         await transport.setIngestSucceeds(true)
@@ -138,7 +114,7 @@ final class RideUploaderTests: XCTestCase {
     /// AC-83: Retry now failing again keeps exactly one queue entry.
     @MainActor
     func testRetryNowFailureKeepsExactlyOneQueueEntry() async throws {
-        let (uploader, queue) = uploader(SwitchableIngestTransport(ingestSucceeds: false))
+        let (uploader, queue) = uploader(RecordingIngestTransport(ingestSucceeds: false))
         await uploader.upload(payload(), rideId: "ride-1")
 
         await uploader.retryNow()
@@ -151,7 +127,7 @@ final class RideUploaderTests: XCTestCase {
 
     @MainActor
     func testRetryNowDoesNothingUnlessQueued() async {
-        let transport = SwitchableIngestTransport(ingestSucceeds: true)
+        let transport = RecordingIngestTransport(ingestSucceeds: true)
         let (uploader, _) = uploader(transport)
         await uploader.upload(payload(), rideId: "ride-1")
         let callsAfterUpload = await transport.ingestCalls
@@ -220,7 +196,7 @@ final class PendingRideUploadQueueKeyingTests: XCTestCase {
     func testAQueueFileFromAnOlderBuildStillLoads() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         let older = PendingRideUploadQueue(fileURL: url)
-        try await older.enqueue(payload(routeId: "legacy"))  // random id, as before
+        try await older.enqueue(payload(routeId: "legacy"), id: UUID().uuidString)  // random id, as before
 
         let reloaded = try await PendingRideUploadQueue(fileURL: url).fetchAllOldestFirst()
 

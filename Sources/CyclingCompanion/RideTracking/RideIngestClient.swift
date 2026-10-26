@@ -14,13 +14,14 @@ struct RideIngestRequestPayload: Codable {
     /// JSON when absent.
     var suggestionResponses: [SuggestionResponsePayload]? = nil
     /// Milestone 9 (RULE-19): the local ride id the advisor calls were made with, so the backend can
-    /// link this ride to its traces. Set at send time, so uploads queued before it existed get it too.
+    /// link this ride to its traces. Filled in at send time when missing, so uploads queued before it
+    /// existed get it too.
     var clientRideId: String? = nil
 
-    /// This payload as sent for the ride with local id `rideId`.
+    /// This payload linked to the ride with local id `rideId`; a ride id it already carries is kept.
     func linked(toRide rideId: String) -> RideIngestRequestPayload {
         var linked = self
-        linked.clientRideId = rideId
+        linked.clientRideId = clientRideId ?? rideId
         return linked
     }
 }
@@ -67,8 +68,11 @@ actor RideIngestClient {
         self.transport = transport
     }
 
+    /// Sends `payload` linked to `rideId`, the local id of the ride it describes (RULE-19). `nil` only
+    /// for an old queued upload whose ride can't be told; it then goes unlinked.
     @discardableResult
-    func ingest(_ payload: RideIngestRequestPayload) async -> Bool {
+    func ingest(_ payload: RideIngestRequestPayload, rideId: String?) async -> Bool {
+        let payload = rideId.map(payload.linked(toRide:)) ?? payload
         do {
             try await lazySignIn.ensureSignedIn()
 

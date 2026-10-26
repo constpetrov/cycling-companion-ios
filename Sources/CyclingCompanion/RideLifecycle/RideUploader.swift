@@ -25,10 +25,11 @@ final class RideUploader {
     }
 
     func upload(_ payload: RideIngestRequestPayload, rideId: String) async {
+        // Linked before queueing, so the queued copy carries its ride id (RULE-19).
         let payload = payload.linked(toRide: rideId)
         current = (rideId, payload)
         status = .uploading
-        if await ingestClient.ingest(payload) {
+        if await ingestClient.ingest(payload, rideId: rideId) {
             status = .saved
         } else {
             try? await queue.enqueue(payload, id: rideId)
@@ -40,7 +41,7 @@ final class RideUploader {
     func retryNow() async {
         guard status == .queued, let current else { return }
         status = .uploading
-        if await ingestClient.ingest(current.payload.linked(toRide: current.rideId)) {
+        if await ingestClient.ingest(current.payload, rideId: current.rideId) {
             try? await queue.remove(id: current.rideId)
             status = .saved
         } else {

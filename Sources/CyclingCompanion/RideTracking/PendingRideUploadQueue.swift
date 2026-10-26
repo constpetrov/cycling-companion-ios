@@ -20,7 +20,7 @@ actor PendingRideUploadQueue {
     /// Queues `payload` under `id` — the local ride id for finished rides (RULE-22 in milestone 7's
     /// rules.md). Enqueueing an id that is already queued replaces that entry, so retrying a ride
     /// never leaves two copies of it.
-    func enqueue(_ payload: RideIngestRequestPayload, id: String = UUID().uuidString) throws {
+    func enqueue(_ payload: RideIngestRequestPayload, id: String) throws {
         var all = try loadAll()
         all.removeAll { $0.id == id }
         all.append(PendingRideUpload(id: id, enqueuedAt: Date(), payload: payload))

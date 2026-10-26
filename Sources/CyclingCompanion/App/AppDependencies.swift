@@ -118,7 +118,8 @@ final class AppDependencies {
     }
 
     func makePendingRideUploadRetrier() -> PendingRideUploadRetrier {
-        PendingRideUploadRetrier(pendingUploadQueue: pendingUploadQueue, rideIngestClient: rideIngestClient)
+        PendingRideUploadRetrier(
+            pendingUploadQueue: pendingUploadQueue, rideIngestClient: rideIngestClient, rideStore: rideStore)
     }
 
     /// Type-erased so always-compiled views never need to name `DemoRideStarter` (RULE-15): only

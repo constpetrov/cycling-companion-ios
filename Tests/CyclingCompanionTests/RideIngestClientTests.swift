@@ -62,7 +62,7 @@ final class RideIngestClientTests: XCTestCase {
         ])
         let client = makeClient(transport: responder)
 
-        let succeeded = await client.ingest(payload())
+        let succeeded = await client.ingest(payload(), rideId: "ride-1")
 
         XCTAssertTrue(succeeded)
     }
@@ -75,7 +75,7 @@ final class RideIngestClientTests: XCTestCase {
         ])
         let client = makeClient(transport: responder)
 
-        let succeeded = await client.ingest(payload())
+        let succeeded = await client.ingest(payload(), rideId: "ride-1")
 
         XCTAssertFalse(succeeded)
     }
@@ -90,7 +90,7 @@ final class RideIngestClientTests: XCTestCase {
         }
         let client = makeClient(transport: ThrowingTransport())
 
-        let succeeded = await client.ingest(payload())
+        let succeeded = await client.ingest(payload(), rideId: "ride-1")
 
         XCTAssertFalse(succeeded)
     }
@@ -103,7 +103,7 @@ final class RideIngestClientTests: XCTestCase {
         ])
         let client = makeClient(transport: responder)
 
-        _ = await client.ingest(payload())
+        _ = await client.ingest(payload(), rideId: "ride-1")
 
         let capturedBody = await responder.lastRequestBody
         let body = try XCTUnwrap(capturedBody)

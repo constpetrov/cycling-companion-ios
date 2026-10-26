@@ -86,25 +86,20 @@ public struct PersistedSuggestion: Codable, Sendable, Equatable {
 }
 
 /// The rider's answer to a suggestion as saved with its ride. `answer` is the wire value
-/// (`ACCEPTED`, `DECLINED` or `NONE`). `traceId` (milestone 9) is optional, like the suggestion's.
+/// (`ACCEPTED`, `DECLINED` or `NONE`).
 public struct PersistedSuggestionAnswer: Codable, Sendable, Equatable {
     public let suggestionId: String
     public let stopId: Int64
     public let suggestedAt: Date
     public let answer: String
     public let respondedAt: Date?
-    public let traceId: String?
 
-    public init(
-        suggestionId: String, stopId: Int64, suggestedAt: Date, answer: String, respondedAt: Date?,
-        traceId: String? = nil
-    ) {
+    public init(suggestionId: String, stopId: Int64, suggestedAt: Date, answer: String, respondedAt: Date?) {
         self.suggestionId = suggestionId
         self.stopId = stopId
         self.suggestedAt = suggestedAt
         self.answer = answer
         self.respondedAt = respondedAt
-        self.traceId = traceId
     }
 }
 
