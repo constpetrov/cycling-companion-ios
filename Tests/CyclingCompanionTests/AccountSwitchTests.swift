@@ -52,7 +52,7 @@ final class AccountSwitchTests: XCTestCase {
             api: h.api, session: h.session, sessionState: h.state, accountMemory: h.memory,
             eraser: LocalDataEraser(
                 routeStore: h.routeStore, rideStore: h.rideStore, pendingUploadQueue: h.queue, pointer: h.pointer,
-                corridorImportCoordinator: h.coordinator, session: h.session),
+                corridorImportCoordinator: h.coordinator, appRouter: h.appRouter, session: h.session),
             pendingUploadQueue: h.queue, rideCoordinator: h.rideCoordinator,
             retryQueuedUploads: {
                 await PendingRideUploadRetrier(pendingUploadQueue: h.queue, rideIngestClient: ingestClient,

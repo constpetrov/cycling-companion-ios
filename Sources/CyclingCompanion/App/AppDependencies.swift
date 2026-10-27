@@ -107,7 +107,7 @@ final class AppDependencies {
             api: authAPI, session: authSession, sessionState: sessionState, accountMemory: accountMemory,
             eraser: LocalDataEraser(
                 routeStore: routeStore, rideStore: rideStore, pendingUploadQueue: pendingUploadQueue, pointer: pointer,
-                corridorImportCoordinator: corridorImportCoordinator, session: authSession),
+                corridorImportCoordinator: corridorImportCoordinator, appRouter: appRouter, session: authSession),
             pendingUploadQueue: pendingUploadQueue, rideCoordinator: rideCoordinator,
             retryQueuedUploads: {
                 await PendingRideUploadRetrier(

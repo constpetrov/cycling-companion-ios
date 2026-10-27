@@ -3,7 +3,8 @@ import RoutePersistence
 
 /// RULE-38 in milestone 10's rules.md: the one list of everything the app keeps for a rider —
 /// imported routes, rides and ride checkpoints, queued uploads, the current-route pointer and the
-/// stored refresh token. Sign-out, account deletion and an account switch all erase through it, so
+/// stored refresh token. Navigation goes back to Home, so no pushed screen (a corridor map, Settings)
+/// outlives the data it showed. Sign-out, account deletion and an account switch all erase through it, so
 /// a store added later can't be forgotten in one of them.
 @MainActor
 struct LocalDataEraser {
@@ -12,6 +13,7 @@ struct LocalDataEraser {
     let pendingUploadQueue: PendingRideUploadQueue
     let pointer: CurrentRoutePointer
     let corridorImportCoordinator: CorridorImportCoordinator
+    let appRouter: AppRouter
     let session: AuthSession
 
     func eraseAll() async {
@@ -20,6 +22,7 @@ struct LocalDataEraser {
         try? await pendingUploadQueue.removeAll()
         pointer.clear()
         corridorImportCoordinator.forgetEverything()
+        appRouter.popToHome()
         await session.clear()
     }
 

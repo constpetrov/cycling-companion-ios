@@ -12,8 +12,13 @@ final class AuthFlowModel {
         case reset
     }
 
+    /// Switching forms keeps the email but not the password: a new password typed (or suggested by
+    /// AutoFill) for sign-up must never be sent as the sign-in password.
     var mode: Mode = .signIn {
-        didSet { errorMessage = nil }
+        didSet {
+            errorMessage = nil
+            if mode != oldValue { password = "" }
+        }
     }
     var email = ""
     var password = ""

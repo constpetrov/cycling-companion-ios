@@ -47,6 +47,9 @@ private struct AuthForm: View {
                 }
                 SecureField(model.mode == .signIn ? "Password" : "New password", text: $model.password)
                     .textContentType(model.mode == .signIn ? .password : .newPassword)
+                    // A fresh field per form: iOS keeps an AutoFill strong-password suggestion in a
+                    // reused field even after its content type changes.
+                    .id(model.mode)
                     .accessibilityIdentifier("auth.password")
                 if model.mode == .signUp {
                     TextField("Invite code", text: $model.inviteCode)

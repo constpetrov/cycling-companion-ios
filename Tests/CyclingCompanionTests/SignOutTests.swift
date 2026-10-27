@@ -78,6 +78,16 @@ final class SignOutTests: XCTestCase {
         XCTAssertEqual(count, 2)
     }
 
+    func testSignOutGoesBackToHome() async throws {
+        let h = AccountHarness(transport: SignOutBackend(fails: false))
+        h.appRouter.open(.settings)
+        XCTAssertFalse(h.appRouter.path.isEmpty)
+
+        await h.actions.signOut()
+
+        XCTAssertTrue(h.appRouter.path.isEmpty)
+    }
+
     func testTheCorridorCoordinatorForgetsItsRoute() async throws {
         let h = AccountHarness(transport: SignOutBackend(fails: false))
         try await h.seedLocalData()

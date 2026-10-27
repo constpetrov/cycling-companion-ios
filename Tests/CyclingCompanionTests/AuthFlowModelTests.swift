@@ -130,6 +130,18 @@ final class AuthFlowModelTests: XCTestCase {
         }
     }
 
+    func testSwitchingFormsKeepsTheEmailButNotThePassword() {
+        let h = harness()
+        h.model.mode = .signUp
+        h.model.email = "anna@example.com"
+        h.model.password = "a suggested strong password"
+
+        h.model.mode = .signIn
+
+        XCTAssertEqual(h.model.email, "anna@example.com")
+        XCTAssertEqual(h.model.password, "")
+    }
+
     func testTheFormNeedsItsFields() {
         let h = harness()
         XCTAssertFalse(h.model.canSubmit)
@@ -137,6 +149,7 @@ final class AuthFlowModelTests: XCTestCase {
         h.model.password = "a long password"
         XCTAssertTrue(h.model.canSubmit)
         h.model.mode = .signUp
+        h.model.password = "a long password"
         XCTAssertFalse(h.model.canSubmit, "sign-up needs the invite code")
         h.model.inviteCode = "ABCDE-FGHJK"
         XCTAssertTrue(h.model.canSubmit)

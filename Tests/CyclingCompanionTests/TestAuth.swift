@@ -32,6 +32,7 @@ struct AccountHarness {
     let pointer: CurrentRoutePointer
     let coordinator: CorridorImportCoordinator
     let rideCoordinator: RideCoordinator
+    let appRouter: AppRouter
     let actions: AccountActions
 
     init(transport: HTTPTransport, refreshToken: String? = nil, accessToken: String? = nil,
@@ -51,14 +52,15 @@ struct AccountHarness {
         queue = PendingRideUploadQueue(fileURL: directory.appendingPathComponent("pending.json"))
         pointer = CurrentRoutePointer(defaults: defaults)
         rideCoordinator = RideCoordinator()
+        appRouter = AppRouter()
         coordinator = CorridorImportCoordinator(
             corridorPollingService: CorridorPollingService(baseURL: TestAuth.baseURL, session: session),
-            routeStore: routeStore, pointer: pointer, appRouter: AppRouter())
+            routeStore: routeStore, pointer: pointer, appRouter: appRouter)
         actions = AccountActions(
             api: api, session: session, sessionState: state, accountMemory: memory,
             eraser: LocalDataEraser(
                 routeStore: routeStore, rideStore: rideStore, pendingUploadQueue: queue, pointer: pointer,
-                corridorImportCoordinator: coordinator, session: session),
+                corridorImportCoordinator: coordinator, appRouter: appRouter, session: session),
             pendingUploadQueue: queue, rideCoordinator: rideCoordinator)
     }
 
