@@ -17,6 +17,7 @@
 		0B0D87938CEF695390FEE9E5 /* SensorSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */; };
 		0BF3CF526F32EB4389985DAB /* MapStopSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335D46D502D129D7EE449E80 /* MapStopSelection.swift */; };
 		0D899AD4F7F972CF82968366 /* HoldToConfirmButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A5E0D633439013FE445B8F /* HoldToConfirmButton.swift */; };
+		0DDE10A4BC8E6DFBD992A0D6 /* AuthAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73CCEC2A2E5EA9E4CFE0D14 /* AuthAPIClientTests.swift */; };
 		0F23C009677B556EAC02F5C2 /* LiveRideViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB92AEA5F1486E5AA65653B5 /* LiveRideViewModelTests.swift */; };
 		11311BD9BD4C44F57395A0C1 /* StopTypeSettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD60C7736F46854C6912EDF2 /* StopTypeSettingsUITests.swift */; };
 		145A60907A6529DB4B6F647F /* RideFinisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9797E4C259E02E6414A8240A /* RideFinisher.swift */; };
@@ -67,6 +68,7 @@
 		50FC4AD2F9085E2D2F9D8AE2 /* ReadinessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106CB7BE77BF2FAD062A6AE0 /* ReadinessTests.swift */; };
 		51E421657DEA413D6DB86130 /* LocationSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECABEE239029D96B2B8C36BE /* LocationSource.swift */; };
 		52F2A0A59473CA40DF1266BE /* NotifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A18133D236192433808BDC /* NotifierTests.swift */; };
+		53278DFB13FA4E275FA62A6C /* AuthAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C57BF2588E6722682943F00 /* AuthAPIClient.swift */; };
 		53F632D494B7EE63731881D4 /* SpeedScaledClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0769F3E19A0DF749833ECA9B /* SpeedScaledClock.swift */; };
 		57BE3B648D5003D7AA7A5328 /* LiveRide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCBD4217877EC7172A10E65 /* LiveRide.swift */; };
 		5807730CC1A27ACFA48A633C /* Resampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83267C30F394E3718EF975B4 /* Resampler.swift */; };
@@ -274,6 +276,7 @@
 		5293269AF912AAC92F4A41DD /* CyclingCompanion.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CyclingCompanion.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5409D239CA1A15FD28611FCF /* LocationSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationSourceTests.swift; sourceTree = "<group>"; };
 		596968DB52299BC245D33435 /* ScaledRealClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScaledRealClock.swift; sourceTree = "<group>"; };
+		5C57BF2588E6722682943F00 /* AuthAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAPIClient.swift; sourceTree = "<group>"; };
 		5D170D792A0495158BAB2240 /* RideTrackerMovingTimeETATests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerMovingTimeETATests.swift; sourceTree = "<group>"; };
 		5E2A163705145C8C6A255B98 /* KeepScreenOnTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepScreenOnTests.swift; sourceTree = "<group>"; };
 		5E76292EDF9F638AAA64DA9E /* BaselineCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineCalculator.swift; sourceTree = "<group>"; };
@@ -326,6 +329,7 @@
 		A5804762F03CB6D4F56B741B /* simple_ride.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = simple_ride.json; sourceTree = "<group>"; };
 		A6B48982B6D4007BE4D819AA /* OrphanedRideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrphanedRideTests.swift; sourceTree = "<group>"; };
 		A70E8FE285FB00C9B231EB0D /* StopTypeSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopTypeSettingsTests.swift; sourceTree = "<group>"; };
+		A73CCEC2A2E5EA9E4CFE0D14 /* AuthAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAPIClientTests.swift; sourceTree = "<group>"; };
 		A8EA37164DE2133EBE7FBC9D /* BackendConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendConfiguration.swift; sourceTree = "<group>"; };
 		A9A18133D236192433808BDC /* NotifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotifierTests.swift; sourceTree = "<group>"; };
 		AA3E90750A92DFCB77548D0C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -515,6 +519,7 @@
 		682D3F90CC3F7F62EB5198EF /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				5C57BF2588E6722682943F00 /* AuthAPIClient.swift */,
 				CD77A1AEF5EDE7619D06A92D /* FirstLaunchCheck.swift */,
 				D05E3B8D339A245B9F5F86A0 /* KeychainTokenStore.swift */,
 				6E7017D7DE9D2ECB3418AC4D /* TokenStore.swift */,
@@ -604,6 +609,7 @@
 				22CBBF93CBB071DBE2F8FB79 /* AppDelegateNotificationTests.swift */,
 				8177B3D8A9F5ED4450EA2DDB /* AppDependenciesTests.swift */,
 				E12E2E3818965CF65A3C05DC /* AppRouterTests.swift */,
+				A73CCEC2A2E5EA9E4CFE0D14 /* AuthAPIClientTests.swift */,
 				E14391F92B840F07D3D36F3A /* AuthStubClientTests.swift */,
 				8AC249BE204A937B6E0301EE /* BackendConfigurationTests.swift */,
 				C9B4504D0AA40A517E9D4213 /* BaselineCalculatorTests.swift */,
@@ -967,6 +973,7 @@
 				A27661861FC2D3453B4BBF47 /* AppDelegateNotificationTests.swift in Sources */,
 				D928F81576492C22DA816136 /* AppDependenciesTests.swift in Sources */,
 				4FF7BD6D7669D4AC3CD3F248 /* AppRouterTests.swift in Sources */,
+				0DDE10A4BC8E6DFBD992A0D6 /* AuthAPIClientTests.swift in Sources */,
 				6EB17A9C7585E7732F6AB26E /* AuthStubClientTests.swift in Sources */,
 				33BA0D409164CB5AF026DD51 /* BackendConfigurationTests.swift in Sources */,
 				22917CED2B5A0A73D174489D /* BaselineCalculatorTests.swift in Sources */,
@@ -1058,6 +1065,7 @@
 				082A2ACFD56B5B87614C9D2E /* AppDelegate.swift in Sources */,
 				CB0905B6790B87C816ABA552 /* AppDependencies.swift in Sources */,
 				071C50A341E8E01E205098B0 /* AppRouter.swift in Sources */,
+				53278DFB13FA4E275FA62A6C /* AuthAPIClient.swift in Sources */,
 				9BE79E28D37AF38B901F4A08 /* AuthStubClient.swift in Sources */,
 				50F1E32748C7A5D2EF0046A8 /* BackendConfiguration.swift in Sources */,
 				E62D33BEF8C510EAA30C3EE6 /* BaselineCalculator.swift in Sources */,
