@@ -21,6 +21,7 @@ final class AppDependencies {
     let authSession: AuthSession
     let sessionState: SessionState
     let accountMemory: AccountMemory
+    let accountActions: AccountActions
     let advisorClient: AdvisorClient
     let corridorImportCoordinator: CorridorImportCoordinator
     let rideStarter: RideStarter
@@ -78,6 +79,8 @@ final class AppDependencies {
         self.authSession = authSession
         self.sessionState = sessionState
         self.accountMemory = accountMemory
+        self.accountActions = AccountActions(
+            api: authAPI, session: authSession, sessionState: sessionState, accountMemory: accountMemory)
         self.advisorClient = advisorClient
         let corridorImportCoordinator = CorridorImportCoordinator(
             corridorPollingService: CorridorPollingService(baseURL: baseURL, session: authSession),
