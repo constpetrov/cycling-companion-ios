@@ -33,6 +33,13 @@ actor PendingRideUploadQueue {
         try loadAll().sorted { $0.enqueuedAt < $1.enqueuedAt }
     }
 
+    /// Milestone 10 (RULE-38): drops every queued upload.
+    func removeAll() throws {
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+    }
+
     func remove(id: String) throws {
         var all = try loadAll()
         all.removeAll { $0.id == id }

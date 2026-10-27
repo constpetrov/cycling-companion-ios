@@ -10,12 +10,39 @@ final class AccountActions {
     private let session: AuthSession
     private let sessionState: SessionState
     private let accountMemory: AccountMemory
+    private let eraser: LocalDataEraser
+    private let pendingUploadQueue: PendingRideUploadQueue
+    private let rideCoordinator: RideCoordinator
 
-    init(api: AuthAPIClient, session: AuthSession, sessionState: SessionState, accountMemory: AccountMemory) {
+    init(
+        api: AuthAPIClient, session: AuthSession, sessionState: SessionState, accountMemory: AccountMemory,
+        eraser: LocalDataEraser, pendingUploadQueue: PendingRideUploadQueue, rideCoordinator: RideCoordinator
+    ) {
         self.api = api
         self.session = session
         self.sessionState = sessionState
         self.accountMemory = accountMemory
+        self.eraser = eraser
+        self.pendingUploadQueue = pendingUploadQueue
+        self.rideCoordinator = rideCoordinator
+    }
+
+    /// RULE-39: rides that would be lost — queued uploads, plus a ride in progress.
+    func unuploadedRideCount() async -> Int {
+        let queued = (try? await pendingUploadQueue.fetchAllOldestFirst().count) ?? 0
+        return queued + (rideCoordinator.activeRide == nil ? 0 : 1)
+    }
+
+    /// RA-13, RULE-39: tells the backend once (short timeout, no retry, outcome ignored), then
+    /// erases the local data and the session whatever happened.
+    func signOut() async {
+        if let refreshToken = await session.storedRefreshToken() {
+            try? await api.signOut(refreshToken: refreshToken)
+        }
+        await eraser.eraseAll()
+        accountMemory.forget()
+        sessionState.signedOut()
+        Self.log.info("Signed out; local data erased")
     }
 
     func signIn(email: String, password: String) async throws(AuthAPIError) {

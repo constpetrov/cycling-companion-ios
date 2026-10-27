@@ -183,6 +183,14 @@ public actor RouteStore {
         cache = routesById
     }
 
+    /// Removes every stored route (milestone 10, RULE-38: sign-out and account deletion).
+    public func deleteAll() throws {
+        cache = [:]
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+    }
+
     public func fetch(routeId: String) throws -> PersistedRoute? {
         try loadAll()[routeId]
     }

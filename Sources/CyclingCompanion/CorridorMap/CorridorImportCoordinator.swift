@@ -210,6 +210,22 @@ final class CorridorImportCoordinator {
 
     /// Milestone 8 (RULE-18): no polling while the app isn't active; every route keeps its stored
     /// status and polling picks up again on return (`resumePollingForBuildingRoutes`).
+    /// Milestone 10 (RULE-38): forgets every route after the local data was erased: polls stop,
+    /// the in-memory route and its errors go, and Home re-reads the (now empty) store.
+    func forgetEverything() {
+        for task in polls.values {
+            task.cancel()
+        }
+        polls = [:]
+        pollTokens = [:]
+        pollingRouteIds = []
+        points = []
+        pois = []
+        importErrorMessage = nil
+        retryErrors = [:]
+        storeRevision += 1
+    }
+
     func pauseAllPolls() {
         isActive = false
         for task in polls.values {

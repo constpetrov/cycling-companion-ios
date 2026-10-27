@@ -18,14 +18,9 @@ final class AuthFlowModelTests: XCTestCase {
 
     private func harness(status: Int = 200, body: String = AuthFlowModelTests.tokens) -> Harness {
         let transport = ScriptedAuthTransport(status: status, body: body)
-        let api = AuthAPIClient(baseURL: TestAuth.baseURL, transport: transport)
-        let store = InMemoryTokenStore()
-        let session = AuthSession(api: api, tokenStore: store, transport: transport)
-        let memory = AccountMemory(defaults: UserDefaults(suiteName: UUID().uuidString)!)
-        let state = SessionState(status: .signedOut)
-        state.observe(session.events)
-        let actions = AccountActions(api: api, session: session, sessionState: state, accountMemory: memory)
-        return Harness(model: AuthFlowModel(actions: actions), transport: transport, store: store, memory: memory, state: state)
+        let account = AccountHarness(transport: transport)
+        return Harness(model: AuthFlowModel(actions: account.actions), transport: transport, store: account.tokenStore,
+                       memory: account.memory, state: account.state)
     }
 
     private func waitForSignedIn(_ state: SessionState) async {
@@ -84,11 +79,7 @@ final class AuthFlowModelTests: XCTestCase {
     }
 
     func testOfflineSaysSo() async {
-        let h = harness()
-        let offline = AuthAPIClient(baseURL: TestAuth.baseURL, transport: OfflineTransport())
-        let session = AuthSession(api: offline, tokenStore: InMemoryTokenStore(), transport: OfflineTransport())
-        let model = AuthFlowModel(actions: AccountActions(api: offline, session: session, sessionState: h.state,
-                                                          accountMemory: h.memory))
+        let model = AuthFlowModel(actions: AccountHarness(transport: OfflineTransport()).actions)
         model.email = "anna@example.com"
         model.password = "whatever"
 

@@ -79,8 +79,6 @@ final class AppDependencies {
         self.authSession = authSession
         self.sessionState = sessionState
         self.accountMemory = accountMemory
-        self.accountActions = AccountActions(
-            api: authAPI, session: authSession, sessionState: sessionState, accountMemory: accountMemory)
         self.advisorClient = advisorClient
         let corridorImportCoordinator = CorridorImportCoordinator(
             corridorPollingService: CorridorPollingService(baseURL: baseURL, session: authSession),
@@ -105,6 +103,12 @@ final class AppDependencies {
         self.directions = directions
         self.rideStartFlow = RideStartFlow(
             readiness: ReadinessViewModel(permissions: permissions), start: { await rideStarter.startRide() })
+        self.accountActions = AccountActions(
+            api: authAPI, session: authSession, sessionState: sessionState, accountMemory: accountMemory,
+            eraser: LocalDataEraser(
+                routeStore: routeStore, rideStore: rideStore, pendingUploadQueue: pendingUploadQueue, pointer: pointer,
+                corridorImportCoordinator: corridorImportCoordinator, session: authSession),
+            pendingUploadQueue: pendingUploadQueue, rideCoordinator: rideCoordinator)
     }
 
     /// The production graph for `configuration`, on the app's real files and `URLSession`.
