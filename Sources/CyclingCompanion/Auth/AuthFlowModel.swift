@@ -21,6 +21,8 @@ final class AuthFlowModel {
     var resetCode = ""
     private(set) var isSubmitting = false
     private(set) var errorMessage: String?
+    /// RULE-40: a different rider signed in while the last one's data is still here.
+    var pendingSwitch: AccountActions.PendingSwitch?
 
     private let actions: AccountActions
 
@@ -49,14 +51,48 @@ final class AuthFlowModel {
         errorMessage = nil
         defer { isSubmitting = false }
         do {
+            let result: AccountActions.StartResult
             switch mode {
-            case .signIn: try await actions.signIn(email: email, password: password)
-            case .signUp: try await actions.signUp(email: email, password: password, inviteCode: inviteCode)
-            case .reset: try await actions.reset(email: email, code: resetCode, newPassword: password)
+            case .signIn: result = try await actions.signIn(email: email, password: password)
+            case .signUp: result = try await actions.signUp(email: email, password: password, inviteCode: inviteCode)
+            case .reset: result = try await actions.reset(email: email, code: resetCode, newPassword: password)
             }
+            if case let .confirmSwitch(pending) = result {
+                pendingSwitch = pending
+            } else {
+                password = ""
+            }
+        } catch {
+            errorMessage = error.message
+        }
+    }
+
+    /// The text of the account-switch confirmation (AC-131).
+    var switchWarning: String {
+        guard let pendingSwitch else { return "" }
+        let rides = pendingSwitch.unuploadedRides
+        let lost = rides == 0 ? "" : rides == 1 ? " 1 ride not uploaded yet will be lost." : " \(rides) rides not uploaded yet will be lost."
+        return "This phone still has another rider's routes and rides. Signing in deletes them from this phone.\(lost)"
+    }
+
+    /// AC-131: erase the last rider's data and sign in.
+    func confirmSwitch() async {
+        guard let pending = pendingSwitch else { return }
+        pendingSwitch = nil
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            try await actions.confirm(pending)
             password = ""
         } catch {
             errorMessage = error.message
         }
+    }
+
+    /// AC-132: keep the data; the new rider stays signed out.
+    func declineSwitch() async {
+        guard let pending = pendingSwitch else { return }
+        pendingSwitch = nil
+        await actions.decline(pending)
     }
 }

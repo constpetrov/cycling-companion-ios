@@ -104,6 +104,18 @@ private struct AuthForm: View {
         }
         .navigationTitle(title)
         .onSubmit { Task { await model.submit() } }
+        .confirmationDialog(
+            "Sign in as a different rider?",
+            // Both buttons clear `pendingSwitch`; dismissing the dialog runs the Cancel button's action.
+            isPresented: Binding(get: { model.pendingSwitch != nil }, set: { _ in }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete and sign in", role: .destructive) { Task { await model.confirmSwitch() } }
+                .accessibilityIdentifier("auth.confirmSwitch")
+            Button("Cancel", role: .cancel) { Task { await model.declineSwitch() } }
+        } message: {
+            Text(model.switchWarning)
+        }
     }
 
     private var title: String {

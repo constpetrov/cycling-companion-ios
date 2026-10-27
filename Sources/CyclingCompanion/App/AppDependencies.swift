@@ -108,7 +108,12 @@ final class AppDependencies {
             eraser: LocalDataEraser(
                 routeStore: routeStore, rideStore: rideStore, pendingUploadQueue: pendingUploadQueue, pointer: pointer,
                 corridorImportCoordinator: corridorImportCoordinator, session: authSession),
-            pendingUploadQueue: pendingUploadQueue, rideCoordinator: rideCoordinator)
+            pendingUploadQueue: pendingUploadQueue, rideCoordinator: rideCoordinator,
+            retryQueuedUploads: {
+                await PendingRideUploadRetrier(
+                    pendingUploadQueue: pendingUploadQueue, rideIngestClient: rideIngestClient, rideStore: rideStore
+                ).retryPendingUploads()
+            })
     }
 
     /// The production graph for `configuration`, on the app's real files and `URLSession`.

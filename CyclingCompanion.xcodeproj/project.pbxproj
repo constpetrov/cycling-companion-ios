@@ -196,6 +196,7 @@
 		F6527814D5822AFFAC3E868D /* CorridorMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F58FB3EE82F0F45295DF3F /* CorridorMapViewModel.swift */; };
 		F7728854BDE6EABF8A6D3F9A /* RideTrackerCheckpointingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354DF3EC3FF6B3D1939FE197 /* RideTrackerCheckpointingTests.swift */; };
 		F82F458949A4BC8D678EA758 /* DemoModeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 474A2AD9CD932626DB08AB90 /* DemoModeScreen.swift */; };
+		F98CC6FF00985E301FA6BB52 /* AccountSwitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE46864F6806F6C1F614D89 /* AccountSwitchTests.swift */; };
 		FBA48D00ECECFB2BEC06539C /* StopTypeSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70E8FE285FB00C9B231EB0D /* StopTypeSettingsTests.swift */; };
 		FBD752AE3DCBC71327683A28 /* RideUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314588114936F8FB1A90543E /* RideUploader.swift */; };
 		FF72726EF93D76D9D8C2765A /* CoverageAccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06A977152FBD81DC28EE9DA7 /* CoverageAccessibilityTests.swift */; };
@@ -361,6 +362,7 @@
 		B93C35A18A4C67B37D4A53DF /* RideSummaryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideSummaryViewModel.swift; sourceTree = "<group>"; };
 		BC0030EA6B1CCB72DEFA53EC /* CorridorPollingRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorPollingRegistryTests.swift; sourceTree = "<group>"; };
 		BCAD47AE39461ADC00482293 /* DemoRideStarterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRideStarterTests.swift; sourceTree = "<group>"; };
+		BCE46864F6806F6C1F614D89 /* AccountSwitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSwitchTests.swift; sourceTree = "<group>"; };
 		BEC1B76F67C31506A543261D /* ReadinessSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessSheet.swift; sourceTree = "<group>"; };
 		BFD933B493CA321272EF9890 /* FeatureEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureEngineTests.swift; sourceTree = "<group>"; };
 		C0AE4A397596CB6E859BD776 /* RideTrackerResumeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerResumeTests.swift; sourceTree = "<group>"; };
@@ -633,6 +635,7 @@
 			isa = PBXGroup;
 			children = (
 				7FB0EF14174C354316B7853E /* AccessibilityLabelTests.swift */,
+				BCE46864F6806F6C1F614D89 /* AccountSwitchTests.swift */,
 				4EDF8F2A45D07FE88427EF8D /* AdvisorClientTests.swift */,
 				4CA48571A15C756B366BF23E /* AdvisorComparisonScript.swift */,
 				22CBBF93CBB071DBE2F8FB79 /* AppDelegateNotificationTests.swift */,
@@ -990,6 +993,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F012C87C4521B8DFC0511AA4 /* AccessibilityLabelTests.swift in Sources */,
+				F98CC6FF00985E301FA6BB52 /* AccountSwitchTests.swift in Sources */,
 				67582BD8327832C23E1AE07D /* AdvisorClientTests.swift in Sources */,
 				EE17FCFCB273491F2A27D249 /* AdvisorComparisonScript.swift in Sources */,
 				A27661861FC2D3453B4BBF47 /* AppDelegateNotificationTests.swift in Sources */,
