@@ -50,14 +50,13 @@ final class CorridorMapScreenTests: XCTestCase {
             "/routes": [(200, importBody)],
             "/corridor": readyImmediately ? [(200, readyBody)] : [(200, buildingBody)],
         ])
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
         let service = CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, transport: transport)
+            baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
         let coordinator = CorridorImportCoordinator(
             corridorPollingService: service, routeStore: RouteStore(
                 fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")),
             pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!), appRouter: AppRouter(),
-            lazySignIn: LazySignIn(authClient: authClient), clock: StoppingClock(stopAfterSeconds: 60))
+            clock: StoppingClock(stopAfterSeconds: 60))
 
         let pollTask = await coordinator.importRoute(sampleRoute())
         if readyImmediately {
@@ -92,13 +91,9 @@ final class CorridorMapScreenTests: XCTestCase {
     func testTappingStartRideInvokesTheCallback() {
         var tapped = false
         let coordinator = CorridorImportCoordinator(
-            corridorPollingService: CorridorPollingService(
-                baseURL: URL(string: "https://backend.example.com")!,
-                authClient: AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)),
+            corridorPollingService: CorridorPollingService(baseURL: TestAuth.baseURL, session: TestAuth.session()),
             routeStore: RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")),
-            pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!), appRouter: AppRouter(),
-            lazySignIn: LazySignIn(
-                authClient: AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)))
+            pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!), appRouter: AppRouter())
         let screen = CorridorMapScreen(
             viewModel: CorridorMapViewModel(routeId: "route-1", coordinator: coordinator),
             onStartRide: { tapped = true })
@@ -125,11 +120,10 @@ final class CorridorMapScreenTests: XCTestCase {
                     osmId: 7, type: "CAFE", name: "Kaffee", latitude: 52.005, longitude: 13.001, kmMarkMeters: 500,
                     detourMeters: 70, openingHours: nil)
             ], status: "ready")
-        let auth = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)
         let coordinator = CorridorImportCoordinator(
-            corridorPollingService: CorridorPollingService(baseURL: URL(string: "https://backend.example.com")!, authClient: auth),
+            corridorPollingService: CorridorPollingService(baseURL: TestAuth.baseURL, session: TestAuth.session()),
             routeStore: store, pointer: CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!),
-            appRouter: AppRouter(), lazySignIn: LazySignIn(authClient: auth))
+            appRouter: AppRouter())
         XCTAssertTrue(coordinator.points.isEmpty, "nothing in memory, as after a relaunch")
         let viewModel = CorridorMapViewModel(routeId: "stored", coordinator: coordinator)
 

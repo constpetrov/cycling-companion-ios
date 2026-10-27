@@ -128,7 +128,8 @@ final class HomeImportTests: XCTestCase {
         let cases: [(Error, ImportError)] = [
             (URLError(.notConnectedToInternet), .noConnection),
             (URLError(.timedOut), .noConnection),
-            (AuthStubClientError.unexpectedResponse, .authFailed),
+            (AuthSessionError.sessionEnded(.expired), .authFailed),
+            (AuthSessionError.unavailable, .noConnection),
             (CorridorPollingError.rejected(statusCode: 401), .authFailed),
             (CorridorPollingError.rejected(statusCode: 403), .authFailed),
             (CorridorPollingError.rejected(statusCode: 500), .backendRejected),
@@ -176,18 +177,17 @@ final class CorridorImportRejectionTests: XCTestCase {
     }
 
     func testARejectedImportCarriesItsStatus() async throws {
-        let transport = StatusTransport(status: 401)
-        let auth = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        _ = try await auth.signIn(placeholderIdentity: "x")
+        // 403: a 401 now renews the session first (milestone 10), so it never reaches the caller as is.
+        let transport = StatusTransport(status: 403)
         let service = CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: auth, transport: transport)
+            baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
         let route = ImportedRoute(points: [], totalDistanceMeters: 0, totalClimbingMeters: nil, hash: "h")
 
         do {
             _ = try await service.importRoute(route)
             XCTFail("expected a rejection")
         } catch {
-            XCTAssertEqual(error as? CorridorPollingError, .rejected(statusCode: 401))
+            XCTAssertEqual(error as? CorridorPollingError, .rejected(statusCode: 403))
         }
     }
 }

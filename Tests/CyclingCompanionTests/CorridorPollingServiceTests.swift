@@ -34,32 +34,12 @@ private struct FailingTransport: HTTPTransport {
 /// Milestone 8 (RULE-18): one corridor status check, classified. AC-47 to AC-49, AC-29/AC-30.
 final class CorridorPollingServiceTests: XCTestCase {
 
-    private static func makeAuthClient() async throws -> AuthStubClient {
-        let signInBody = #"{"token":"stub-jwt","riderId":"11111111-1111-1111-1111-111111111111"}"#
-            .data(using: .utf8)!
-        struct SingleResponseTransport: HTTPTransport {
-            let body: Data
-            func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-                let response = HTTPURLResponse(
-                    url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-                return (body, response)
-            }
-        }
-        let client = AuthStubClient(
-            baseURL: URL(string: "https://backend.example.com")!,
-            transport: SingleResponseTransport(body: signInBody))
-        _ = try await client.signIn(placeholderIdentity: "device-test")
-        return client
-    }
-
     private static let readyBody = """
         {"status":"ready","pois":[{"osmId":-42,"type":"WATER","name":null,"latitude":52.0005,"longitude":13.0,"kmMarkMeters":55.6,"detourMeters":12.0,"openingHours":"unknown","normalizedOpeningHours":{"alwaysOpen":false,"unknown":true,"intervals":[]}}],"coverageRegion":"Netherlands","outsideMeters":1250.5}
         """.data(using: .utf8)!
 
     private func service(_ transport: HTTPTransport) async throws -> CorridorPollingService {
-        CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: try await Self.makeAuthClient(),
-            transport: transport)
+        CorridorPollingService(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
     }
 
     private func result(status: Int, body: Data) async throws -> CorridorPollResult {

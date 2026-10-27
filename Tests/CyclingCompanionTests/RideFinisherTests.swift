@@ -75,11 +75,7 @@ final class RideFinisherTests: XCTestCase {
         rideRecorder: RideFinalizing, rideCoordinator: RideCoordinator, rideStore: RideStore,
         transport: HTTPTransport = AlwaysSucceedsTransport()
     ) -> RideFinisher {
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let lazySignIn = LazySignIn(authClient: authClient)
-        let ingestClient = RideIngestClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, lazySignIn: lazySignIn,
-            transport: transport)
+        let ingestClient = RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
         let pendingQueue = PendingRideUploadQueue(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         return RideFinisher(

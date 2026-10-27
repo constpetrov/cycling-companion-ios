@@ -17,8 +17,8 @@ final class AppDependencies {
     let pointer: CurrentRoutePointer
     let decisionLog: DecisionLog
     let notifier: Notifier
-    let authClient: AuthStubClient
-    let lazySignIn: LazySignIn
+    let authAPI: AuthAPIClient
+    let authSession: AuthSession
     let advisorClient: AdvisorClient
     let corridorImportCoordinator: CorridorImportCoordinator
     let rideStarter: RideStarter
@@ -39,19 +39,19 @@ final class AppDependencies {
         keepScreenOnPreference: KeepScreenOnPreference, idleTimer: IdleTimerControlling,
         stopTypeSettings: StopTypeSettings,
         directions: DirectionsOpening = NoDirections(), permissions: PermissionStatusProviding = GrantedPermissions(),
-        transport: HTTPTransport = URLSession.shared
+        tokenStore: TokenStore, initialAccessToken: String? = nil, transport: HTTPTransport = URLSession.shared
     ) {
         let decisionLog = DecisionLog()
         let notifier = Notifier(scheduling: notificationScheduling, log: decisionLog)
-        let authClient = AuthStubClient(baseURL: baseURL, transport: transport, demoAccessToken: demoAccessToken)
-        let lazySignIn = LazySignIn(authClient: authClient)
+        // Milestone 10 (RULE-32): one session signs every authenticated request.
+        let authAPI = AuthAPIClient(baseURL: baseURL, transport: transport, demoAccessToken: demoAccessToken)
+        let authSession = AuthSession(
+            api: authAPI, tokenStore: tokenStore, transport: transport, accessToken: initialAccessToken)
         // The HTTP deadline uses wall-clock time, even during an accelerated demo replay.
-        let advisorClient = AdvisorClient(
-            baseURL: baseURL, authClient: authClient, lazySignIn: lazySignIn, transport: transport)
+        let advisorClient = AdvisorClient(baseURL: baseURL, session: authSession)
         let appRouter = AppRouter()
         let rideCoordinator = RideCoordinator()
-        let rideIngestClient = RideIngestClient(
-            baseURL: baseURL, authClient: authClient, lazySignIn: lazySignIn, transport: transport)
+        let rideIngestClient = RideIngestClient(baseURL: baseURL, session: authSession)
         let pendingUploadQueue = PendingRideUploadQueue(fileURL: pendingUploadsFileURL)
 
         self.appRouter = appRouter
@@ -61,12 +61,12 @@ final class AppDependencies {
         self.pointer = pointer
         self.decisionLog = decisionLog
         self.notifier = notifier
-        self.authClient = authClient
-        self.lazySignIn = lazySignIn
+        self.authAPI = authAPI
+        self.authSession = authSession
         self.advisorClient = advisorClient
         let corridorImportCoordinator = CorridorImportCoordinator(
-            corridorPollingService: CorridorPollingService(baseURL: baseURL, authClient: authClient, transport: transport),
-            routeStore: routeStore, pointer: pointer, appRouter: appRouter, lazySignIn: lazySignIn)
+            corridorPollingService: CorridorPollingService(baseURL: baseURL, session: authSession),
+            routeStore: routeStore, pointer: pointer, appRouter: appRouter)
         self.corridorImportCoordinator = corridorImportCoordinator
         let rideStarter = RideStarter(
             routeStore: routeStore, rideStore: rideStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
@@ -91,6 +91,9 @@ final class AppDependencies {
 
     /// The production graph for `configuration`, on the app's real files and `URLSession`.
     static func live(configuration: BackendConfiguration) -> AppDependencies {
+        let tokenStore = KeychainTokenStore()
+        // RULE-36: before anything can sign in with a token left by a previous install.
+        FirstLaunchCheck.run(defaults: .standard, tokenStore: tokenStore)
         let temporary = FileManager.default.temporaryDirectory
         let pendingUploadsFileURL =
             ((try? FileManager.default.url(
@@ -106,7 +109,7 @@ final class AppDependencies {
             notificationScheduling: UNUserNotificationCenter.current(),
             keepScreenOnPreference: UserDefaultsKeepScreenOnPreference(), idleTimer: ApplicationIdleTimer(),
             stopTypeSettings: StopTypeSettings(),
-            directions: AppleMapsDirections(), permissions: SystemPermissions())
+            directions: AppleMapsDirections(), permissions: SystemPermissions(), tokenStore: tokenStore)
     }
 
     func makeRideResumer() -> RideResumer {
@@ -163,7 +166,9 @@ extension AppDependencies {
             pendingUploadsFileURL: directory.appendingPathComponent("pending_ride_uploads.json"),
             pointer: CurrentRoutePointer(defaults: defaults), notificationScheduling: PreviewNotificationScheduling(),
             keepScreenOnPreference: InMemoryKeepScreenOnPreference(), idleTimer: NoIdleTimer(),
-            stopTypeSettings: StopTypeSettings(defaults: defaults), transport: OfflineTransport())
+            stopTypeSettings: StopTypeSettings(defaults: defaults),
+            tokenStore: InMemoryTokenStore(token: "preview-refresh-token"), initialAccessToken: "preview-access-token",
+            transport: OfflineTransport())
     }
 }
 

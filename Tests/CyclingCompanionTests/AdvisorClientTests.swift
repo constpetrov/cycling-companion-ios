@@ -64,11 +64,9 @@ final class AdvisorClientTests: XCTestCase {
     private func makeClient(
         transport: HTTPTransport, clock: Clock = SystemClock(), deadlineSeconds: TimeInterval = 8.0
     ) -> AdvisorClient {
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let lazySignIn = LazySignIn(authClient: authClient)
-        return AdvisorClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, lazySignIn: lazySignIn,
-            transport: transport, clock: clock, deadlineSeconds: deadlineSeconds)
+        AdvisorClient(
+            baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport), clock: clock,
+            deadlineSeconds: deadlineSeconds)
     }
 
     @MainActor
@@ -93,20 +91,24 @@ final class AdvisorClientTests: XCTestCase {
         XCTAssertEqual(decision?.stopId, "42")
     }
 
+    /// Milestone 10: a session without an access token yet (a fresh launch) refreshes first.
     @MainActor
-    func testSignsInBeforeTheAdvisorCallWhenNotYetSignedIn() async {
+    func testRefreshesTheSessionBeforeTheAdvisorCallAtFirstUse() async {
         let responder = PathRoutedResponder(responsesByPathSuffix: [
-            "sign-in": (200, signInResponse),
+            "auth/refresh": (200, Data(#"{"accessToken":"a1","refreshToken":"r1","riderId":"rider-1","accessTokenExpiresIn":3600}"#.utf8)),
             "advisor/decision": (200, #"{"suggest":false}"#.data(using: .utf8)!),
         ])
-        let client = makeClient(transport: responder, clock: GatedClock())
+        let session = AuthSession(
+            api: AuthAPIClient(baseURL: TestAuth.baseURL, transport: responder),
+            tokenStore: InMemoryTokenStore(token: "r0"), transport: responder)
+        let client = AdvisorClient(baseURL: TestAuth.baseURL, session: session, clock: GatedClock())
 
         _ = await client.requestDecision(rideId: "ride-1", routeId: "route-1", snapshot: snapshot(), candidates: [])
 
         let paths = await responder.pathsCalledInOrder
         XCTAssertEqual(paths.count, 2)
-        XCTAssertTrue(paths[0].hasSuffix("sign-in"))
-        XCTAssertTrue(paths[1].hasSuffix("advisor/decision"))
+        XCTAssertTrue(paths.first?.hasSuffix("auth/refresh") ?? false)
+        XCTAssertTrue(paths.last?.hasSuffix("advisor/decision") ?? false)
     }
 
     @MainActor

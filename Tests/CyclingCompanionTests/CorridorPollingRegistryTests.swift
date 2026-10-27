@@ -50,15 +50,14 @@ final class CorridorPollingRegistryTests: XCTestCase {
     private func coordinator(
         _ backend: ScriptedCorridorBackend, clock: Clock = ReplayClock()
     ) -> (CorridorImportCoordinator, RouteStore, CurrentRoutePointer) {
-        let auth = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: backend)
         let service = CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: auth, transport: backend)
+            baseURL: TestAuth.baseURL, session: TestAuth.session(transport: backend))
         let store = RouteStore(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         let pointer = CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!)
         let coordinator = CorridorImportCoordinator(
             corridorPollingService: service, routeStore: store, pointer: pointer, appRouter: AppRouter(),
-            lazySignIn: LazySignIn(authClient: auth), clock: clock)
+            clock: clock)
         return (coordinator, store, pointer)
     }
 

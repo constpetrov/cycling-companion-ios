@@ -13,6 +13,7 @@ private actor ScriptedBackend: HTTPTransport {
 
     private var corridor: [Reply]
     private var retry: [Reply]
+    /// Milestone 10: the session can't be renewed — the API answers 401 and refresh is offline.
     private var signInFails: Bool
     private(set) var corridorCalls = 0
     private(set) var retryCalls = 0
@@ -37,8 +38,11 @@ private actor ScriptedBackend: HTTPTransport {
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let path = request.url!.path
         let reply: Reply
-        if path.hasSuffix("sign-in") {
-            reply = signInFails ? .fail(.notConnectedToInternet) : .http(200, #"{"token":"t","riderId":"11111111-1111-1111-1111-111111111111"}"#)
+        if path.hasSuffix("auth/refresh") {
+            reply = signInFails ? .fail(.notConnectedToInternet)
+                : .http(200, #"{"accessToken":"a","refreshToken":"r","riderId":"rider","accessTokenExpiresIn":3600}"#)
+        } else if signInFails {
+            reply = .http(401, "")
         } else if path.hasSuffix("/retry") {
             retryCalls += 1
             if gateRetry { await withCheckedContinuation { retryGate = $0 } }
@@ -73,12 +77,12 @@ final class CorridorStopsRefreshTests: XCTestCase {
         -> (CorridorImportCoordinator, RouteStore, CurrentRoutePointer)
     {
         let url = URL(string: "https://backend.example.com")!
-        let auth = AuthStubClient(baseURL: url, transport: backend)
         let store = RouteStore(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         let pointer = CurrentRoutePointer(defaults: UserDefaults(suiteName: UUID().uuidString)!)
         let coordinator = CorridorImportCoordinator(
-            corridorPollingService: CorridorPollingService(baseURL: url, authClient: auth, transport: backend),
-            routeStore: store, pointer: pointer, appRouter: AppRouter(), lazySignIn: LazySignIn(authClient: auth), clock: clock)
+            corridorPollingService: CorridorPollingService(
+                baseURL: url, session: TestAuth.session(baseURL: url, transport: backend)),
+            routeStore: store, pointer: pointer, appRouter: AppRouter(), clock: clock)
         return (coordinator, store, pointer)
     }
 

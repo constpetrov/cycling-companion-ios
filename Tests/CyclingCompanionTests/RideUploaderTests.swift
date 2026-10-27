@@ -46,10 +46,7 @@ final class RideUploaderTests: XCTestCase {
 
     @MainActor
     private func uploader(_ transport: HTTPTransport) -> (RideUploader, PendingRideUploadQueue) {
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let client = RideIngestClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient,
-            lazySignIn: LazySignIn(authClient: authClient), transport: transport)
+        let client = RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
         let queue = PendingRideUploadQueue(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         return (RideUploader(ingestClient: client, queue: queue), queue)

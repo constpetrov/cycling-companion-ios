@@ -73,13 +73,11 @@ final class CorridorImportCoordinatorTests: XCTestCase {
     private func makeCoordinator(transport: HTTPTransport, routeStore: RouteStore, pointer: CurrentRoutePointer, appRouter: AppRouter)
         -> CorridorImportCoordinator
     {
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
         let service = CorridorPollingService(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, transport: transport)
-        let lazySignIn = LazySignIn(authClient: authClient)
+            baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
         return CorridorImportCoordinator(
             corridorPollingService: service, routeStore: routeStore, pointer: pointer, appRouter: appRouter,
-            lazySignIn: lazySignIn, clock: StoppingClock(stopAfterSeconds: 60))
+            clock: StoppingClock(stopAfterSeconds: 60))
     }
 
     // MARK: - Success: immediate persist, pointer, and navigation (AC-6)
