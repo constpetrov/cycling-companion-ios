@@ -19,6 +19,8 @@ final class AppDependencies {
     let notifier: Notifier
     let authAPI: AuthAPIClient
     let authSession: AuthSession
+    let sessionState: SessionState
+    let accountMemory: AccountMemory
     let advisorClient: AdvisorClient
     let corridorImportCoordinator: CorridorImportCoordinator
     let rideStarter: RideStarter
@@ -39,7 +41,8 @@ final class AppDependencies {
         keepScreenOnPreference: KeepScreenOnPreference, idleTimer: IdleTimerControlling,
         stopTypeSettings: StopTypeSettings,
         directions: DirectionsOpening = NoDirections(), permissions: PermissionStatusProviding = GrantedPermissions(),
-        tokenStore: TokenStore, initialAccessToken: String? = nil, transport: HTTPTransport = URLSession.shared
+        tokenStore: TokenStore, initialAccessToken: String? = nil, accountMemory: AccountMemory = AccountMemory(),
+        transport: HTTPTransport = URLSession.shared
     ) {
         let decisionLog = DecisionLog()
         let notifier = Notifier(scheduling: notificationScheduling, log: decisionLog)
@@ -47,6 +50,16 @@ final class AppDependencies {
         let authAPI = AuthAPIClient(baseURL: baseURL, transport: transport, demoAccessToken: demoAccessToken)
         let authSession = AuthSession(
             api: authAPI, tokenStore: tokenStore, transport: transport, accessToken: initialAccessToken)
+        // RULE-37: signed in when a refresh token is stored (a locked Keychain still has one).
+        let hasStoredSession: Bool
+        do {
+            hasStoredSession = try tokenStore.load() != nil
+        } catch {
+            hasStoredSession = true
+        }
+        let sessionState = SessionState(
+            status: hasStoredSession ? .signedIn(riderId: accountMemory.riderId ?? "") : .signedOut)
+        sessionState.observe(authSession.events)
         // The HTTP deadline uses wall-clock time, even during an accelerated demo replay.
         let advisorClient = AdvisorClient(baseURL: baseURL, session: authSession)
         let appRouter = AppRouter()
@@ -63,6 +76,8 @@ final class AppDependencies {
         self.notifier = notifier
         self.authAPI = authAPI
         self.authSession = authSession
+        self.sessionState = sessionState
+        self.accountMemory = accountMemory
         self.advisorClient = advisorClient
         let corridorImportCoordinator = CorridorImportCoordinator(
             corridorPollingService: CorridorPollingService(baseURL: baseURL, session: authSession),
@@ -168,7 +183,7 @@ extension AppDependencies {
             keepScreenOnPreference: InMemoryKeepScreenOnPreference(), idleTimer: NoIdleTimer(),
             stopTypeSettings: StopTypeSettings(defaults: defaults),
             tokenStore: InMemoryTokenStore(token: "preview-refresh-token"), initialAccessToken: "preview-access-token",
-            transport: OfflineTransport())
+            accountMemory: AccountMemory(defaults: defaults), transport: OfflineTransport())
     }
 }
 

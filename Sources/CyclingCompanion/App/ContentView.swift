@@ -2,12 +2,26 @@ import SwiftUI
 
 /// The app's root view (RULE-7/RULE-9): a `NavigationStack` rooted at Home whose pushed screens
 /// come from `AppRouter.path`, with the ride (live, then its summary) in a full-screen cover driven
-/// by `RideCoordinator.presentation`. It never decides anything itself; everything comes from `AppDependencies`.
+/// by `RideCoordinator.presentation`. Milestone 10 (RULE-37): without a session, and only once no
+/// ride is on screen, the sign-in flow takes its place. It never decides anything itself;
+/// everything comes from `AppDependencies`.
 struct ContentView: View {
     @Environment(AppDependencies.self) private var dependencies
 
     var body: some View {
+        if SessionGate.showsSignIn(
+            status: dependencies.sessionState.status, ridePhase: dependencies.rideCoordinator.phase,
+            rideOnScreen: dependencies.rideCoordinator.presentation != nil)
+        {
+            AuthFlowView()
+        } else {
+            app
+        }
+    }
+
+    private var app: some View {
         @Bindable var router = dependencies.appRouter
+        return
         NavigationStack(path: $router.path) {
             HomeView()
                 .navigationDestination(for: HomeRoute.self, destination: destination)

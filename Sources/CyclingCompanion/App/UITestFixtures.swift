@@ -42,7 +42,7 @@ enum UITestFixtures {
                 ? PartialPermissions() : GrantedPermissions(),
             // Milestone 10: UI tests start signed in, with a session the stub backend accepts.
             tokenStore: InMemoryTokenStore(token: "ui-test-refresh-token"), initialAccessToken: "ui-test-access-token",
-            transport: StubBackendTransport())
+            accountMemory: AccountMemory(defaults: defaults), transport: StubBackendTransport())
     }
 
     /// Seeds a ready route running north along the Demo Mode replay (52.0°N → 52.03°N at 13.0°E),
