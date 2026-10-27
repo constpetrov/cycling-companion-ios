@@ -53,8 +53,10 @@ actor FakeTokenBackend: HTTPTransport {
         return (ok ? Data(#"{"ok":true}"#.utf8) : Data(), Self.response(url, ok ? 200 : 401))
     }
 
+    /// A 401 here is a token rejection, so it carries the Bearer challenge like Spring's.
     private static func response(_ url: URL, _ status: Int) -> HTTPURLResponse {
-        HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)!
+        HTTPURLResponse(url: url, statusCode: status, httpVersion: nil,
+                        headerFields: status == 401 ? ["WWW-Authenticate": #"Bearer error="invalid_token""#] : nil)!
     }
 }
 
@@ -237,6 +239,21 @@ final class AuthSessionTests: XCTestCase {
         XCTAssertEqual(event, .signedIn(riderId: "rider-7"))
         let (_, response) = try await session.send(apiRequest)
         XCTAssertEqual(response.statusCode, 200)
+    }
+
+    /// A 401 without the Bearer challenge (e.g. PASSWORD_INCORRECT) is an answer, not an expired token.
+    func testA401WithoutTheBearerChallengeIsReturnedAsIs() async throws {
+        let recorder = ScriptedAuthTransport(status: 401, body: #"{"error":"PASSWORD_INCORRECT","message":"Password is incorrect"}"#)
+        let session = AuthSession(api: AuthAPIClient(baseURL: TestAuth.baseURL, transport: recorder),
+                                  tokenStore: InMemoryTokenStore(token: "r"), transport: recorder, accessToken: "a")
+
+        let (_, response) = try await session.send(apiRequest)
+
+        XCTAssertEqual(response.statusCode, 401)
+        let sent = await recorder.sent
+        XCTAssertEqual(sent.map(\.path), ["/api/v1/routes/x/corridor"], "no refresh, no retry")
+        let stored = await session.hasStoredSession()
+        XCTAssertTrue(stored)
     }
 
     func testRequestsCarryTheDemoKey() async throws {

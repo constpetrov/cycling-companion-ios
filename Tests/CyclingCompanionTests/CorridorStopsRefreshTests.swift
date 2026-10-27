@@ -9,6 +9,8 @@ private actor ScriptedBackend: HTTPTransport {
     enum Reply: Sendable {
         case http(Int, String)
         case fail(URLError.Code)
+        /// The access token was rejected (401 with the Bearer challenge).
+        case unauthorized
     }
 
     private var corridor: [Reply]
@@ -42,7 +44,7 @@ private actor ScriptedBackend: HTTPTransport {
             reply = signInFails ? .fail(.notConnectedToInternet)
                 : .http(200, #"{"accessToken":"a","refreshToken":"r","riderId":"rider","accessTokenExpiresIn":3600}"#)
         } else if signInFails {
-            reply = .http(401, "")
+            reply = .unauthorized
         } else if path.hasSuffix("/retry") {
             retryCalls += 1
             if gateRetry { await withCheckedContinuation { retryGate = $0 } }
@@ -56,6 +58,9 @@ private actor ScriptedBackend: HTTPTransport {
             throw URLError(code)
         case .http(let status, let body):
             return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+        case .unauthorized:
+            return (Data(), HTTPURLResponse(url: request.url!, statusCode: 401, httpVersion: nil,
+                                            headerFields: ["WWW-Authenticate": "Bearer"])!)
         }
     }
 }

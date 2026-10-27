@@ -46,6 +46,47 @@ final class AccountActions {
         self.retryQueuedUploads = retryQueuedUploads
     }
 
+    /// The signed-in account's email, for Settings.
+    var email: String? {
+        accountMemory.email
+    }
+
+    /// RULE-41: Delete account isn't offered while a ride is preparing, active or finishing.
+    var isRideInProgress: Bool {
+        rideCoordinator.phase != .idle
+    }
+
+    /// RA-15: the phone stays signed in; the backend revokes every other session.
+    func changePassword(current: String, new: String) async throws(AuthAPIError) {
+        try await sendAccountRequest(api.changePasswordRequest(currentPassword: current, newPassword: new))
+        Self.log.info("Password changed")
+    }
+
+    /// RA-11: deletes the account and everything it owns, then this phone's data.
+    func deleteAccount(password: String) async throws(AuthAPIError) {
+        try await sendAccountRequest(api.deleteAccountRequest(password: password))
+        await eraser.eraseAll()
+        accountMemory.forget()
+        sessionState.signedOut()
+        Self.log.info("Account deleted; local data erased")
+    }
+
+    private func sendAccountRequest(_ request: URLRequest) async throws(AuthAPIError) {
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await session.send(request)
+        } catch AuthSessionError.sessionEnded {
+            throw .refused(code: AuthAPIError.sessionInvalid, message: "Your session has ended. Please sign in again.",
+                           status: 401)
+        } catch {
+            throw .unavailable
+        }
+        guard (200...299).contains(response.statusCode) else {
+            throw AuthAPIClient.error(status: response.statusCode, data: data)
+        }
+    }
+
     /// RULE-39: rides that would be lost — queued uploads, plus a ride in progress.
     func unuploadedRideCount() async -> Int {
         let queued = (try? await pendingUploadQueue.fetchAllOldestFirst().count) ?? 0

@@ -1,12 +1,17 @@
 import SwiftUI
 
-/// Settings, pushed from Home: which stop types the maps show and the ride suggests.
+/// Settings, pushed from Home: the account (milestone 10), and which stop types the maps show and
+/// the ride suggests.
 struct SettingsView: View {
     @Environment(AppDependencies.self) private var dependencies
+    @State private var account: AccountSettingsModel?
 
     var body: some View {
         let settings = dependencies.stopTypeSettings
         Form {
+            if let account {
+                AccountSection(model: account)
+            }
             Section {
                 ForEach(StopType.allCases) { type in
                     Toggle(isOn: Binding(
@@ -35,6 +40,9 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .onAppear {
+            if account == nil { account = AccountSettingsModel(actions: dependencies.accountActions) }
+        }
     }
 }
 

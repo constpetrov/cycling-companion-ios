@@ -82,15 +82,23 @@ actor AuthSession {
         }
         guard let used = accessToken else { throw AuthSessionError.sessionEnded(.expired) }
         let (data, response) = try await perform(request, token: used)
-        guard response.statusCode == 401 else { return (data, response) }
+        guard Self.rejectsToken(response) else { return (data, response) }
 
         try await refresh(replacing: used)
         guard let renewed = accessToken else { throw AuthSessionError.sessionEnded(.expired) }
         let (retryData, retryResponse) = try await perform(request, token: renewed)
-        guard retryResponse.statusCode == 401 else { return (retryData, retryResponse) }
+        guard Self.rejectsToken(retryResponse) else { return (retryData, retryResponse) }
         Self.log.notice("A refreshed request still got 401 — ending the session")
         end(.expired)
         throw AuthSessionError.sessionEnded(.expired)
+    }
+
+    /// A 401 about the access token carries `WWW-Authenticate: Bearer …` (Spring's resource server and
+    /// the rider-exists check). Other 401s are answers, not token problems: a wrong current password
+    /// is 401 `PASSWORD_INCORRECT` and must not end the session.
+    static func rejectsToken(_ response: HTTPURLResponse) -> Bool {
+        guard response.statusCode == 401 else { return false }
+        return response.value(forHTTPHeaderField: "WWW-Authenticate")?.lowercased().hasPrefix("bearer") ?? false
     }
 
     private func perform(_ request: URLRequest, token: String) async throws -> (Data, HTTPURLResponse) {
