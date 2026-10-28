@@ -146,5 +146,8 @@ private struct StatusBadge: View {
 /// readable at a glance and passes the contrast audit; a translucent material over the map did not
 /// (milestone 7, RULE-28).
 enum DashboardPanel {
-    static let background = Color(uiColor: .systemBackground).opacity(0.96)
+    /// Opaque: map tiles showing through a translucent panel lowered the text's contrast wherever a dark road or
+    /// label passed underneath (the accessibility audit flagged a different label on each run), and an opaque panel
+    /// reads better in sunlight.
+    static let background = Color(uiColor: .systemBackground)
 }
