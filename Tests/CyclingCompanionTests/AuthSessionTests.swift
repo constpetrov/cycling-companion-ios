@@ -256,6 +256,52 @@ final class AuthSessionTests: XCTestCase {
         XCTAssertTrue(stored)
     }
 
+    /// Milestone 10 review: a refresh that returns after sign-out doesn't bring the session back.
+    func testARefreshThatReturnsAfterSignOutIsDiscarded() async throws {
+        let backend = FakeTokenBackend(currentAccessToken: "valid", refreshDelayNanoseconds: 200_000_000)
+        let store = InMemoryTokenStore(token: "refresh-0")
+        let session = session(backend, accessToken: nil, store: store)
+        let request = apiRequest
+
+        let sending = Task { try await session.send(request) }
+        while await backend.refreshCalls == 0 { await Task.yield() }
+        await session.clear()
+
+        do {
+            _ = try await sending.value
+            XCTFail("expected the request to fail")
+        } catch {
+            XCTAssertEqual(error as? AuthSessionError, .sessionChanged)
+        }
+        XCTAssertNil(try store.load(), "the rotated token must not be saved after sign-out")
+        let stored = await session.hasStoredSession()
+        XCTAssertFalse(stored)
+    }
+
+    /// Milestone 10 review: another rider signing in during a refresh keeps their own session, and
+    /// the first rider's request is never sent with it.
+    func testARefreshThatReturnsAfterAnotherRiderSignedInIsDiscarded() async throws {
+        let backend = FakeTokenBackend(currentAccessToken: "valid", refreshDelayNanoseconds: 200_000_000)
+        let store = InMemoryTokenStore(token: "refresh-0")
+        let session = session(backend, accessToken: nil, store: store)
+        let request = apiRequest
+
+        let sending = Task { try await session.send(request) }
+        while await backend.refreshCalls == 0 { await Task.yield() }
+        try await session.adopt(TokenResponse(accessToken: "b-access", refreshToken: "b-refresh", riderId: "rider-b",
+                                              accessTokenExpiresIn: 3600))
+
+        do {
+            _ = try await sending.value
+            XCTFail("expected the request to fail")
+        } catch {
+            XCTAssertEqual(error as? AuthSessionError, .sessionChanged)
+        }
+        XCTAssertEqual(try store.load(), "b-refresh")
+        let apiCalls = await backend.apiCalls
+        XCTAssertEqual(apiCalls, 0, "the first rider's request never went out with rider B's token")
+    }
+
     func testRequestsCarryTheDemoKey() async throws {
         let recorder = ScriptedAuthTransport(status: 200, body: "{}")
         let session = AuthSession(api: AuthAPIClient(baseURL: URL(string: "https://backend.example.com")!, transport: recorder,

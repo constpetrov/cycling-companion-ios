@@ -76,8 +76,26 @@ final class AuthFlowModel {
     var switchWarning: String {
         guard let pendingSwitch else { return "" }
         let rides = pendingSwitch.unuploadedRides
+        if pendingSwitch.predatesAccounts {
+            let waiting = rides == 0 ? "" : rides == 1 ? " 1 ride isn't uploaded yet." : " \(rides) rides aren't uploaded yet."
+            return "This phone has routes and rides recorded before accounts.\(waiting) Keep them with this account if they're yours; otherwise delete them from this phone."
+        }
         let lost = rides == 0 ? "" : rides == 1 ? " 1 ride not uploaded yet will be lost." : " \(rides) rides not uploaded yet will be lost."
         return "This phone still has another rider's routes and rides. Signing in deletes them from this phone.\(lost)"
+    }
+
+    /// The data predates accounts: keep it with this account and sign in.
+    func keepExistingData() async {
+        guard let pending = pendingSwitch else { return }
+        pendingSwitch = nil
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            try await actions.keep(pending)
+            password = ""
+        } catch {
+            errorMessage = error.message
+        }
     }
 
     /// AC-131: erase the last rider's data and sign in.

@@ -11,6 +11,9 @@ enum SessionEndReason: Equatable, Sendable {
 enum AuthSessionError: Error, Equatable {
     /// No session: nobody signed in, or the session just ended (`reason`).
     case sessionEnded(SessionEndReason)
+    /// The rider signed out or another rider signed in while this request was under way; it is
+    /// never re-sent with the new session's token.
+    case sessionChanged
     /// The session is fine but couldn't be renewed right now (offline, 5xx, Keychain locked).
     case unavailable
 }
@@ -35,6 +38,10 @@ actor AuthSession {
     private let transport: HTTPTransport
     private var accessToken: String?
     private var inFlightRefresh: Task<Void, Error>?
+    /// Bumped by `adopt` and `clear`. Work that suspended (a refresh, a request) checks it afterwards,
+    /// so a late answer for an old session can't revive it or leak into the new one (actor
+    /// reentrancy; milestone 10 review).
+    private var generation = 0
     private let eventsContinuation: AsyncStream<Event>.Continuation
 
     /// Sign-ins and session ends, for `SessionState`.
@@ -50,22 +57,20 @@ actor AuthSession {
 
     /// Whether a refresh token is stored. A locked Keychain counts as yes: the token is still there.
     func hasStoredSession() -> Bool {
-        do {
-            return try tokenStore.load() != nil
-        } catch {
-            return true
-        }
+        tokenStore.hasStoredToken
     }
 
     /// After sign-in, sign-up or reset: keeps the new tokens and announces the rider.
     func adopt(_ tokens: TokenResponse) throws {
         try tokenStore.save(tokens.refreshToken)
+        generation += 1
         accessToken = tokens.accessToken
         eventsContinuation.yield(.signedIn(riderId: tokens.riderId))
     }
 
     /// Forgets both tokens (sign-out, account deletion); the caller tells the backend if it can.
     func clear() {
+        generation += 1
         accessToken = nil
         try? tokenStore.delete()
     }
@@ -77,14 +82,18 @@ actor AuthSession {
 
     /// Sends an authenticated request; see the type's documentation for the 401 handling.
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let started = generation
         if accessToken == nil {
             try await refresh(replacing: nil)
         }
+        guard generation == started else { throw AuthSessionError.sessionChanged }
         guard let used = accessToken else { throw AuthSessionError.sessionEnded(.expired) }
         let (data, response) = try await perform(request, token: used)
         guard Self.rejectsToken(response) else { return (data, response) }
 
         try await refresh(replacing: used)
+        // Another rider's token must never carry this rider's request.
+        guard generation == started else { throw AuthSessionError.sessionChanged }
         guard let renewed = accessToken else { throw AuthSessionError.sessionEnded(.expired) }
         let (retryData, retryResponse) = try await perform(request, token: renewed)
         guard Self.rejectsToken(retryResponse) else { return (retryData, retryResponse) }
@@ -128,6 +137,7 @@ actor AuthSession {
     }
 
     private func performRefresh() async throws {
+        let started = generation
         let stored: String?
         do {
             stored = try tokenStore.load()
@@ -140,9 +150,14 @@ actor AuthSession {
         }
         do {
             let tokens = try await api.refresh(refreshToken: stored)
+            // Signed out or switched riders meanwhile: this answer belongs to a session that's gone.
+            guard generation == started else { throw AuthSessionError.sessionChanged }
             try? tokenStore.save(tokens.refreshToken)
             accessToken = tokens.accessToken
-        } catch let error where error.endsSession {
+        } catch let error as AuthSessionError {
+            throw error
+        } catch let error as AuthAPIError where error.endsSession {
+            guard generation == started else { throw AuthSessionError.sessionChanged }
             let reason: SessionEndReason = error.code == AuthAPIError.accountDisabled
                 ? .disabled(message: error.message) : .expired
             Self.log.notice("Refresh refused — ending the session")

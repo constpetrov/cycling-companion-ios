@@ -18,6 +18,9 @@ final class AccountActions {
         let email: String
         /// Rides that would be lost: queued uploads plus a ride in progress.
         let unuploadedRides: Int
+        /// The data predates accounts (no rider remembered): it may well be this rider's own, so
+        /// keeping it is offered too (milestone 10 review).
+        var predatesAccounts = false
     }
 
     private static let log = Log.logger(category: "Auth")
@@ -118,11 +121,14 @@ final class AccountActions {
     }
 
     /// RA-24, RULE-40: the same rider keeps the phone's data and gets its queued rides uploaded; a
-    /// different rider must confirm first when there is data to lose.
+    /// different rider must confirm first when there is data to lose. Data from before accounts (no
+    /// rider remembered) is asked about too: keep it with this account, or delete it.
     private func start(_ tokens: TokenResponse, email: String) async throws(AuthAPIError) -> StartResult {
         let previous = accountMemory.riderId
-        if let previous, previous != tokens.riderId, await eraser.hasData() {
-            return .confirmSwitch(PendingSwitch(tokens: tokens, email: email, unuploadedRides: await unuploadedRideCount()))
+        if previous != tokens.riderId, await eraser.hasData() {
+            return .confirmSwitch(PendingSwitch(
+                tokens: tokens, email: email, unuploadedRides: await unuploadedRideCount(),
+                predatesAccounts: previous == nil))
         }
         try await adopt(tokens, email: email)
         if previous == tokens.riderId {
@@ -131,10 +137,17 @@ final class AccountActions {
         return .signedIn
     }
 
-    /// The rider accepted losing the last rider's data: erase it, then keep the new session.
+    /// The rider accepted losing the last rider's data. The new session is stored first and the data
+    /// erased only then, so a failed Keychain write loses nothing (milestone 10 review).
     func confirm(_ pending: PendingSwitch) async throws(AuthAPIError) {
-        await eraser.eraseAll()
         try await adopt(pending.tokens, email: pending.email)
+        await eraser.eraseLocalData()
+    }
+
+    /// Data from before accounts kept with this account: it is the rider's own (the takeover case).
+    func keep(_ pending: PendingSwitch) async throws(AuthAPIError) {
+        try await adopt(pending.tokens, email: pending.email)
+        await retryQueuedUploads()
     }
 
     /// The rider kept the data: the new session is ended on the backend and never stored.

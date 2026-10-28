@@ -16,14 +16,20 @@ struct LocalDataEraser {
     let appRouter: AppRouter
     let session: AuthSession
 
+    /// Everything, the session included (sign-out, account deletion).
     func eraseAll() async {
+        await eraseLocalData()
+        await session.clear()
+    }
+
+    /// The rider's data without the session: an account switch keeps the new session it just stored.
+    func eraseLocalData() async {
         try? await routeStore.deleteAll()
         try? await rideStore.deleteAll()
         try? await pendingUploadQueue.removeAll()
         pointer.clear()
         corridorImportCoordinator.forgetEverything()
         appRouter.popToHome()
-        await session.clear()
     }
 
     /// Whether there is anything to lose: a route, a ride or a queued upload.

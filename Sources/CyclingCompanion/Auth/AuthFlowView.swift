@@ -108,11 +108,15 @@ private struct AuthForm: View {
         .navigationTitle(title)
         .onSubmit { Task { await model.submit() } }
         .confirmationDialog(
-            "Sign in as a different rider?",
+            model.pendingSwitch?.predatesAccounts == true ? "Keep the rides on this phone?" : "Sign in as a different rider?",
             // Both buttons clear `pendingSwitch`; dismissing the dialog runs the Cancel button's action.
             isPresented: Binding(get: { model.pendingSwitch != nil }, set: { _ in }),
             titleVisibility: .visible
         ) {
+            if model.pendingSwitch?.predatesAccounts == true {
+                Button("Keep them with this account") { Task { await model.keepExistingData() } }
+                    .accessibilityIdentifier("auth.keepData")
+            }
             Button("Delete and sign in", role: .destructive) { Task { await model.confirmSwitch() } }
                 .accessibilityIdentifier("auth.confirmSwitch")
             Button("Cancel", role: .cancel) { Task { await model.declineSwitch() } }

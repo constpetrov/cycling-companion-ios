@@ -11,6 +11,17 @@ protocol TokenStore: Sendable {
     func delete() throws
 }
 
+extension TokenStore {
+    /// Whether a refresh token is stored. A locked Keychain counts as yes: the token is still there.
+    var hasStoredToken: Bool {
+        do {
+            return try load() != nil
+        } catch {
+            return true
+        }
+    }
+}
+
 enum TokenStoreError: Error, Equatable {
     /// `errSecInteractionNotAllowed`: the token is fine, the device just isn't unlocked yet.
     case locked

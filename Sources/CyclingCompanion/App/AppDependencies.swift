@@ -52,14 +52,8 @@ final class AppDependencies {
         let authSession = AuthSession(
             api: authAPI, tokenStore: tokenStore, transport: transport, accessToken: initialAccessToken)
         // RULE-37: signed in when a refresh token is stored (a locked Keychain still has one).
-        let hasStoredSession: Bool
-        do {
-            hasStoredSession = try tokenStore.load() != nil
-        } catch {
-            hasStoredSession = true
-        }
         let sessionState = SessionState(
-            status: hasStoredSession ? .signedIn(riderId: accountMemory.riderId ?? "") : .signedOut)
+            status: tokenStore.hasStoredToken ? .signedIn(riderId: accountMemory.riderId ?? "") : .signedOut)
         sessionState.observe(authSession.events)
         // The HTTP deadline uses wall-clock time, even during an accelerated demo replay.
         let advisorClient = AdvisorClient(baseURL: baseURL, session: authSession)
