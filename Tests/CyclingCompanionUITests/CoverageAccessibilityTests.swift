@@ -55,7 +55,7 @@ final class CoverageAccessibilityTests: XCTestCase {
 
     /// Fails on any audit issue except those inside MapKit's own map, which the app doesn't control.
     private func audit(_ screen: String) throws {
-        try app.performAccessibilityAudit { issue in
+        try app.performAccessibilityAuditRetryingTimeout { issue in
             let inMap = issue.element.map { element in
                 element.identifier.contains("MKMapView") || element.label == "Legal" || element.label.contains("Maps")
             } ?? false

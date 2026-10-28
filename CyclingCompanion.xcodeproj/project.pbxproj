@@ -20,6 +20,7 @@
 		0DDE10A4BC8E6DFBD992A0D6 /* AuthAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73CCEC2A2E5EA9E4CFE0D14 /* AuthAPIClientTests.swift */; };
 		0F23C009677B556EAC02F5C2 /* LiveRideViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB92AEA5F1486E5AA65653B5 /* LiveRideViewModelTests.swift */; };
 		11311BD9BD4C44F57395A0C1 /* StopTypeSettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD60C7736F46854C6912EDF2 /* StopTypeSettingsUITests.swift */; };
+		1224A0AFE8DEDE6E2CEF507F /* AccessibilityAuditRetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A320F6F8CCFBA2F45D0A3B /* AccessibilityAuditRetry.swift */; };
 		145A60907A6529DB4B6F647F /* RideFinisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9797E4C259E02E6414A8240A /* RideFinisher.swift */; };
 		15941EA5C6C84F90A9916F52 /* LocalDataEraser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804BBA8FA1D5C398B50D97CA /* LocalDataEraser.swift */; };
 		1A26A866D51803A29F02F7D4 /* SuggestionPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D107A4A609CBCD38D31A3B21 /* SuggestionPersistenceTests.swift */; };
@@ -237,6 +238,7 @@
 		16AE4FDF6CA39E74DD8AE4B1 /* CyclingCompanionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingCompanionApp.swift; sourceTree = "<group>"; };
 		172D57A0A520B8AB90CE07A7 /* CoverageMessageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverageMessageTests.swift; sourceTree = "<group>"; };
 		175B70AD3495B7E73B97BEA0 /* CyclingCompanionTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CyclingCompanionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		18A320F6F8CCFBA2F45D0A3B /* AccessibilityAuditRetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditRetry.swift; sourceTree = "<group>"; };
 		1BA1EB61FA9FA4B9181F4B6B /* RideUploaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideUploaderTests.swift; sourceTree = "<group>"; };
 		1BF3B6B5B6A50418FEAB9B42 /* RouteAPIPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteAPIPayloads.swift; sourceTree = "<group>"; };
 		1BFACAAE6FC2C84153FA74E6 /* RoutePersistence */ = {isa = PBXFileReference; lastKnownFileType = folder; name = RoutePersistence; path = Packages/RoutePersistence; sourceTree = SOURCE_ROOT; };
@@ -520,6 +522,7 @@
 		519D36E1AC2580BEC2717F54 /* CyclingCompanionUITests */ = {
 			isa = PBXGroup;
 			children = (
+				18A320F6F8CCFBA2F45D0A3B /* AccessibilityAuditRetry.swift */,
 				06A977152FBD81DC28EE9DA7 /* CoverageAccessibilityTests.swift */,
 				5FCFDE8A450A981A73424465 /* RideLoopSmokeTests.swift */,
 				7B7FAF5215BEDB6023EACFE3 /* ScreenshotTourTests.swift */,
@@ -990,6 +993,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1224A0AFE8DEDE6E2CEF507F /* AccessibilityAuditRetry.swift in Sources */,
 				FF72726EF93D76D9D8C2765A /* CoverageAccessibilityTests.swift in Sources */,
 				076094899B63B963B8116606 /* RideLoopSmokeTests.swift in Sources */,
 				6C3654DBE57DE13E431D5517 /* ScreenshotTourTests.swift in Sources */,
