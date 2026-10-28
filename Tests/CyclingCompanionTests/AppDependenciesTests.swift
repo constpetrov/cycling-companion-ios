@@ -33,10 +33,10 @@ final class AppDependenciesTests: XCTestCase {
         let dependencies = AppDependencies.preview
 
         do {
-            _ = try await dependencies.authClient.signIn(placeholderIdentity: "preview")
+            _ = try await dependencies.authAPI.signIn(email: "preview@example.com", password: "preview-password")
             XCTFail("the preview transport must not succeed")
         } catch {
-            XCTAssertEqual((error as? URLError)?.code, .notConnectedToInternet)
+            XCTAssertEqual(error, .unavailable)
         }
     }
 

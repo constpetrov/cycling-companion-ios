@@ -47,11 +47,7 @@ final class RideIngestClientTests: XCTestCase {
 
     @MainActor
     private func makeClient(transport: HTTPTransport) -> RideIngestClient {
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let lazySignIn = LazySignIn(authClient: authClient)
-        return RideIngestClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, lazySignIn: lazySignIn,
-            transport: transport)
+        RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
     }
 
     @MainActor

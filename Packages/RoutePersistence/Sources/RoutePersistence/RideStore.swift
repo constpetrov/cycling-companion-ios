@@ -154,6 +154,13 @@ public actor RideStore {
         try data.write(to: fileURL, options: .atomic)
     }
 
+    /// Removes every ride, finished or checkpointed (milestone 10, RULE-38).
+    public func deleteAll() throws {
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+    }
+
     public func fetch(rideId: String) throws -> PersistedRide? {
         try loadAll()[rideId]
     }

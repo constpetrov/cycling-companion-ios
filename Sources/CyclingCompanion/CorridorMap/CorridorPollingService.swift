@@ -23,13 +23,12 @@ actor CorridorPollingService {
     private static let log = Log.logger(category: "CorridorImport")
 
     private let baseURL: URL
-    private let authClient: AuthStubClient
-    private let transport: HTTPTransport
+    private let session: AuthSession
 
-    init(baseURL: URL, authClient: AuthStubClient, transport: HTTPTransport = URLSession.shared) {
+    /// Every request goes through `session`, which signs it and renews the session (milestone 10).
+    init(baseURL: URL, session: AuthSession) {
         self.baseURL = baseURL
-        self.authClient = authClient
-        self.transport = transport
+        self.session = session
     }
 
     func importRoute(_ route: ImportedRoute) async throws -> ImportRouteResponsePayload {
@@ -47,12 +46,8 @@ actor CorridorPollingService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(payload)
-        let authorized = try await authClient.authorize(request)
 
-        let (data, response) = try await transport.data(for: authorized)
-        guard let http = response as? HTTPURLResponse else {
-            throw CorridorPollingError.unexpectedResponse
-        }
+        let (data, http) = try await session.send(request)
         guard http.statusCode == 200 else {
             throw CorridorPollingError.rejected(statusCode: http.statusCode)
         }
@@ -63,10 +58,9 @@ actor CorridorPollingService {
     func retry(routeId: String) async throws -> ImportRouteResponsePayload {
         var request = URLRequest(url: baseURL.appendingPathComponent("api/v1/routes/\(routeId)/retry"))
         request.httpMethod = "POST"
-        let authorized = try await authClient.authorize(request)
 
-        let (data, response) = try await transport.data(for: authorized)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+        let (data, http) = try await session.send(request)
+        guard http.statusCode == 200 else {
             throw CorridorPollingError.unexpectedResponse
         }
         return try JSONDecoder().decode(ImportRouteResponsePayload.self, from: data)
@@ -78,9 +72,7 @@ actor CorridorPollingService {
     func fetchStatus(routeId: String) async -> CorridorPollResult {
         do {
             let request = URLRequest(url: baseURL.appendingPathComponent("api/v1/routes/\(routeId)/corridor"))
-            let authorized = try await authClient.authorize(request)
-            let (data, response) = try await transport.data(for: authorized)
-            guard let http = response as? HTTPURLResponse else { return .transient }
+            let (data, http) = try await session.send(request)
             if http.statusCode == 404 { return .notFound }
             guard http.statusCode == 200 else {
                 Self.log.notice("Corridor status for \(routeId, privacy: .public) answered HTTP \(http.statusCode, privacy: .public)")

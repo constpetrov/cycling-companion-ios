@@ -104,11 +104,7 @@ final class RideSessionTests: XCTestCase {
 
     @MainActor
     private func advisorClient(transport: StubAdvisorTransport) -> (client: AdvisorClient, transport: StubAdvisorTransport) {
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let lazySignIn = LazySignIn(authClient: authClient)
-        let client = AdvisorClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient, lazySignIn: lazySignIn,
-            transport: transport)
+        let client = AdvisorClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
         return (client, transport)
     }
 

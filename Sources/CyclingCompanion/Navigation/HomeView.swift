@@ -25,7 +25,9 @@ enum ImportError: Equatable {
         switch error {
         case is URLError:
             self = .noConnection
-        case is AuthStubClientError:
+        case AuthSessionError.unavailable:
+            self = .noConnection
+        case is AuthSessionError:
             self = .authFailed
         case CorridorPollingError.rejected(let status) where status == 401 || status == 403:
             self = .authFailed

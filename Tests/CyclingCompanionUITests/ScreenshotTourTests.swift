@@ -41,14 +41,10 @@ final class ScreenshotTourTests: XCTestCase {
         sleep(4)  // let the replay move the rider and the map settle
         snapshot("03-live-ride")
 
-        // At 20x, ~30 s of replay is past the advisor's 10-minute quiet period (ride time); the
-        // stub backend then suggests the seeded café, which is still ahead of the rider.
-        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Café am Kanal")).firstMatch
-        for _ in 0..<12 where !card.exists {
-            app.buttons["dashboard.forceCheck"].tap()
-            sleep(5)
-        }
-        XCTAssertTrue(card.waitForExistence(timeout: 5), "the suggestion card should appear")
+        // Past the advisor's 10-minute quiet period (ride time) the stub backend suggests the seeded
+        // café, which is still ahead of the rider.
+        let card = app.waitForSuggestionCard()
+        XCTAssertTrue(card.exists, "the suggestion card should appear")
         snapshot("04-suggestion-card")
 
         card.tap()

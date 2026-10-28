@@ -48,18 +48,16 @@ final class CorridorImportCoordinator {
     private let routeStore: RouteStore
     private let pointer: CurrentRoutePointer
     private let appRouter: AppRouter
-    private let lazySignIn: LazySignIn
     private let clock: Clock
 
     init(
         corridorPollingService: CorridorPollingService, routeStore: RouteStore, pointer: CurrentRoutePointer,
-        appRouter: AppRouter, lazySignIn: LazySignIn, clock: Clock = SystemClock()
+        appRouter: AppRouter, clock: Clock = SystemClock()
     ) {
         self.corridorPollingService = corridorPollingService
         self.routeStore = routeStore
         self.pointer = pointer
         self.appRouter = appRouter
-        self.lazySignIn = lazySignIn
         self.clock = clock
     }
 
@@ -82,7 +80,6 @@ final class CorridorImportCoordinator {
     func importRouteThrowing(_ route: ImportedRoute) async throws -> Task<Void, Never> {
         importErrorMessage = nil
         do {
-            try await lazySignIn.ensureSignedIn()
             let response = try await corridorPollingService.importRoute(route)
             let persistedPoints = route.points.map(Self.persistedPoint)
             try await routeStore.persist(
@@ -151,14 +148,9 @@ final class CorridorImportCoordinator {
         return task
     }
 
-    /// A status check that also covers signing in: a sign-in failure is just transient.
+    /// One status check; a session problem is just transient, like being offline.
     private func checkStatus(routeId: String) async -> CorridorPollResult {
-        do {
-            try await lazySignIn.ensureSignedIn()
-        } catch {
-            return .transient
-        }
-        return await corridorPollingService.fetchStatus(routeId: routeId)
+        await corridorPollingService.fetchStatus(routeId: routeId)
     }
 
     /// Saves a settled answer: `ready` replaces the stops and coverage, `failed` keeps the stops.
@@ -186,7 +178,6 @@ final class CorridorImportCoordinator {
         retryErrors[routeId] = nil
         defer { retryInFlight.remove(routeId) }
         do {
-            try await lazySignIn.ensureSignedIn()
             let response = try await corridorPollingService.retry(routeId: routeId)
             await save(routeId: routeId, status: response.status, pois: nil)
         } catch {
@@ -219,6 +210,22 @@ final class CorridorImportCoordinator {
 
     /// Milestone 8 (RULE-18): no polling while the app isn't active; every route keeps its stored
     /// status and polling picks up again on return (`resumePollingForBuildingRoutes`).
+    /// Milestone 10 (RULE-38): forgets every route after the local data was erased: polls stop,
+    /// the in-memory route and its errors go, and Home re-reads the (now empty) store.
+    func forgetEverything() {
+        for task in polls.values {
+            task.cancel()
+        }
+        polls = [:]
+        pollTokens = [:]
+        pollingRouteIds = []
+        points = []
+        pois = []
+        importErrorMessage = nil
+        retryErrors = [:]
+        storeRevision += 1
+    }
+
     func pauseAllPolls() {
         isActive = false
         for task in polls.values {

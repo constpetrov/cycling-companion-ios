@@ -18,11 +18,8 @@ final class RideSummaryViewModelTests: XCTestCase {
     @MainActor
     private func uploader(ingestSucceeds: Bool) -> RideUploader {
         let transport = FixedStatusTransport(ingestStatus: ingestSucceeds ? 200 : 503)
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
         return RideUploader(
-            ingestClient: RideIngestClient(
-                baseURL: URL(string: "https://backend.example.com")!, authClient: authClient,
-                lazySignIn: LazySignIn(authClient: authClient), transport: transport),
+            ingestClient: RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport)),
             queue: PendingRideUploadQueue(
                 fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
     }

@@ -63,8 +63,8 @@ struct AdvisorDecisionResponsePayload: Decodable {
 }
 
 /// Calls the backend's real Advisor endpoint (RULE-2/RULE-13/RULE-14/RULE-19 in
-/// spec/rules.md) — shaped like `CorridorPollingService`: injected `HTTPTransport`/`Clock`/
-/// `AuthStubClient`, reuses `LazySignIn` for transparent sign-in (no second sign-in path).
+/// spec/rules.md) — shaped like `CorridorPollingService`: an injected `Clock`, and every request
+/// sent through `AuthSession` (milestone 10, RULE-32), which signs it and renews the session.
 /// Returns `nil` (never throws) for every failure case — timeout, network error, non-2xx,
 /// unparseable JSON — so `RideSession` has exactly one uniform "fell back" signal to branch
 /// on (RULE-14); it never surfaces which failure occurred.
@@ -72,21 +72,15 @@ actor AdvisorClient {
     private static let log = Log.logger(category: "Advisor")
 
     private let baseURL: URL
-    private let authClient: AuthStubClient
-    private let lazySignIn: LazySignIn
-    private let transport: HTTPTransport
+    private let session: AuthSession
     private let clock: Clock
     private let deadlineSeconds: TimeInterval
 
     init(
-        baseURL: URL, authClient: AuthStubClient, lazySignIn: LazySignIn,
-        transport: HTTPTransport = URLSession.shared, clock: Clock = SystemClock(),
-        deadlineSeconds: TimeInterval = 8.0
+        baseURL: URL, session: AuthSession, clock: Clock = SystemClock(), deadlineSeconds: TimeInterval = 8.0
     ) {
         self.baseURL = baseURL
-        self.authClient = authClient
-        self.lazySignIn = lazySignIn
-        self.transport = transport
+        self.session = session
         self.clock = clock
         self.deadlineSeconds = deadlineSeconds
     }
@@ -115,20 +109,15 @@ actor AdvisorClient {
             rideId: rideId, routeId: routeId, featureSnapshot: FeatureSnapshotPayload(snapshot: snapshot),
             candidates: candidates.map(CandidateStopPayload.init))
 
-        try await lazySignIn.ensureSignedIn()
-
         var request = URLRequest(url: baseURL.appendingPathComponent("api/v1/advisor/decision"))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         request.httpBody = try encoder.encode(payload)
-        let authorized = try await authClient.authorize(request)
-
-        let (data, response) = try await transport.data(for: authorized)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-            Self.log.notice("Advisor HTTP failure for ride \(rideId, privacy: .public): status=\(status, privacy: .public)")
+        let (data, http) = try await session.send(request)
+        guard (200...299).contains(http.statusCode) else {
+            Self.log.notice("Advisor HTTP failure for ride \(rideId, privacy: .public): status=\(http.statusCode, privacy: .public)")
             throw AdvisorClientError.unexpectedResponse
         }
 

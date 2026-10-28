@@ -17,7 +17,7 @@ enum AdvisorComparisonReport {
     }
 
     /// task-5.2 (RULE-23 in spec/rules.md, AC-24): one remote call per (scenario, condition)
-    /// pair — `riderIdentity` is the sign-in `placeholderIdentity`, surfaced in the report so a
+    /// pair — `riderIdentity` names the rider (an account email in the live run), surfaced in the report so a
     /// seeded and a fresh run are visibly distinguishable even when their decisions happen to
     /// match.
     struct HistoryCondition {
@@ -101,12 +101,11 @@ enum AdvisorComparisonReport {
 /// neither of which this environment has. The mechanics are still validated below, against a
 /// stubbed transport.
 ///
-/// Before running the live test with `RUN_ADVISOR_COMPARISON=1`, seed `Self.seededHistoryRiderIdentity`'s
-/// history once against that same backend — the backend's sign-in endpoint reuses the same
-/// `Rider` row for a given `placeholderIdentity` every time (see `AuthController.signIn`), so
-/// seeding it once is enough for repeat runs. This script cannot invoke backend repository
-/// seeding itself (no JDBC/JPA access from Swift): sign in as `Self.seededHistoryRiderIdentity`
-/// once to learn its backend-assigned rider id, then run the backend's
+/// The live test signs in two existing accounts (milestone 10: email and password only), named by
+/// `ADVISOR_COMPARISON_FRESH_EMAIL` and `ADVISOR_COMPARISON_SEEDED_EMAIL`, both with
+/// `ADVISOR_COMPARISON_PASSWORD`. Seed the seeded account's history once against that same
+/// backend: this script cannot invoke backend repository seeding itself (no JDBC/JPA access from
+/// Swift), so look up its rider id on the admin site and run the backend's
 /// `RiderHistorySeeder.seedMatchingHistory(riderId, routeId)` (task-5.1) against that id and a
 /// real route id before running this script.
 final class AdvisorComparisonScript: XCTestCase {
@@ -128,10 +127,16 @@ final class AdvisorComparisonScript: XCTestCase {
     }
 
     @MainActor
-    private func advisorClient(baseURL: URL, placeholderIdentity: String, transport: HTTPTransport) -> AdvisorClient {
-        let authClient = AuthStubClient(baseURL: baseURL, transport: transport)
-        let lazySignIn = LazySignIn(authClient: authClient, placeholderIdentity: placeholderIdentity)
-        return AdvisorClient(baseURL: baseURL, authClient: authClient, lazySignIn: lazySignIn, transport: transport)
+    private func advisorClient(baseURL: URL, transport: HTTPTransport) -> AdvisorClient {
+        AdvisorClient(baseURL: baseURL, session: TestAuth.session(baseURL: baseURL, transport: transport))
+    }
+
+    /// An Advisor client signed in as an existing account of the live backend.
+    private static func signedInAdvisorClient(baseURL: URL, email: String, password: String) async throws -> AdvisorClient {
+        let api = AuthAPIClient(baseURL: baseURL)
+        let session = AuthSession(api: api, tokenStore: InMemoryTokenStore(), transport: URLSession.shared)
+        try await session.adopt(api.signIn(email: email, password: password))
+        return AdvisorClient(baseURL: baseURL, session: session)
     }
 
     @MainActor
@@ -141,12 +146,10 @@ final class AdvisorComparisonScript: XCTestCase {
         return [
             AdvisorComparisonReport.HistoryCondition(
                 label: "empty-history", riderIdentity: "fresh-rider-\(UUID().uuidString)",
-                advisorClient: advisorClient(
-                    baseURL: baseURL, placeholderIdentity: "fresh-rider-\(UUID().uuidString)", transport: transport)),
+                advisorClient: advisorClient(baseURL: baseURL, transport: transport)),
             AdvisorComparisonReport.HistoryCondition(
                 label: "seeded-history", riderIdentity: Self.seededHistoryRiderIdentity,
-                advisorClient: advisorClient(
-                    baseURL: baseURL, placeholderIdentity: Self.seededHistoryRiderIdentity, transport: transport)),
+                advisorClient: advisorClient(baseURL: baseURL, transport: transport)),
         ]
     }
 
@@ -183,26 +186,24 @@ final class AdvisorComparisonScript: XCTestCase {
         try XCTSkipUnless(
             ProcessInfo.processInfo.environment["RUN_ADVISOR_COMPARISON"] != nil,
             """
-            Set RUN_ADVISOR_COMPARISON=1 and ADVISOR_COMPARISON_BASE_URL (defaults to \
-            http://localhost:8080) to actually run this against a live backend. Deferred per \
-            spec/spec.md's External Dependencies: NEBIUS_API_KEY isn't available in this \
-            environment. Seed Self.seededHistoryRiderIdentity's rider history first — see this \
-            class's doc comment.
+            Set RUN_ADVISOR_COMPARISON=1, ADVISOR_COMPARISON_BASE_URL (defaults to \
+            http://localhost:8080) and the account variables in this class's doc comment to actually \
+            run this against a live backend. Seed the seeded account's history first.
             """)
+        let environment = ProcessInfo.processInfo.environment
+        let freshEmail = try XCTUnwrap(environment["ADVISOR_COMPARISON_FRESH_EMAIL"])
+        let seededEmail = try XCTUnwrap(environment["ADVISOR_COMPARISON_SEEDED_EMAIL"])
+        let password = try XCTUnwrap(environment["ADVISOR_COMPARISON_PASSWORD"])
 
         let baseURL = URL(
             string: ProcessInfo.processInfo.environment["ADVISOR_COMPARISON_BASE_URL"] ?? "http://localhost:8080")!
         let historyConditions = [
             AdvisorComparisonReport.HistoryCondition(
-                label: "empty-history", riderIdentity: "fresh-rider-\(UUID().uuidString)",
-                advisorClient: advisorClient(
-                    baseURL: baseURL, placeholderIdentity: "fresh-rider-\(UUID().uuidString)",
-                    transport: URLSession.shared)),
+                label: "empty-history", riderIdentity: freshEmail,
+                advisorClient: try await Self.signedInAdvisorClient(baseURL: baseURL, email: freshEmail, password: password)),
             AdvisorComparisonReport.HistoryCondition(
-                label: "seeded-history", riderIdentity: Self.seededHistoryRiderIdentity,
-                advisorClient: advisorClient(
-                    baseURL: baseURL, placeholderIdentity: Self.seededHistoryRiderIdentity,
-                    transport: URLSession.shared)),
+                label: "seeded-history", riderIdentity: seededEmail,
+                advisorClient: try await Self.signedInAdvisorClient(baseURL: baseURL, email: seededEmail, password: password)),
         ]
 
         let report = await AdvisorComparisonReport.generate(

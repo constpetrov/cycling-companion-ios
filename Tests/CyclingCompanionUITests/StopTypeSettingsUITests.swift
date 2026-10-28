@@ -51,7 +51,7 @@ final class StopTypeSettingsUITests: XCTestCase {
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         openSettings()
 
-        try app.performAccessibilityAudit { issue in
+        try app.performAccessibilityAuditRetryingTimeout { issue in
             // The system navigation bar ("Back", the title) keeps its size at accessibility sizes; the
             // audit reports that without naming an element, as on Home. The rows themselves scale
             // and wrap (checked by screenshot at this size).

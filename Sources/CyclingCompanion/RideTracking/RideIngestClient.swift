@@ -49,23 +49,18 @@ private struct RideIngestResponsePayload: Decodable {
     let rideId: String
 }
 
-/// Uploads a finished ride (RULE-5/RULE-7 in spec/rules.md, AC-4/AC-5/AC-6) — shaped like
-/// `AdvisorClient`: an actor, injected `HTTPTransport`/`AuthStubClient`/`LazySignIn`, reuses the
-/// existing transparent sign-in flow (no second sign-in path). Returns `false` (never throws)
-/// for every failure case, so `RideFinisher` has one uniform "upload failed, queue it" signal.
+/// Uploads a finished ride (RULE-5/RULE-7 in spec/rules.md, AC-4/AC-5/AC-6), sent through
+/// `AuthSession` (milestone 10, RULE-32). Returns `false` (never throws) for every failure case, so
+/// `RideFinisher` has one uniform "upload failed, queue it" signal — a session that ended included.
 actor RideIngestClient {
     private static let log = Log.logger(category: "RideIngest")
 
     private let baseURL: URL
-    private let authClient: AuthStubClient
-    private let lazySignIn: LazySignIn
-    private let transport: HTTPTransport
+    private let session: AuthSession
 
-    init(baseURL: URL, authClient: AuthStubClient, lazySignIn: LazySignIn, transport: HTTPTransport = URLSession.shared) {
+    init(baseURL: URL, session: AuthSession) {
         self.baseURL = baseURL
-        self.authClient = authClient
-        self.lazySignIn = lazySignIn
-        self.transport = transport
+        self.session = session
     }
 
     /// Sends `payload` linked to `rideId`, the local id of the ride it describes (RULE-19). `nil` only
@@ -74,18 +69,15 @@ actor RideIngestClient {
     func ingest(_ payload: RideIngestRequestPayload, rideId: String?) async -> Bool {
         let payload = rideId.map(payload.linked(toRide:)) ?? payload
         do {
-            try await lazySignIn.ensureSignedIn()
-
             var request = URLRequest(url: baseURL.appendingPathComponent("api/v1/rides"))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             request.httpBody = try encoder.encode(payload)
-            let authorized = try await authClient.authorize(request)
 
-            let (data, response) = try await transport.data(for: authorized)
-            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            let (data, http) = try await session.send(request)
+            guard (200...299).contains(http.statusCode) else {
                 Self.log.notice("Ride ingest failed with a non-2xx response — will be queued for retry")
                 return false
             }

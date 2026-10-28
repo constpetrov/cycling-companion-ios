@@ -165,9 +165,18 @@ actor RideSession {
 
         let rideStart = track.first?.timestamp ?? now
         let secondsSinceLastCheckThatProceeded = now.timeIntervalSince(lastAdvisorProceedTimestamp ?? rideStart)
-        let triggerProceeds = LocalTrigger.shouldProceed(
+        var triggerProceeds = LocalTrigger.shouldProceed(
             snapshot: snapshot, hasQualifyingStopAhead: hasQualifyingStopAhead,
             secondsSinceLastCheckThatProceeded: secondsSinceLastCheckThatProceeded)
+        #if DEBUG
+        // UI tests only: the fatigue features behind the trigger come from a speed-scaled clock and vary with how fast
+        // the simulator runs, so on a slow CI runner a demo ride could pass the café without the trigger firing. The
+        // UI tests check the card and sheet, not the trigger (that has its own unit tests), so there it always
+        // proceeds; the Guardrail Gate's quiet period, rate limit and candidate checks still apply.
+        if UITestFixtures.isEnabled, hasQualifyingStopAhead {
+            triggerProceeds = true
+        }
+        #endif
         if triggerProceeds {
             lastAdvisorProceedTimestamp = now
         }

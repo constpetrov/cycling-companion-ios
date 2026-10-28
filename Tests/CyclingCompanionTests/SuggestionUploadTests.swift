@@ -99,11 +99,8 @@ final class SuggestionUploadTests: XCTestCase {
         let ride = PersistedRide(
             id: "ride-1", routeId: "route-1", startTime: t0, endTime: t0 + 3_600, totalDistanceMeters: 20_000,
             totalMovingTimeSeconds: 3_000, track: [], suggestionState: state)
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!)
         let uploader = RideUploader(
-            ingestClient: RideIngestClient(
-                baseURL: URL(string: "https://backend.example.com")!, authClient: authClient,
-                lazySignIn: LazySignIn(authClient: authClient)),
+            ingestClient: RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session()),
             queue: PendingRideUploadQueue(
                 fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
         return RideSummaryViewModel(outcome: .saved(ride), uploader: uploader, decisionLog: DecisionLog())

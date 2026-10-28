@@ -94,10 +94,7 @@ final class PendingRideUploadRetrierTests: XCTestCase {
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         try await queue.enqueue(payload(routeId: "route-1"), id: "ride-1")
         let transport = CountingSucceedingTransport()
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let ingestClient = RideIngestClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient,
-            lazySignIn: LazySignIn(authClient: authClient), transport: transport)
+        let ingestClient = RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
 
         await retrier(queue: queue, ingestClient: ingestClient).retryPendingUploads()
 
@@ -114,10 +111,7 @@ final class PendingRideUploadRetrierTests: XCTestCase {
             try await queue.enqueue(payload(routeId: "route-\(index)"), id: "ride-\(index)")
         }
         let transport = CountingSucceedingTransport()
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let ingestClient = RideIngestClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient,
-            lazySignIn: LazySignIn(authClient: authClient), transport: transport)
+        let ingestClient = RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
 
         await retrier(queue: queue, ingestClient: ingestClient).retryPendingUploads()
 
@@ -162,10 +156,7 @@ final class PendingRideUploadRetrierTests: XCTestCase {
                     totalMovingTimeSeconds: 3_600, track: []))
         }
         let transport = RecordingIngestTransport()
-        let authClient = AuthStubClient(baseURL: URL(string: "https://backend.example.com")!, transport: transport)
-        let ingestClient = RideIngestClient(
-            baseURL: URL(string: "https://backend.example.com")!, authClient: authClient,
-            lazySignIn: LazySignIn(authClient: authClient), transport: transport)
+        let ingestClient = RideIngestClient(baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport))
 
         await retrier(queue: PendingRideUploadQueue(fileURL: queueURL), ingestClient: ingestClient, rideStore: rideStore)
             .retryPendingUploads()

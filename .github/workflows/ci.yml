@@ -63,4 +63,15 @@ jobs:
             -project CyclingCompanion.xcodeproj \
             -scheme CyclingCompanion \
             -destination "platform=iOS Simulator,name=${{ steps.destination.outputs.device }},OS=${{ steps.destination.outputs.os_version }}" \
+            -resultBundlePath TestResults.xcresult \
             test
+
+      # The result bundle holds each UI test's screenshots and the screen state at a failure, which the
+      # log doesn't (an intermittent ride-loop failure couldn't be diagnosed from the log alone).
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults-${{ github.run_id }}
+          path: TestResults.xcresult
+          retention-days: 7

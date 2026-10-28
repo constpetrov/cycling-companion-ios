@@ -40,7 +40,9 @@ enum UITestFixtures {
             stopTypeSettings: StopTypeSettings(defaults: defaults),
             permissions: ProcessInfo.processInfo.arguments.contains(missingPermissionsArgument)
                 ? PartialPermissions() : GrantedPermissions(),
-            transport: StubBackendTransport())
+            // Milestone 10: UI tests start signed in, with a session the stub backend accepts.
+            tokenStore: InMemoryTokenStore(token: "ui-test-refresh-token"), initialAccessToken: "ui-test-access-token",
+            accountMemory: AccountMemory(defaults: defaults), transport: StubBackendTransport())
     }
 
     /// Seeds a ready route running north along the Demo Mode replay (52.0°N → 52.03°N at 13.0°E),
@@ -95,14 +97,14 @@ struct PartialPermissions: PermissionStatusProviding {
     func openSettings() {}
 }
 
-/// Answers every backend call the app makes, offline: sign-in, an advisor decision suggesting the
-/// seeded café, and a successful ride ingest.
+/// Answers every backend call the app makes, offline: a session refresh, an advisor decision
+/// suggesting the seeded café, and a successful ride ingest.
 struct StubBackendTransport: HTTPTransport {
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let path = request.url?.path ?? ""
         let body: String
-        if path.hasSuffix("sign-in") {
-            body = #"{"token":"ui-test-token","riderId":"00000000-0000-0000-0000-000000000001"}"#
+        if path.hasSuffix("auth/refresh") {
+            body = #"{"accessToken":"ui-test-access-token","refreshToken":"ui-test-refresh-token","riderId":"00000000-0000-0000-0000-000000000001","accessTokenExpiresIn":3600}"#
         } else if path.contains("advisor") {
             // Always suggests the seeded café, so the screenshot tour can show the card and sheet.
             body = #"{"suggest":true,"stopId":"1001","urgency":"low","reason":"time for a break","message":"Café am Kanal is just ahead — fancy a coffee?"}"#
