@@ -17,8 +17,8 @@ struct LiveRideScreen: View {
     }
 
     var body: some View {
+        // The map extends behind the bars and panels itself; its Recenter button stays in the safe area.
         LiveRideMapView(viewModel: viewModel)
-            .ignoresSafeArea()
             .safeAreaInset(edge: .top) { metricsStrip }
             .safeAreaInset(edge: .bottom) { controls }
             .task {

@@ -12,7 +12,25 @@ struct LiveRideMapView: View {
     /// Close enough to read the road, wide enough to see what's ahead.
     private static let followDistanceMeters: CLLocationDistance = 1_500
 
+    /// Only the map runs edge to edge; the Recenter button stays inside the safe area, which the dashboard's top
+    /// panel extends, so it sits just below the metrics instead of under the status bar.
     var body: some View {
+        ZStack(alignment: .topTrailing) {
+            map
+                .ignoresSafeArea()
+            if !viewModel.isFollowingRider {
+                Button {
+                    viewModel.recenter()
+                } label: {
+                    Label("Recenter", systemImage: "location.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .padding()
+            }
+        }
+    }
+
+    private var map: some View {
         Map(position: $position) {
             if viewModel.routeCoordinates.count >= 2 {
                 MapPolyline(coordinates: viewModel.routeCoordinates)
@@ -51,17 +69,6 @@ struct LiveRideMapView: View {
         }
         .onChange(of: position.positionedByUser) { _, byUser in
             if byUser { viewModel.riderDidPan() }
-        }
-        .overlay(alignment: .topTrailing) {
-            if !viewModel.isFollowingRider {
-                Button {
-                    viewModel.recenter()
-                } label: {
-                    Label("Recenter", systemImage: "location.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .padding()
-            }
         }
     }
 
