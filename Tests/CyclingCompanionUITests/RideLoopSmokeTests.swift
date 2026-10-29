@@ -42,6 +42,27 @@ final class RideLoopSmokeTests: XCTestCase {
         return card
     }
 
+    /// Recenter appears after the rider pans the map, below the metrics panel (not under the status bar), and
+    /// resumes following.
+    func testRecenterSitsBelowTheMetricsAndResumesFollowing() {
+        launchHome()
+        app.buttons["Demo Mode"].tap()
+        XCTAssertTrue(app.buttons["Start Demo Ride"].waitForExistence(timeout: 5))
+        app.buttons["Start Demo Ride"].tap()
+        XCTAssertTrue(app.buttons["Hold to finish"].waitForExistence(timeout: 10))
+
+        let mapArea = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+        mapArea.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.6)))
+        let recenter = app.buttons["Recenter"]
+        XCTAssertTrue(recenter.waitForExistence(timeout: 5), "panning shows Recenter")
+
+        let metrics = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Remaining")).firstMatch
+        XCTAssertGreaterThanOrEqual(recenter.frame.minY, metrics.frame.maxY, "Recenter is below the metrics panel")
+        XCTAssertTrue(recenter.isHittable)
+        recenter.tap()
+        XCTAssertFalse(recenter.waitForExistence(timeout: 2), "following resumes")
+    }
+
     /// Flow 1 (AC-55, AC-56): Decline closes the sheet and removes the card for good.
     func testDecliningASuggestionRemovesTheCard() {
         launchHome()
