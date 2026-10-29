@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D4E5F6000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000002 /* Assets.xcassets */; };
 		0346F07CF30146CE4E04DCEA /* ReadinessViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E919CEC275ED843C761DA6BF /* ReadinessViewModel.swift */; };
 		0398BDE27E09B4FD66F79921 /* KeepScreenOnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2A163705145C8C6A255B98 /* KeepScreenOnTests.swift */; };
 		03FE708D3085FF6075DB0F98 /* RideSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B93C35A18A4C67B37D4A53DF /* RideSummaryViewModel.swift */; };
@@ -224,6 +225,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F6000000000002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		041039523401A74838743857 /* RideOutcomeCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideOutcomeCalculator.swift; sourceTree = "<group>"; };
 		06A977152FBD81DC28EE9DA7 /* CoverageAccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverageAccessibilityTests.swift; sourceTree = "<group>"; };
 		0769F3E19A0DF749833ECA9B /* SpeedScaledClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedScaledClock.swift; sourceTree = "<group>"; };
@@ -781,6 +783,7 @@
 		D518D0D889F150BCDC0C9FE5 /* CyclingCompanion */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6000000000002 /* Assets.xcassets */,
 				980ECCE9FF5E3FC66FA67659 /* Advisor */,
 				0CEFA649E9401D93D5B34DC1 /* App */,
 				682D3F90CC3F7F62EB5198EF /* Auth */,
@@ -974,6 +977,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F6000000000001 /* Assets.xcassets in Resources */,
 				D5C980E507EBA42270A82C0F /* demo_ride.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
