@@ -20,20 +20,58 @@ final class DemoRideStarterTests: XCTestCase {
     private func makeStarter(
         routeStore: RouteStore, pointer: CurrentRoutePointer, rideCoordinator: RideCoordinator, decisionLog: DecisionLog
     ) -> DemoRideStarter {
-        // Fixture gaps are tiny real-world seconds apart — at max speed (20x) the real pacing
-        // delay (gap / speed) stays well under a test timeout regardless.
-        let fixes = [
-            LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 0)),
-            LocationFix(
-                latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 0.05)),
-        ]
         return DemoRideStarter(
             routeStore: routeStore,
             rideStore: RideStore(
                 fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")),
             pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
-            notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: decisionLog),
-            locationFixes: fixes, sensorSamples: [])
+            notifier: Notifier(scheduling: FakeNotificationScheduling(grantOnRequest: true), log: decisionLog))
+    }
+
+    @MainActor
+    func testDemoUsesRouteSelectedAtStartInsteadOfBundledCoordinates() async throws {
+        let store = freshRouteStore()
+        try await store.persist(
+            routeId: "selected", hash: "selected-hash", totalDistanceMeters: 100, totalClimbingMeters: nil,
+            points: [
+                PersistedPointInput(latitude: 52.1, longitude: 4.3, elevationMeters: nil, cumulativeDistanceMeters: 0),
+                PersistedPointInput(latitude: 52.101, longitude: 4.3, elevationMeters: nil, cumulativeDistanceMeters: 100),
+            ], pois: [], status: "ready")
+        let pointer = freshPointer(routeId: "previous-route")
+        let coordinator = RideCoordinator()
+        let starter = makeStarter(
+            routeStore: store, pointer: pointer, rideCoordinator: coordinator, decisionLog: DecisionLog())
+        // The starter holds a copy of the pointer, whose backing defaults are shared.
+        pointer.routeId = "selected"
+
+        let session = await starter.startDemoRide(speed: 20)
+        XCTAssertNotNil(session)
+        let ride = try XCTUnwrap(coordinator.activeRide)
+        defer { coordinator.end(ride) }
+        for _ in 0..<100 {
+            if ride.tracker.latestFix != nil { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let fix = try XCTUnwrap(ride.tracker.latestFix)
+        XCTAssertEqual(ride.tracker.routeId, "selected")
+        XCTAssertEqual(fix.longitude, 4.3, accuracy: 0.000001)
+        XCTAssertEqual(fix.latitude, 52.1, accuracy: 0.0011)
+        XCTAssertLessThan(abs(fix.timestamp.timeIntervalSinceNow), 30)
+        XCTAssertEqual(try XCTUnwrap(ride.tracker.latestOffRouteMeters), 0, accuracy: 1)
+    }
+
+    @MainActor
+    func testDemoDoesNotStartWithoutCurrentRoute() async {
+        let coordinator = RideCoordinator()
+        let starter = makeStarter(
+            routeStore: freshRouteStore(), pointer: freshPointer(routeId: "missing"),
+            rideCoordinator: coordinator, decisionLog: DecisionLog())
+
+        let session = await starter.startDemoRide(speed: 1)
+
+        XCTAssertNil(session)
+        XCTAssertNil(coordinator.activeRide)
     }
 
     @MainActor

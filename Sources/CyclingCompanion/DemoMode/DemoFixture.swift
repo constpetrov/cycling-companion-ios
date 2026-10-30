@@ -1,45 +1,44 @@
 import Foundation
+import RoutePersistence
 
-/// A bundled Demo Mode fixture (RULE-26/RULE-27 in spec/rules.md, AC-20/AC-21/AC-22) — the
-/// same combined, timestamp-ordered, kind-discriminated JSON shape the test target's
-/// `RideFixtureEntry` already uses (see `Tests/CyclingCompanionTests/Fixtures/`), promoted
-/// into the main target so Demo Mode has something real to replay without depending on the
-/// test target. `#if DEBUG`-gated along with everything else Demo Mode touches.
 #if DEBUG
-private struct DemoFixtureEntry: Decodable {
-    let kind: String
-    let timestamp: TimeInterval
-    let latitude: Double?
-    let longitude: Double?
-    let speedMetersPerSecond: Double?
-    let heartRateBPM: Int?
-    let cadenceRPM: Int?
-
-    var asLocationFix: LocationFix? {
-        guard kind == "location", let latitude, let longitude, let speedMetersPerSecond else { return nil }
-        return LocationFix(
-            latitude: latitude, longitude: longitude, speedMetersPerSecond: speedMetersPerSecond,
-            timestamp: Date(timeIntervalSince1970: timestamp))
-    }
-
-    var asSensorSample: SensorSample? {
-        guard kind == "sensor" else { return nil }
-        return SensorSample(heartRateBPM: heartRateBPM, cadenceRPM: cadenceRPM, timestamp: Date(timeIntervalSince1970: timestamp))
-    }
-}
-
 enum DemoFixture {
-    /// Loads `demo_ride.json` from the app bundle, splitting it into the `LocationFix`/
-    /// `SensorSample` arrays `DemoRideStarter` feeds to `DemoModeReplayDriver`. Empty arrays
-    /// (not a crash) if the resource is somehow missing.
-    static func loadBundled() -> (locationFixes: [LocationFix], sensorSamples: [SensorSample]) {
-        guard let url = Bundle.main.url(forResource: "demo_ride", withExtension: "json"),
-            let data = try? Data(contentsOf: url),
-            let entries = try? JSONDecoder().decode([DemoFixtureEntry].self, from: data)
-        else {
-            return ([], [])
+    /// Simulates 18 km/h along the current route. Split long segments into at most
+    /// five seconds of ride time, retaining every vertex so bends are never skipped.
+    /// Timestamps share the ride's time origin; replay acceleration is applied by the driver.
+    static func locationFixes(for route: PersistedRoute, startTime: Date) -> [LocationFix] {
+        let points = route.points
+        guard points.count >= 2, let first = points.first, let last = points.last,
+            last.cumulativeDistanceMeters > first.cumulativeDistanceMeters
+        else { return [] }
+
+        let speed = 5.0
+        var fixes = [LocationFix(
+            latitude: first.latitude, longitude: first.longitude, speedMetersPerSecond: speed,
+            timestamp: startTime)]
+
+        for index in 1..<points.count {
+            let a = points[index - 1]
+            let b = points[index]
+            let distance = b.cumulativeDistanceMeters - a.cumulativeDistanceMeters
+            guard distance > 0 else { continue }
+            let steps = Int(ceil(distance / (speed * 5)))
+            for step in 1...steps {
+                let fraction = Double(step) / Double(steps)
+                let elapsed = (a.cumulativeDistanceMeters - first.cumulativeDistanceMeters + distance * fraction) / speed
+                fixes.append(LocationFix(
+                    latitude: a.latitude + (b.latitude - a.latitude) * fraction,
+                    longitude: a.longitude + (b.longitude - a.longitude) * fraction,
+                    speedMetersPerSecond: speed,
+                    timestamp: startTime.addingTimeInterval(elapsed)))
+            }
         }
-        return (entries.compactMap(\.asLocationFix), entries.compactMap(\.asSensorSample))
+        if let finish = fixes.popLast() {
+            fixes.append(LocationFix(
+                latitude: finish.latitude, longitude: finish.longitude, speedMetersPerSecond: 0,
+                timestamp: finish.timestamp))
+        }
+        return fixes
     }
 }
 #endif

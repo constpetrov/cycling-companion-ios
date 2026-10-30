@@ -36,9 +36,7 @@ final class DemoModeViewModel {
 /// would, rather than a self-contained bundled fixture route). Only ever constructed from
 /// `DemoModeScreen`'s own `#if DEBUG` body (RULE-15): `DemoModeReplayDriver` doesn't exist in
 /// Release, so this type must never move into a file compiled in every configuration.
-/// `locationFixes`/`sensorSamples` are the fixture to replay — sourcing them from a bundled
-/// app resource (vs. this milestone's injected-fixture scope) is deferred to the same
-/// follow-up as the app's real navigation wiring (see spec/status.md).
+/// Replay positions are generated from that same route at the moment the demo starts.
 @MainActor
 struct DemoRideStarter {
     let routeStore: RouteStore
@@ -47,8 +45,6 @@ struct DemoRideStarter {
     let rideCoordinator: RideCoordinator
     let decisionLog: DecisionLog
     let notifier: Notifier
-    let locationFixes: [LocationFix]
-    let sensorSamples: [SensorSample]
     var advisorClient: AdvisorClient? = nil
     /// The stop types the rider turned off in Settings are never suggested.
     var stopTypeFilter: StopTypeFilter = .allEnabled
@@ -63,13 +59,16 @@ struct DemoRideStarter {
         guard let routeId = pointer.routeId, let route = try? await routeStore.fetch(routeId: routeId) else {
             return nil
         }
+        let startTime = Date()
+        let locationFixes = DemoFixture.locationFixes(for: route, startTime: startTime)
+        guard !locationFixes.isEmpty else { return nil }
         let clampedSpeed = DemoMode.clampSpeed(speed)
         let driver = DemoModeReplayDriver(
-            locationFixes: locationFixes, sensorSamples: sensorSamples, clock: SystemClock(), speed: clampedSpeed)
-        let demoClock = SpeedScaledClock(base: SystemClock(), speed: clampedSpeed)
+            locationFixes: locationFixes, sensorSamples: [], clock: SystemClock(), speed: clampedSpeed)
+        let demoClock = SpeedScaledClock(base: SystemClock(), speed: clampedSpeed, origin: startTime)
 
         let (tracker, session) = await makeTrackerAndSession(
-            rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route, locationSource: driver,
+            rideId: UUID().uuidString, routeId: routeId, startTime: startTime, route: route, locationSource: driver,
             sensorSource: driver, clock: demoClock, rideStore: rideStore, routeStore: routeStore,
             decisionLog: decisionLog, notifier: notifier, advisorClient: advisorClient, stopTypeFilter: stopTypeFilter)
 

@@ -61,23 +61,25 @@ struct DemoModeReplayDriver: LocationSource, SensorSource {
 
     func locationUpdates() -> AsyncStream<LocationFix> {
         AsyncStream { continuation in
-            Task {
+            let task = Task {
                 await replay { entry in
                     if case .location(let fix) = entry { continuation.yield(fix) }
                 }
                 continuation.finish()
             }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
         }
     }
 
     func sensorUpdates() -> AsyncStream<SensorSample> {
         AsyncStream { continuation in
-            Task {
+            let task = Task {
                 await replay { entry in
                     if case .sensor(let sample) = entry { continuation.yield(sample) }
                 }
                 continuation.finish()
             }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
         }
     }
 
@@ -85,12 +87,18 @@ struct DemoModeReplayDriver: LocationSource, SensorSource {
         let effectiveSpeed = DemoMode.clampSpeed(speed)
         var previousTimestamp: Date?
         for entry in combined {
+            guard !Task.isCancelled else { return }
             if let previous = previousTimestamp {
                 let delay = entry.timestamp.timeIntervalSince(previous)
                 if delay > 0 {
-                    try? await clock.sleep(for: delay / effectiveSpeed)
+                    do {
+                        try await clock.sleep(for: delay / effectiveSpeed)
+                    } catch {
+                        return
+                    }
                 }
             }
+            guard !Task.isCancelled else { return }
             previousTimestamp = entry.timestamp
             handle(entry)
         }
