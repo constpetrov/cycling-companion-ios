@@ -117,8 +117,10 @@ once, on a real device, on the same real-POI-backed route from §3:
 3. Lock the screen partway through. Confirm tracking keeps advancing in the background (the app
    sets `allowsBackgroundLocationUpdates`/disables automatic pausing specifically so this
    works) — reopen the app and check distance/time progressed while locked.
-4. If a stop notification arrives, tap it and confirm it deep-links straight into the live ride
-   screen, not just to the app's default launch screen.
+4. If a stop notification arrives, confirm the Cycling Companion app icon appears in the
+   banner and Notification Center, then tap it and confirm it deep-links straight into the live
+   ride screen, not just to the app's default launch screen. When checking icon changes, install
+   the updated build and check a newly delivered notification.
 5. Tap **Finish Ride** at the end.
 
 ## 6. Confirm it's actually meaningful
