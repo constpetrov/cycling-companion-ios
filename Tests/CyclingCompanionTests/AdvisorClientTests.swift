@@ -62,7 +62,7 @@ final class AdvisorClientTests: XCTestCase {
 
     @MainActor
     private func makeClient(
-        transport: HTTPTransport, clock: Clock = SystemClock(), deadlineSeconds: TimeInterval = 8.0
+        transport: HTTPTransport, clock: Clock = SystemClock(), deadlineSeconds: TimeInterval = 30.0
     ) -> AdvisorClient {
         AdvisorClient(
             baseURL: TestAuth.baseURL, session: TestAuth.session(transport: transport), clock: clock,

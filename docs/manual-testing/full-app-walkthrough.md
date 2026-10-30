@@ -35,7 +35,7 @@ separate Caddy demo gateway key. Keep Nebius credentials on the server.
   use localhost or add a blanket ATS exception. Missing/invalid settings show a configuration
   error at launch; rebuild after changing the local configuration.
 
-The shared remote Advisor is wired into Start Ride, Resume and Demo Mode. Its eight-second
+The shared remote Advisor is wired into Start Ride, Resume and Demo Mode. Its 30-second
 network deadline uses wall-clock time rather than the accelerated replay clock.
 
 ## 2. Install & first run
@@ -122,6 +122,39 @@ once, on a real device, on the same real-POI-backed route from §3:
    ride screen, not just to the app's default launch screen. When checking icon changes, install
    the updated build and check a newly delivered notification.
 5. Tap **Finish Ride** at the end.
+
+### Missing notification icon on a physical iPhone
+
+The icon catalog includes explicit iPhone notification sizes (20pt at 2x and 3x).
+`ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` must be set in both the Xcode project and
+`project.yml`, so regenerating with XcodeGen preserves the primary icon setting.
+
+1. Select the `CyclingCompanion` scheme and the physical iPhone. Use **Product → Clean Build
+   Folder**, then **Run** to install the current source over the existing app.
+2. While attached to Xcode, pause execution and enter these commands in the debugger console
+   to inspect the installed app's bundle, rather than the source `Info.plist`:
+
+   ```swift
+   po Bundle.main.bundleIdentifier
+   po Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons")
+   po Bundle.main.url(forResource: "Assets", withExtension: "car")
+   ```
+
+   Expect `com.cyclingcompanion.app`, a `CFBundlePrimaryIcon` dictionary with
+   `CFBundleIconName = AppIcon` and nonempty `CFBundleIconFiles`, and a URL to `Assets.car`.
+   Xcode adds the icon metadata during the build; its absence from the source `Info.plist`
+   alone does not indicate a problem. If it is missing in the installed bundle, inspect the
+   build log's asset catalog compilation step and the target's **Primary App Icon Set Name**.
+3. Resume execution. Clear earlier Cycling Companion notifications, restart the iPhone, and
+   check a newly delivered notification. Also note whether the Home Screen icon is correct
+   and whether the phone uses default, dark, or tinted icons.
+
+Apple has acknowledged delayed notification icon updates after app updates and recommends a
+restart when investigating that behavior:
+[Apple Developer Forums](https://developer.apple.com/forums/thread/775787).
+This is a possible cause, not proof of the cause on this device. If the issue persists, record
+the iOS and Xcode versions, the console results above, and a screenshot of the notification.
+Avoid deleting the app as an initial troubleshooting step: that can remove locally stored rides.
 
 ## 6. Confirm it's actually meaningful
 
