@@ -17,6 +17,11 @@ enum UITestFixtures {
     /// With this too, the seeded route is stored as partly outside the stop data's region, so Home
     /// and the corridor map show the coverage message (milestone 8, RULE-21).
     static let partlyOutsideArgument = "-uiTestPartlyOutside"
+    /// Milestone 12: `-uiTestBluetooth off` or `-uiTestBluetooth unauthorized` sets the scripted
+    /// Bluetooth's state; otherwise it is on, with a heart rate strap and a cadence sensor nearby.
+    static let bluetoothArgument = "-uiTestBluetooth"
+    /// With this too, the nearby strap is already remembered.
+    static let pairedStrapArgument = "-uiTestPairedStrap"
 
     static var isEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
@@ -42,7 +47,8 @@ enum UITestFixtures {
                 ? PartialPermissions() : GrantedPermissions(),
             // Milestone 10: UI tests start signed in, with a session the stub backend accepts.
             tokenStore: InMemoryTokenStore(token: "ui-test-refresh-token"), initialAccessToken: "ui-test-access-token",
-            accountMemory: AccountMemory(defaults: defaults), transport: StubBackendTransport())
+            accountMemory: AccountMemory(defaults: defaults), transport: StubBackendTransport(), sensorDefaults: defaults,
+            makeBluetoothCentral: { ScriptedBluetoothCentral(availability: scriptedBluetoothAvailability) })
     }
 
     /// Seeds a ready route running north along the Demo Mode replay (52.0°N → 52.03°N at 13.0°E),
@@ -73,6 +79,21 @@ enum UITestFixtures {
             outsideMeters: ProcessInfo.processInfo.arguments.contains(partlyOutsideArgument) ? 1_400 : nil)
         dependencies.pointer.routeId = routeId
         await dependencies.homeViewModel.refresh()
+        if ProcessInfo.processInfo.arguments.contains(pairedStrapArgument) {
+            dependencies.sensorStore.remember(ScriptedBluetoothCentral.strap)
+        }
+    }
+
+    static var scriptedBluetoothAvailability: BluetoothAvailability {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: bluetoothArgument), index + 1 < arguments.count else {
+            return .poweredOn
+        }
+        switch arguments[index + 1] {
+        case "off": return .poweredOff
+        case "unauthorized": return .unauthorized
+        default: return .poweredOn
+        }
     }
 
     /// After the launch-time resume: replays a tap on a notification for the seeded café.
@@ -95,6 +116,67 @@ struct PartialPermissions: PermissionStatusProviding {
     func requestLocationAlways() async {}
     func requestNotifications() async {}
     func openSettings() {}
+}
+
+/// Milestone 12 (RULE-16): Bluetooth for UI tests, with no radio. A heart rate strap and a cadence
+/// sensor are in range: a scan finds both, a connect to either succeeds, and each then sends a
+/// reading every second (128 bpm; 90 rpm).
+@MainActor
+final class ScriptedBluetoothCentral: BluetoothCentral {
+    static let strap = DiscoveredDevice(
+        identifier: UUID(uuidString: "0000180D-0000-1000-8000-00805F9B34FB")!, name: "Polar H10", kinds: [.heartRate])
+    static let cadenceSensor = DiscoveredDevice(
+        identifier: UUID(uuidString: "00001816-0000-1000-8000-00805F9B34FB")!, name: "Wahoo CADENCE",
+        kinds: [.cadence])
+
+    let availability: BluetoothAvailability
+    var eventHandler: (@MainActor (BluetoothEvent) async -> Void)?
+    private var streams: [UUID: Task<Void, Never>] = [:]
+
+    init(availability: BluetoothAvailability) {
+        self.availability = availability
+    }
+
+    func startScan() {
+        Task {
+            for device in [Self.strap, Self.cadenceSensor] {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                await eventHandler?(.discovered(device))
+            }
+        }
+    }
+
+    func stopScan() {}
+
+    func connect(_ identifier: UUID) {
+        guard availability == .poweredOn, streams[identifier] == nil,
+            [Self.strap.identifier, Self.cadenceSensor.identifier].contains(identifier)
+        else { return }
+        streams[identifier] = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            await self?.eventHandler?(.connected(identifier))
+            var revolutions: UInt16 = 0
+            var eventTime: UInt16 = 0
+            while !Task.isCancelled {
+                if identifier == Self.strap.identifier {
+                    await self?.eventHandler?(.heartRateMeasurement(identifier, Data([0x00, 128])))
+                } else {
+                    revolutions &+= 1
+                    eventTime &+= 683
+                    let data = Data([
+                        0x02, UInt8(revolutions & 0xFF), UInt8(revolutions >> 8), UInt8(eventTime & 0xFF),
+                        UInt8(eventTime >> 8),
+                    ])
+                    await self?.eventHandler?(.cyclingSpeedAndCadenceMeasurement(identifier, data))
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+        }
+    }
+
+    func cancelConnection(_ identifier: UUID) {
+        streams.removeValue(forKey: identifier)?.cancel()
+    }
 }
 
 /// Answers every backend call the app makes, offline: a session refresh, an advisor decision
