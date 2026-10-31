@@ -41,15 +41,27 @@ enum GuardrailGate {
         guard candidate.detourMeters <= Self.detourCapMeters else {
             return rejected
         }
-        if let lastApprovedSuggestionTimestamp,
-            now.timeIntervalSince(lastApprovedSuggestionTimestamp) < Self.rateLimitMinutes * 60
+        if isInQuietWindow(
+            now: now, lastApprovedSuggestionTimestamp: lastApprovedSuggestionTimestamp,
+            lastStopTimestamp: lastStopTimestamp)
         {
             return rejected
         }
-        if let lastStopTimestamp, now.timeIntervalSince(lastStopTimestamp) < Self.postStopQuietMinutes * 60 {
-            return rejected
-        }
         return decision
+    }
+
+    /// Whether any suggestion would be rejected right now, whichever stop it named: too soon after
+    /// an approved suggestion or after the rider last stopped.
+    static func isInQuietWindow(now: Date, lastApprovedSuggestionTimestamp: Date?, lastStopTimestamp: Date?) -> Bool {
+        if let lastApprovedSuggestionTimestamp,
+            now.timeIntervalSince(lastApprovedSuggestionTimestamp) < Self.rateLimitMinutes * 60
+        {
+            return true
+        }
+        if let lastStopTimestamp, now.timeIntervalSince(lastStopTimestamp) < Self.postStopQuietMinutes * 60 {
+            return true
+        }
+        return false
     }
 
     private static var rejected: AdvisorDecision {

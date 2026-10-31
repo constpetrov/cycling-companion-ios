@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1B2C3D4E5F6000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000002 /* Assets.xcassets */; };
 		0346F07CF30146CE4E04DCEA /* ReadinessViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E919CEC275ED843C761DA6BF /* ReadinessViewModel.swift */; };
 		0398BDE27E09B4FD66F79921 /* KeepScreenOnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2A163705145C8C6A255B98 /* KeepScreenOnTests.swift */; };
 		03FE708D3085FF6075DB0F98 /* RideSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B93C35A18A4C67B37D4A53DF /* RideSummaryViewModel.swift */; };
@@ -23,6 +22,7 @@
 		11311BD9BD4C44F57395A0C1 /* StopTypeSettingsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD60C7736F46854C6912EDF2 /* StopTypeSettingsUITests.swift */; };
 		145A60907A6529DB4B6F647F /* RideFinisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9797E4C259E02E6414A8240A /* RideFinisher.swift */; };
 		15941EA5C6C84F90A9916F52 /* LocalDataEraser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804BBA8FA1D5C398B50D97CA /* LocalDataEraser.swift */; };
+		17258E87AA11721AF457561A /* AdvisorCallScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C81DE9ED77C95B11B869730 /* AdvisorCallScheduleTests.swift */; };
 		1A26A866D51803A29F02F7D4 /* SuggestionPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D107A4A609CBCD38D31A3B21 /* SuggestionPersistenceTests.swift */; };
 		1A55ACBE9970FC0A08821AE0 /* HoldToConfirmTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A3CD39FDCFE9B94A27F974 /* HoldToConfirmTests.swift */; };
 		1C38CA56D41B8627B572DDF8 /* ReplayLocationSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7F1427329F36441D4196B6 /* ReplayLocationSource.swift */; };
@@ -79,6 +79,7 @@
 		57BE3B648D5003D7AA7A5328 /* LiveRide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DCBD4217877EC7172A10E65 /* LiveRide.swift */; };
 		5807730CC1A27ACFA48A633C /* Resampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83267C30F394E3718EF975B4 /* Resampler.swift */; };
 		58BC0DAAC6CEEB9A124F45A0 /* NotificationScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F5466C09CE53E53614EEDF /* NotificationScheduling.swift */; };
+		59847C6153DB597C0C350E48 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 05A514BFA401FE670DAA131D /* Assets.xcassets */; };
 		5A5E742E918A2D613BE16F0F /* PasswordRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CFF0A18323D1F583C9D0F20 /* PasswordRules.swift */; };
 		5B475B0A8548A67AFF98A4D8 /* ReplayClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479D7C431BDB42885EA20BA2 /* ReplayClock.swift */; };
 		5ED67759CADC5811324C8942 /* GuardrailGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DBAC200E51EA08C8813D1CE /* GuardrailGateTests.swift */; };
@@ -160,6 +161,7 @@
 		C7DE5180D666147753B9764F /* RideCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C551D784749A3EC6C7C97B25 /* RideCoordinatorTests.swift */; };
 		C86707239F060F62A75CBA9A /* CorridorMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 715933033BE0C1E6E0E0834A /* CorridorMapView.swift */; };
 		C8AB4483A46674691D3BF985 /* RideTrackerResumeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0AE4A397596CB6E859BD776 /* RideTrackerResumeTests.swift */; };
+		C8EA11E72C9FED39FE59E7B1 /* AdvisorCallSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13ADCB5190DB751F5E9918C /* AdvisorCallSchedule.swift */; };
 		CA3FD8B3328AC59D692D16AC /* CoverageMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B20A2F7E8A635AF1CC4F85 /* CoverageMessage.swift */; };
 		CB0905B6790B87C816ABA552 /* AppDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5B28A0D1F9338E011EE7AF9 /* AppDependencies.swift */; };
 		CB66EB49312E59B1B78DA787 /* SuggestionCardAndSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F01D30A5BEBA2798EEDBECCA /* SuggestionCardAndSheetTests.swift */; };
@@ -225,8 +227,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A1B2C3D4E5F6000000000002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		041039523401A74838743857 /* RideOutcomeCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideOutcomeCalculator.swift; sourceTree = "<group>"; };
+		05A514BFA401FE670DAA131D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		06A977152FBD81DC28EE9DA7 /* CoverageAccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverageAccessibilityTests.swift; sourceTree = "<group>"; };
 		0769F3E19A0DF749833ECA9B /* SpeedScaledClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedScaledClock.swift; sourceTree = "<group>"; };
 		0FBA7AC067D9D4D557A77C88 /* UITestFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestFixtures.swift; sourceTree = "<group>"; };
@@ -324,6 +326,7 @@
 		750874F3FF8CCE60CE37917F /* DemoFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFixture.swift; sourceTree = "<group>"; };
 		76A279C36A1D557B16D47742 /* SuggestionLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionLedger.swift; sourceTree = "<group>"; };
 		7B7FAF5215BEDB6023EACFE3 /* ScreenshotTourTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTourTests.swift; sourceTree = "<group>"; };
+		7C81DE9ED77C95B11B869730 /* AdvisorCallScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvisorCallScheduleTests.swift; sourceTree = "<group>"; };
 		7F73C336BB66E87351EEBD6D /* AdvisorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvisorClient.swift; sourceTree = "<group>"; };
 		7F7CE19567696CAB227BD8D4 /* CorridorStopsRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorridorStopsRefreshTests.swift; sourceTree = "<group>"; };
 		7FB0EF14174C354316B7853E /* AccessibilityLabelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityLabelTests.swift; sourceTree = "<group>"; };
@@ -364,6 +367,7 @@
 		ADC52593CB0B185B5326EFBC /* FeatureEngineHRDriftCadenceDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureEngineHRDriftCadenceDropTests.swift; sourceTree = "<group>"; };
 		AEEB3FE365FA3A1B1349A740 /* SensorSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorSource.swift; sourceTree = "<group>"; };
 		AFBAA4F0D14EFEFAF713F4FC /* StoppingClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoppingClock.swift; sourceTree = "<group>"; };
+		B13ADCB5190DB751F5E9918C /* AdvisorCallSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvisorCallSchedule.swift; sourceTree = "<group>"; };
 		B3B20A2F7E8A635AF1CC4F85 /* CoverageMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverageMessage.swift; sourceTree = "<group>"; };
 		B408DF240A051E683A2D87CC /* GatedClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatedClock.swift; sourceTree = "<group>"; };
 		B4FEEC2A333546DF2268417F /* MapStopSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapStopSelectionTests.swift; sourceTree = "<group>"; };
@@ -612,6 +616,7 @@
 		980ECCE9FF5E3FC66FA67659 /* Advisor */ = {
 			isa = PBXGroup;
 			children = (
+				B13ADCB5190DB751F5E9918C /* AdvisorCallSchedule.swift */,
 				7F73C336BB66E87351EEBD6D /* AdvisorClient.swift */,
 				414801AC4C87FA489F24D30D /* AdvisorDecision.swift */,
 				67937FEA2AA921FE28D2BECD /* DecisionLog.swift */,
@@ -648,6 +653,7 @@
 				7FB0EF14174C354316B7853E /* AccessibilityLabelTests.swift */,
 				3529ABFFD0E823F6162071D6 /* AccountSettingsTests.swift */,
 				BCE46864F6806F6C1F614D89 /* AccountSwitchTests.swift */,
+				7C81DE9ED77C95B11B869730 /* AdvisorCallScheduleTests.swift */,
 				4EDF8F2A45D07FE88427EF8D /* AdvisorClientTests.swift */,
 				4CA48571A15C756B366BF23E /* AdvisorComparisonScript.swift */,
 				22CBBF93CBB071DBE2F8FB79 /* AppDelegateNotificationTests.swift */,
@@ -783,7 +789,7 @@
 		D518D0D889F150BCDC0C9FE5 /* CyclingCompanion */ = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D4E5F6000000000002 /* Assets.xcassets */,
+				05A514BFA401FE670DAA131D /* Assets.xcassets */,
 				980ECCE9FF5E3FC66FA67659 /* Advisor */,
 				0CEFA649E9401D93D5B34DC1 /* App */,
 				682D3F90CC3F7F62EB5198EF /* Auth */,
@@ -977,7 +983,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1B2C3D4E5F6000000000001 /* Assets.xcassets in Resources */,
+				59847C6153DB597C0C350E48 /* Assets.xcassets in Resources */,
 				D5C980E507EBA42270A82C0F /* demo_ride.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1012,6 +1018,7 @@
 				F012C87C4521B8DFC0511AA4 /* AccessibilityLabelTests.swift in Sources */,
 				AF0E7CA37FEA8487E9A48554 /* AccountSettingsTests.swift in Sources */,
 				F98CC6FF00985E301FA6BB52 /* AccountSwitchTests.swift in Sources */,
+				17258E87AA11721AF457561A /* AdvisorCallScheduleTests.swift in Sources */,
 				67582BD8327832C23E1AE07D /* AdvisorClientTests.swift in Sources */,
 				EE17FCFCB273491F2A27D249 /* AdvisorComparisonScript.swift in Sources */,
 				A27661861FC2D3453B4BBF47 /* AppDelegateNotificationTests.swift in Sources */,
@@ -1111,6 +1118,7 @@
 				4BE37CE422C235B27F911D2B /* AccountMemory.swift in Sources */,
 				2F1870C5E8786950121812FB /* AccountSection.swift in Sources */,
 				94FEFD4922B701DBCC69FBC5 /* AccountSettingsModel.swift in Sources */,
+				C8EA11E72C9FED39FE59E7B1 /* AdvisorCallSchedule.swift in Sources */,
 				2A252CD64E4C9FCEAD590E72 /* AdvisorClient.swift in Sources */,
 				65A233190CC34EFF113DB4B0 /* AdvisorDecision.swift in Sources */,
 				082A2ACFD56B5B87614C9D2E /* AppDelegate.swift in Sources */,

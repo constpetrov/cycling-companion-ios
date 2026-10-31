@@ -575,4 +575,73 @@ final class RideSessionTests: XCTestCase {
         XCTAssertNil(ledger.current)
         XCTAssertEqual(ledger.suggestions.count, 1, "the declined stop is not suggested again")
     }
+
+    // MARK: - Advisor call schedule (battery)
+
+    @MainActor
+    private func sessionCountingCalls(tracker: RideTracker, decisionLog: DecisionLog = DecisionLog()) async
+        -> (session: RideSession, transport: StubAdvisorTransport)
+    {
+        let store = await routeStore(pois: [candidate(osmId: 1)])
+        let (client, transport) = advisorClient(decisionBody: Data(#"{"suggest":false}"#.utf8))
+        let session = await makeSession(
+            clock: ReplayClock(), tracker: tracker, routeStore: store, snapshotIntervalSeconds: 1,
+            decisionLog: decisionLog, advisorClient: client)
+        return (session, transport)
+    }
+
+    @MainActor
+    func testTheAdvisorIsNotCalledAgainBeforeTheRecheckIsDue() async throws {
+        let decisionLog = DecisionLog()
+        let (session, transport) = await sessionCountingCalls(
+            tracker: await trackerPastTheQuietWindow(), decisionLog: decisionLog)
+
+        try await session.step()
+        try await session.step()
+
+        let calls = await transport.decisionCallCount
+        XCTAssertEqual(calls, 1)
+        let logged = await decisionLog.advisorDecisions
+        XCTAssertEqual(logged.count, 2, "exactly one decision is logged per cycle, called or not")
+    }
+
+    @MainActor
+    func testACycleThatSkipsTheCallDoesNotFallBackToLocalAdvisor() async throws {
+        let (session, _) = await sessionCountingCalls(tracker: await trackerPastTheQuietWindow())
+
+        try await session.step()
+        try await session.step()
+
+        let ledger = await session.suggestionLedger()
+        XCTAssertTrue(ledger.suggestions.isEmpty, "Local Advisor would suggest the only candidate")
+    }
+
+    @MainActor
+    func testTheAdvisorIsNotCalledWhileTheGateWouldRejectAnySuggestion() async throws {
+        // Ride start counts as the last stop, so the first 10 minutes are a quiet window.
+        let fixes = [
+            LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 1_000)),
+            LocationFix(latitude: 52.0, longitude: 13.0, speedMetersPerSecond: 5, timestamp: Date(timeIntervalSince1970: 1_100)),
+        ]
+        let tracker = freshRideTracker(route: flatRoute(), fixes: fixes)
+        await tracker.start()
+        let (session, transport) = await sessionCountingCalls(tracker: tracker)
+
+        try await session.step()
+
+        let calls = await transport.decisionCallCount
+        XCTAssertEqual(calls, 0)
+    }
+
+    @MainActor
+    func testAForcedCheckCallsTheAdvisorEvenWhenNotDue() async throws {
+        let (session, transport) = await sessionCountingCalls(tracker: await trackerPastTheQuietWindow())
+
+        try await session.step()
+        await session.forceNextCheck()
+        try await session.step()
+
+        let calls = await transport.decisionCallCount
+        XCTAssertEqual(calls, 2)
+    }
 }

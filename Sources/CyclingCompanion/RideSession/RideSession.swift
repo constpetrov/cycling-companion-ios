@@ -31,6 +31,7 @@ actor RideSession {
     /// Local Advisor's own 45-minute fallback counter (RULE-20/AC-15/AC-16/AC-17, Milestone 3).
     private var lastAdvisorProceedTimestamp: Date?
     private var lastApprovedSuggestionTimestamp: Date?
+    private var advisorCallSchedule = AdvisorCallSchedule()
 
     /// This ride's suggestions, answers and declined stops (RULE-16 in milestone 7's rules.md).
     private var ledger = SuggestionLedger()
@@ -75,9 +76,10 @@ actor RideSession {
         else {
             return false
         }
+        let forced = forceRequested
         forceRequested = false
         secondsSinceLastCheck = 0
-        await runCycle()
+        await runCycle(forced: forced)
         return true
     }
 
@@ -132,8 +134,8 @@ actor RideSession {
     /// throws and never lets a rejected verdict or a no-suggestion decision stop the loop —
     /// `Notifier.notify`'s own error is swallowed rather than propagated, consistent with that
     /// guarantee. A no-op if no location fix has arrived yet (no `track` sample to read "now"
-    /// from).
-    private func runCycle() async {
+    /// from). `forced` (a debug force check) calls the remote Advisor whatever its schedule says.
+    private func runCycle(forced: Bool) async {
         let snapshot = await featureEngine.computeAndAppendSnapshot()
         let track = await rideTracker.track
         guard let now = track.last?.timestamp else {
@@ -185,11 +187,23 @@ actor RideSession {
         // at least one candidate — LocalAdvisor.decide already short-circuits to "no
         // suggestion" on an empty candidate list, so attempting the remote call first would
         // spend it on an already-known outcome. RULE-15: a non-nil remote decision (including
-        // a well-formed suggest:false) is used as-is, without also asking Local Advisor.
+        // a well-formed suggest:false) is used as-is, without also asking Local Advisor. A call
+        // that isn't due, or that the Guardrail Gate would reject anyway, isn't made, to save the
+        // radio; that cycle suggests nothing rather than letting Local Advisor overrule the Advisor.
+        let lastStopTimestamp = snapshot.timeSinceLastStopSeconds.map { now.addingTimeInterval(-$0) }
         var remoteDecision: AdvisorDecision?
         if triggerProceeds, !candidates.isEmpty, let advisorClient {
-            remoteDecision = await advisorClient.requestDecision(
-                rideId: rideTracker.rideId, routeId: routeId, snapshot: snapshot, candidates: candidates)
+            let crossedFeature = LocalTrigger.crossedFeature(snapshot)
+            let isQuiet = GuardrailGate.isInQuietWindow(
+                now: now, lastApprovedSuggestionTimestamp: lastApprovedSuggestionTimestamp,
+                lastStopTimestamp: lastStopTimestamp)
+            if forced || (!isQuiet && advisorCallSchedule.isDue(crossedFeature: crossedFeature, now: now)) {
+                advisorCallSchedule.recordCall(crossedFeature: crossedFeature, at: now)
+                remoteDecision = await advisorClient.requestDecision(
+                    rideId: rideTracker.rideId, routeId: routeId, snapshot: snapshot, candidates: candidates)
+            } else {
+                remoteDecision = AdvisorDecision(suggest: false, stopId: nil, urgency: nil, reason: nil, message: nil)
+            }
             if let remoteDecision {
                 // RULE-16: exactly one decisionLog entry per cycle regardless of source —
                 // LocalAdvisor.decide logs its own decision internally; this mirrors that for
@@ -203,7 +217,6 @@ actor RideSession {
                 snapshot: snapshot, candidates: candidates, hasQualifyingStopAhead: hasQualifyingStopAhead,
                 secondsSinceLastCheckThatProceeded: secondsSinceLastCheckThatProceeded, log: decisionLog)
 
-        let lastStopTimestamp = snapshot.timeSinceLastStopSeconds.map { now.addingTimeInterval(-$0) }
         let verdict = GuardrailGate.evaluate(
             decision: decision, candidates: candidates, now: now,
             lastApprovedSuggestionTimestamp: lastApprovedSuggestionTimestamp, lastStopTimestamp: lastStopTimestamp,
