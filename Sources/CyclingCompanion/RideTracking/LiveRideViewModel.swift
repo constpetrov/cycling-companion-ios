@@ -42,9 +42,15 @@ final class LiveRideViewModel {
     /// AC-17/AC-18: whether the map camera follows the rider. Panning turns it off; Recenter
     /// turns it back on.
     private(set) var isFollowingRider = true
-    /// Where the map camera should be centred while following. Moved only by the 1 s GPS check
-    /// (and Recenter), so the camera moves at most once a second (review risk hotspot 4).
+    /// Where the map camera should be centred while following. Moved by the 1 s GPS check only once
+    /// the rider has gone `cameraFollowStepMeters` (and by Recenter): at the follow zoom a smaller
+    /// move is barely visible, and every move redraws the map.
     private(set) var cameraCenter: CLLocationCoordinate2D?
+    static let cameraFollowStepMeters: Double = 50
+    /// Where the map draws the rider. Reading it rebuilds the map's content, route line included, so
+    /// it's moved by the 1 s GPS check once the rider has gone `riderMarkerStepMeters`, not on every fix.
+    private(set) var mapRiderCoordinate: CLLocationCoordinate2D?
+    static let riderMarkerStepMeters: Double = 10
 
     init(
         tracker: RideTracker, clock: Clock? = nil, locale: Locale = .current, timeZone: TimeZone = .current,
@@ -275,6 +281,17 @@ final class LiveRideViewModel {
     func recenter() {
         isFollowingRider = true
         cameraCenter = riderCoordinate
+        mapRiderCoordinate = riderCoordinate
+    }
+
+    /// Whether `coordinate` has moved at least `meters` from `current`; a first position always has.
+    nonisolated static func hasMoved(
+        from current: CLLocationCoordinate2D?, to coordinate: CLLocationCoordinate2D, atLeast meters: Double
+    ) -> Bool {
+        guard let current else { return true }
+        return GeoMath.haversineDistanceMeters(
+            TrackPoint(latitude: current.latitude, longitude: current.longitude, elevationMeters: nil),
+            TrackPoint(latitude: coordinate.latitude, longitude: coordinate.longitude, elevationMeters: nil)) >= meters
     }
 
     /// AC-25: heart rate and cadence aren't shown on the dashboard this milestone — real rides have
@@ -299,8 +316,15 @@ final class LiveRideViewModel {
     func refreshGPSState() async {
         let current = await clock.now
         now = current
-        if isFollowingRider, let riderCoordinate {
-            cameraCenter = riderCoordinate
+        if let riderCoordinate {
+            if Self.hasMoved(from: mapRiderCoordinate, to: riderCoordinate, atLeast: Self.riderMarkerStepMeters) {
+                mapRiderCoordinate = riderCoordinate
+            }
+            if isFollowingRider,
+                Self.hasMoved(from: cameraCenter, to: riderCoordinate, atLeast: Self.cameraFollowStepMeters)
+            {
+                cameraCenter = riderCoordinate
+            }
         }
         // The session advances the ledger as the rider passes a stop; pick that up here.
         await refreshLedger()
@@ -313,7 +337,7 @@ final class LiveRideViewModel {
     }
 
     /// Keeps the no-GPS badge and arrival time current while the dashboard is visible; run from
-    /// the view's `.task`, which cancels it when the dashboard goes away.
+    /// the view's `.task`, which cancels it when the dashboard goes away or the phone locks.
     func monitorGPS() async {
         while !Task.isCancelled {
             await refreshGPSState()
