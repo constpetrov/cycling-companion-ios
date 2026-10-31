@@ -35,6 +35,9 @@ final class AppDependencies {
     let idleTimer: IdleTimerControlling
     let directions: DirectionsOpening
     let rideStartFlow: RideStartFlow
+    /// Milestone 12: the rider's remembered Bluetooth sensors and the one hub that connects them.
+    let sensorStore: RememberedSensorStore
+    let sensorHub: SensorHub
 
     init(
         baseURL: URL, demoAccessToken: String?, routeStore: RouteStore, rideStore: RideStore,
@@ -43,8 +46,19 @@ final class AppDependencies {
         stopTypeSettings: StopTypeSettings,
         directions: DirectionsOpening = NoDirections(), permissions: PermissionStatusProviding = GrantedPermissions(),
         tokenStore: TokenStore, initialAccessToken: String? = nil, accountMemory: AccountMemory = AccountMemory(),
-        transport: HTTPTransport = URLSession.shared
+        transport: HTTPTransport = URLSession.shared, sensorDefaults: UserDefaults = .standard,
+        makeBluetoothCentral: @escaping @MainActor () -> BluetoothCentral = { CoreBluetoothCentral() }
     ) {
+        // Milestone 12 (RULE-3, RULE-13): the hub creates its central only when first needed, and a
+        // ride gets Bluetooth readings only if the rider has remembered a sensor.
+        let sensorStore = RememberedSensorStore(defaults: sensorDefaults)
+        let sensorHub = SensorHub(store: sensorStore, clock: SystemClock(), makeCentral: makeBluetoothCentral)
+        let makeSensorSource: @MainActor () -> SensorSource = {
+            sensorStore.isEmpty ? NoSensorSource() : BluetoothSensorSource(hub: sensorHub)
+        }
+        self.sensorStore = sensorStore
+        self.sensorHub = sensorHub
+        self.makeSensorSource = makeSensorSource
         let decisionLog = DecisionLog()
         let notifier = Notifier(scheduling: notificationScheduling, log: decisionLog)
         // Milestone 10 (RULE-32): one session signs every authenticated request.
@@ -80,7 +94,8 @@ final class AppDependencies {
         self.corridorImportCoordinator = corridorImportCoordinator
         let rideStarter = RideStarter(
             routeStore: routeStore, rideStore: rideStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
-            notifier: notifier, advisorClient: advisorClient, stopTypeFilter: stopTypeSettings.filter)
+            notifier: notifier, advisorClient: advisorClient, stopTypeFilter: stopTypeSettings.filter,
+            makeSensorSource: makeSensorSource)
         self.rideStarter = rideStarter
         self.rideIngestClient = rideIngestClient
         self.pendingUploadQueue = pendingUploadQueue
@@ -133,12 +148,14 @@ final class AppDependencies {
             directions: AppleMapsDirections(), permissions: SystemPermissions(), tokenStore: tokenStore)
     }
 
+    private let makeSensorSource: @MainActor () -> SensorSource
+
     func makeRideResumer() -> RideResumer {
         let homeViewModel = homeViewModel
         return RideResumer(
             rideStore: rideStore, routeStore: routeStore, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
             notifier: notifier, advisorClient: advisorClient, stopTypeFilter: stopTypeSettings.filter,
-            onOrphanedRide: { homeViewModel.reportOrphanedRide(id: $0) })
+            makeSensorSource: makeSensorSource, onOrphanedRide: { homeViewModel.reportOrphanedRide(id: $0) })
     }
 
     func makePendingRideUploadRetrier() -> PendingRideUploadRetrier {
@@ -189,7 +206,8 @@ extension AppDependencies {
             keepScreenOnPreference: InMemoryKeepScreenOnPreference(), idleTimer: NoIdleTimer(),
             stopTypeSettings: StopTypeSettings(defaults: defaults),
             tokenStore: InMemoryTokenStore(token: "preview-refresh-token"), initialAccessToken: "preview-access-token",
-            accountMemory: AccountMemory(defaults: defaults), transport: OfflineTransport())
+            accountMemory: AccountMemory(defaults: defaults), transport: OfflineTransport(), sensorDefaults: defaults,
+            makeBluetoothCentral: { FakeBluetoothCentral() })
     }
 }
 

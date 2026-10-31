@@ -49,6 +49,16 @@ struct LiveRideScreen: View {
                 MetricTile(label: "Arrive", value: viewModel.arrivalTimeText ?? "—")
                 MetricTile(label: "Speed", value: viewModel.speedText ?? "—")
             }
+            if viewModel.showsHeartRate || viewModel.showsCadence {
+                HStack(alignment: .top, spacing: 12) {
+                    if viewModel.showsHeartRate {
+                        MetricTile(label: "Heart rate", value: viewModel.heartRateText)
+                    }
+                    if viewModel.showsCadence {
+                        MetricTile(label: "Cadence", value: viewModel.cadenceText)
+                    }
+                }
+            }
             HStack(spacing: 8) {
                 if viewModel.isOffRoute {
                     StatusBadge(text: "Off route", systemImage: "arrow.uturn.left", tint: .orange)
