@@ -32,6 +32,7 @@
 		20048DED59406D3A89C939CB /* GatedClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = B408DF240A051E683A2D87CC /* GatedClock.swift */; };
 		212810B3D17BFFA2FFF09EE7 /* DemoRideStarterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCAD47AE39461ADC00482293 /* DemoRideStarterTests.swift */; };
 		213B113DBF321D901ACDE3E5 /* LiveRideViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7C09B96D9279FB1041537F9 /* LiveRideViewModel.swift */; };
+		214DDCB843A8A4F6D2E2574A /* SensorsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28229753EC7D00D029BCB63D /* SensorsSettingsView.swift */; };
 		21D0FD55341ADB92934504BB /* LocalAdvisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F66098AD0937AE1CE1EB6B82 /* LocalAdvisorTests.swift */; };
 		22325E49DBA369AC5F06BDCB /* POILookaheadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131C4D0F62D9847A8958858D /* POILookaheadTests.swift */; };
 		22917CED2B5A0A73D174489D /* BaselineCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9B4504D0AA40A517E9D4213 /* BaselineCalculatorTests.swift */; };
@@ -160,6 +161,7 @@
 		B9E2B48B85C5FBE9315C84AF /* RouteImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3724F00CDC6BCD4101B6847A /* RouteImporterTests.swift */; };
 		BE174C80C25DC488B6041B15 /* OrphanedRideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B48982B6D4007BE4D819AA /* OrphanedRideTests.swift */; };
 		BFA646CB25EBF00D98D5B606 /* RideProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370F4B9D9BE47A8DF5BBED3D /* RideProgressView.swift */; };
+		C0EE76F068205FA868CF6CA1 /* SensorsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 378841DEA45B358A7CC5DE84 /* SensorsUITests.swift */; };
 		C13A5649FE7FDC7A9508E3C0 /* NormalizedOpeningHoursPayloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD2B28EE20780FB25674A4AF /* NormalizedOpeningHoursPayloadTests.swift */; };
 		C177297C7CD5146401DCA046 /* CorridorMapViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51C2A04B34847B7621B5C7F0 /* CorridorMapViewTests.swift */; };
 		C2EA12BFDAE7EF6EACC54E8C /* GuardrailGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE105E19F5497AE22FA26827 /* GuardrailGate.swift */; };
@@ -270,6 +272,7 @@
 		25C02EB1257804AFA498C979 /* RideTrackerMapMatchingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerMapMatchingTests.swift; sourceTree = "<group>"; };
 		25C6A12999047B32F3E18E5B /* RememberedSensorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RememberedSensorStore.swift; sourceTree = "<group>"; };
 		261DC7147402732D7AD6B561 /* RideOutcomeCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideOutcomeCalculatorTests.swift; sourceTree = "<group>"; };
+		28229753EC7D00D029BCB63D /* SensorsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorsSettingsView.swift; sourceTree = "<group>"; };
 		28A5CA69CAF9BFE3CC8578D2 /* LiveRideMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRideMapView.swift; sourceTree = "<group>"; };
 		295B53FF166D35C4EC2AFF2B /* RideCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideCoordinator.swift; sourceTree = "<group>"; };
 		2AB16B67589609C1C188DEDF /* GeoMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoMath.swift; sourceTree = "<group>"; };
@@ -283,6 +286,7 @@
 		354DF3EC3FF6B3D1939FE197 /* RideTrackerCheckpointingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTrackerCheckpointingTests.swift; sourceTree = "<group>"; };
 		370F4B9D9BE47A8DF5BBED3D /* RideProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideProgressView.swift; sourceTree = "<group>"; };
 		3724F00CDC6BCD4101B6847A /* RouteImporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteImporterTests.swift; sourceTree = "<group>"; };
+		378841DEA45B358A7CC5DE84 /* SensorsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensorsUITests.swift; sourceTree = "<group>"; };
 		392E86D79490EB877D797DEB /* RaceWithDeadline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceWithDeadline.swift; sourceTree = "<group>"; };
 		3A8A3CC0A7317D18CE69813D /* TokenStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStoreTests.swift; sourceTree = "<group>"; };
 		3B4A2830E378366111683F67 /* CoreBluetoothCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreBluetoothCentral.swift; sourceTree = "<group>"; };
@@ -555,6 +559,7 @@
 				06A977152FBD81DC28EE9DA7 /* CoverageAccessibilityTests.swift */,
 				5FCFDE8A450A981A73424465 /* RideLoopSmokeTests.swift */,
 				7B7FAF5215BEDB6023EACFE3 /* ScreenshotTourTests.swift */,
+				378841DEA45B358A7CC5DE84 /* SensorsUITests.swift */,
 				DD60C7736F46854C6912EDF2 /* StopTypeSettingsUITests.swift */,
 				EE21D6A60D7D58B1420633D6 /* UITestHelpers.swift */,
 			);
@@ -882,6 +887,7 @@
 			children = (
 				470CDE8065436791AC2F1573 /* AccountSection.swift */,
 				70C71119DE82A1A7F8A317CB /* AccountSettingsModel.swift */,
+				28229753EC7D00D029BCB63D /* SensorsSettingsView.swift */,
 				612AD6BA9965ECBF561A5817 /* SettingsView.swift */,
 				C8B61A96CEA70666736606C0 /* StopTypeSettings.swift */,
 			);
@@ -1050,6 +1056,7 @@
 				FF72726EF93D76D9D8C2765A /* CoverageAccessibilityTests.swift in Sources */,
 				076094899B63B963B8116606 /* RideLoopSmokeTests.swift in Sources */,
 				6C3654DBE57DE13E431D5517 /* ScreenshotTourTests.swift in Sources */,
+				C0EE76F068205FA868CF6CA1 /* SensorsUITests.swift in Sources */,
 				11311BD9BD4C44F57395A0C1 /* StopTypeSettingsUITests.swift in Sources */,
 				80D99DA68A2E1B7EAA5F5579 /* UITestHelpers.swift in Sources */,
 			);
@@ -1257,6 +1264,7 @@
 				E57D4DEF68C2788B4A3868E9 /* RouteImporter.swift in Sources */,
 				AA1F80A5C4192850CA3CF23C /* SensorHub.swift in Sources */,
 				0B0D87938CEF695390FEE9E5 /* SensorSource.swift in Sources */,
+				214DDCB843A8A4F6D2E2574A /* SensorsSettingsView.swift in Sources */,
 				57AD8FCA98202885682E8595 /* SessionState.swift in Sources */,
 				08546DE157DFA8FBBE3344E4 /* SettingsView.swift in Sources */,
 				3C67A9CCE7EA39EAB374C762 /* Simplifier.swift in Sources */,

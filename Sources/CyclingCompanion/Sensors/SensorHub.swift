@@ -101,6 +101,17 @@ final class SensorHub {
         if rideSinks.isEmpty { release(.ride) }
     }
 
+    /// After the rider adds or forgets a sensor. Away from a ride, a forgotten sensor stops serving
+    /// its kind at once; during one it stays until it drops (spec edge case, AC-21).
+    func rememberedSensorsChanged() {
+        if !holders.contains(.ride) {
+            for (kind, device) in assigned where !store.kinds(for: device).contains(kind) {
+                assigned[kind] = nil
+            }
+        }
+        reconcile()
+    }
+
     // MARK: - Scanning
 
     func startScan() {

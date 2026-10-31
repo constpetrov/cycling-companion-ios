@@ -208,6 +208,20 @@ final class SensorHubTests: XCTestCase {
         XCTAssertEqual(hub.assigned[.heartRate], strapA.identifier)
     }
 
+    /// A sensor added on the screen connects straight away; one forgotten there disconnects.
+    func testAddingAndForgettingOnTheScreen() async throws {
+        hub.acquire(.screen)
+        store.remember(strapA)
+        hub.rememberedSensorsChanged()
+        XCTAssertEqual(central.pendingConnects, [strapA.identifier])
+        await central.emit(.connected(strapA.identifier))
+
+        store.forget(try XCTUnwrap(store.sensors.first))
+        hub.rememberedSensorsChanged()
+        XCTAssertEqual(central.cancelCalls, [strapA.identifier])
+        XCTAssertNil(hub.assigned[.heartRate])
+    }
+
     // MARK: - Scanning
 
     /// AC-3, AC-4: only devices offering a supported kind are listed.

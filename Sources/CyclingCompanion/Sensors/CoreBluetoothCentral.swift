@@ -145,7 +145,12 @@ extension CoreBluetoothCentral: @preconcurrency CBPeripheralDelegate {
     func peripheral(
         _ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?
     ) {
+        // Many power meters offer both cycling services. Their crank data may not share counters, so
+        // only one feeds the cadence calculator: cycling speed and cadence when the device has it.
+        let hasCyclingSpeedAndCadence =
+            peripheral.services?.contains { $0.uuid == Self.cyclingSpeedAndCadenceService } ?? false
         for characteristic in service.characteristics ?? [] {
+            if characteristic.uuid == Self.cyclingPowerMeasurement, hasCyclingSpeedAndCadence { continue }
             peripheral.setNotifyValue(true, for: characteristic)
         }
     }

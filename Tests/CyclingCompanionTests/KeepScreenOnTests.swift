@@ -92,7 +92,7 @@ final class KeepScreenOnTests: XCTestCase {
     }
 }
 
-/// task-2.7: AC-25 — no heart-rate or cadence fields, with or without sensor samples.
+/// Milestone 12 (AC-49 to AC-52, replacing milestone 7's AC-25): a sensor kind shows only when one is remembered.
 final class LiveRideSensorFieldsTests: XCTestCase {
 
     @MainActor
@@ -105,7 +105,9 @@ final class LiveRideSensorFieldsTests: XCTestCase {
         // Not started: NoSensorSource never finishes, like a real ride's sources.
         XCTAssertNil(tracker.currentHeartRateBPM)
 
-        XCTAssertFalse(LiveRideViewModel(tracker: tracker).showsSensorFields)
+        let viewModel = LiveRideViewModel(tracker: tracker)
+        XCTAssertFalse(viewModel.showsHeartRate)
+        XCTAssertFalse(viewModel.showsCadence)
     }
 
     @MainActor
@@ -122,7 +124,35 @@ final class LiveRideSensorFieldsTests: XCTestCase {
         await tracker.start()
         XCTAssertEqual(tracker.currentHeartRateBPM, 140)
 
-        XCTAssertFalse(LiveRideViewModel(tracker: tracker).showsSensorFields)
+        let viewModel = LiveRideViewModel(tracker: tracker)
+        XCTAssertFalse(viewModel.showsHeartRate)
+        XCTAssertFalse(viewModel.showsCadence)
+    }
+
+    /// AC-49 to AC-52.
+    @MainActor
+    func testEachKindShowsOnlyWhenRememberedWithADashForNoReading() async {
+        let tracker = RideTracker(
+            rideId: "ride-1", routeId: "route-1", startTime: Date(), route: [],
+            locationSource: ReplayLocationSource(fixes: []),
+            sensorSource: ReplaySensorSource(samples: [
+                SensorSample(heartRateBPM: 140, cadenceRPM: nil, timestamp: Date(timeIntervalSince1970: 0))
+            ]),
+            clock: ReplayClock(),
+            rideStore: RideStore(
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")))
+        await tracker.start()
+        let store = RememberedSensorStore(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+        store.remember(DiscoveredDevice(identifier: UUID(), name: "Strap", kinds: [.heartRate]))
+        let viewModel = LiveRideViewModel(tracker: tracker, sensorStore: store)
+
+        XCTAssertTrue(viewModel.showsHeartRate)
+        XCTAssertFalse(viewModel.showsCadence)
+        XCTAssertEqual(viewModel.heartRateText, "140 bpm")
+        XCTAssertEqual(viewModel.cadenceText, "—")
+
+        store.remember(DiscoveredDevice(identifier: UUID(), name: "Crank", kinds: [.cadence]))
+        XCTAssertTrue(viewModel.showsCadence)
     }
 
     @MainActor

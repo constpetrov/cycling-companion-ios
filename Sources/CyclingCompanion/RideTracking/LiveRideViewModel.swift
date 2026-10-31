@@ -45,14 +45,17 @@ final class LiveRideViewModel {
     /// Where the map camera should be centred while following. Moved only by the 1 s GPS check
     /// (and Recenter), so the camera moves at most once a second (review risk hotspot 4).
     private(set) var cameraCenter: CLLocationCoordinate2D?
+    @ObservationIgnored private let sensorStore: RememberedSensorStore?
 
     init(
         tracker: RideTracker, clock: Clock? = nil, locale: Locale = .current, timeZone: TimeZone = .current,
         keepScreenOnPreference: KeepScreenOnPreference = InMemoryKeepScreenOnPreference(),
         idleTimer: IdleTimerControlling = NoIdleTimer(), session: RideSession? = nil,
-        directions: DirectionsOpening = NoDirections(), stopTypeFilter: StopTypeFilter = .allEnabled
+        directions: DirectionsOpening = NoDirections(), stopTypeFilter: StopTypeFilter = .allEnabled,
+        sensorStore: RememberedSensorStore? = nil
     ) {
         self.stopTypeFilter = stopTypeFilter
+        self.sensorStore = sensorStore
         self.tracker = tracker
         self.clock = clock ?? tracker.clock
         self.locale = locale
@@ -277,10 +280,14 @@ final class LiveRideViewModel {
         cameraCenter = riderCoordinate
     }
 
-    /// AC-25: heart rate and cadence aren't shown on the dashboard this milestone — real rides have
-    /// no sensors (`NoSensorSource`), and Demo Mode's replayed values are deliberately hidden too
-    /// (spec decision 7), so the screen never advertises metrics a rider can't have.
-    var showsSensorFields: Bool { false }
+    /// Milestone 12 (RULE-15, AC-49, AC-52): a kind shows only if the rider has remembered a sensor
+    /// of that kind, so the screen never advertises metrics a rider can't have.
+    var showsHeartRate: Bool { sensorStore?.hasKind(.heartRate) ?? false }
+    var showsCadence: Bool { sensorStore?.hasKind(.cadence) ?? false }
+
+    /// AC-51: "—" with no current reading.
+    var heartRateText: String { tracker.currentHeartRateBPM.map { "\($0) bpm" } ?? "—" }
+    var cadenceText: String { tracker.currentCadenceRPM.map { "\($0) rpm" } ?? "—" }
 
     // MARK: - Badges
 
