@@ -5,6 +5,7 @@ import SwiftUI
 /// Shown inside the ride cover while a ride is active.
 struct LiveRideScreen: View {
     @Environment(AppDependencies.self) private var dependencies
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel: LiveRideViewModel
     let onFinishRide: () -> Void
     /// Debug only: asks the advisor for a decision now instead of waiting out the cadence.
@@ -21,8 +22,11 @@ struct LiveRideScreen: View {
         LiveRideMapView(viewModel: viewModel)
             .safeAreaInset(edge: .top) { metricsStrip }
             .safeAreaInset(edge: .bottom) { controls }
-            .task {
-                await viewModel.loadRoute(from: dependencies.routeStore)
+            .task { await viewModel.loadRoute(from: dependencies.routeStore) }
+            // A SwiftUI `.task` keeps running while the phone is locked, so this one is tied to the scene:
+            // nothing on the dashboard can be seen then, and returning catches up at once.
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
                 await viewModel.monitorGPS()
             }
             .task { await viewModel.listenForSuggestions() }
