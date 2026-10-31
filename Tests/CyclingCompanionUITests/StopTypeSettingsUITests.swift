@@ -31,20 +31,28 @@ final class StopTypeSettingsUITests: XCTestCase {
         app.switches["stopType.\(type)"]
     }
 
+    /// The form builds rows lazily, and the stop types start below the account and sensors sections.
+    private func scrollToToggle(_ type: String) -> XCUIElement {
+        let row = toggle(type)
+        for _ in 0..<4 where !(row.exists && row.isHittable) { app.swipeUp() }
+        return row
+    }
+
     func testEveryTypeStartsOnAndCanBeTurnedOff() {
         openSettings()
 
         for type in ["CAFE_BAKERY_RESTAURANT", "FOOD_SHOP", "WATER", "TOILETS", "REST_SHELTER", "BIKE_REPAIR"] {
-            XCTAssertTrue(toggle(type).exists, type)
-            XCTAssertEqual(toggle(type).value as? String, "1", "\(type) is on by default")
+            let row = scrollToToggle(type)
+            XCTAssertTrue(row.exists, type)
+            XCTAssertEqual(row.value as? String, "1", "\(type) is on by default")
         }
         // The switch itself sits at the trailing edge of the row.
-        let shelters = toggle("REST_SHELTER")
+        let shelters = scrollToToggle("REST_SHELTER")
         let innerSwitch = shelters.switches.firstMatch
         (innerSwitch.exists ? innerSwitch : shelters).coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
 
         XCTAssertEqual(toggle("REST_SHELTER").value as? String, "0")
-        XCTAssertEqual(toggle("WATER").value as? String, "1")
+        XCTAssertEqual(toggle("BIKE_REPAIR").value as? String, "1", "the other types stay on")
     }
 
     func testTheScreenPassesTheAuditAtTheLargestTextSize() throws {
