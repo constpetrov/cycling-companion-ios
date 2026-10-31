@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Settings, pushed from Home: the account (milestone 10), and which stop types the maps show and
-/// the ride suggests.
+/// Settings, pushed from Home: the account (milestone 10), Bluetooth sensors (milestone 12), and which
+/// stop types the maps show and the ride suggests.
 struct SettingsView: View {
     @Environment(AppDependencies.self) private var dependencies
     @State private var account: AccountSettingsModel?
@@ -12,6 +12,7 @@ struct SettingsView: View {
             if let account {
                 AccountSection(model: account)
             }
+            SensorsSection(store: dependencies.sensorStore)
             Section {
                 ForEach(StopType.allCases) { type in
                     Toggle(isOn: Binding(

@@ -37,7 +37,8 @@ struct ContentView: View {
                         viewModel: LiveRideViewModel(
                             tracker: liveRide.tracker, keepScreenOnPreference: dependencies.keepScreenOnPreference,
                             idleTimer: dependencies.idleTimer, session: liveRide.session,
-                            directions: dependencies.directions, stopTypeFilter: dependencies.stopTypeSettings.filter),
+                            directions: dependencies.directions, stopTypeFilter: dependencies.stopTypeSettings.filter,
+                            sensorStore: dependencies.sensorStore),
                         onFinishRide: { Task { await dependencies.rideFinisher.finishRide(liveRide) } },
                         forceCheck: Self.forceCheck(liveRide))
                 case .summary(let outcome):

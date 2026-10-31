@@ -51,14 +51,17 @@ final class LiveRideViewModel {
     /// it's moved by the 1 s GPS check once the rider has gone `riderMarkerStepMeters`, not on every fix.
     private(set) var mapRiderCoordinate: CLLocationCoordinate2D?
     static let riderMarkerStepMeters: Double = 10
+    @ObservationIgnored private let sensorStore: RememberedSensorStore?
 
     init(
         tracker: RideTracker, clock: Clock? = nil, locale: Locale = .current, timeZone: TimeZone = .current,
         keepScreenOnPreference: KeepScreenOnPreference = InMemoryKeepScreenOnPreference(),
         idleTimer: IdleTimerControlling = NoIdleTimer(), session: RideSession? = nil,
-        directions: DirectionsOpening = NoDirections(), stopTypeFilter: StopTypeFilter = .allEnabled
+        directions: DirectionsOpening = NoDirections(), stopTypeFilter: StopTypeFilter = .allEnabled,
+        sensorStore: RememberedSensorStore? = nil
     ) {
         self.stopTypeFilter = stopTypeFilter
+        self.sensorStore = sensorStore
         self.tracker = tracker
         self.clock = clock ?? tracker.clock
         self.locale = locale
@@ -294,10 +297,14 @@ final class LiveRideViewModel {
             TrackPoint(latitude: coordinate.latitude, longitude: coordinate.longitude, elevationMeters: nil)) >= meters
     }
 
-    /// AC-25: heart rate and cadence aren't shown on the dashboard this milestone — real rides have
-    /// no sensors (`NoSensorSource`), and Demo Mode's replayed values are deliberately hidden too
-    /// (spec decision 7), so the screen never advertises metrics a rider can't have.
-    var showsSensorFields: Bool { false }
+    /// Milestone 12 (RULE-15, AC-49, AC-52): a kind shows only if the rider has remembered a sensor
+    /// of that kind, so the screen never advertises metrics a rider can't have.
+    var showsHeartRate: Bool { sensorStore?.hasKind(.heartRate) ?? false }
+    var showsCadence: Bool { sensorStore?.hasKind(.cadence) ?? false }
+
+    /// AC-51: "—" with no current reading.
+    var heartRateText: String { tracker.currentHeartRateBPM.map { "\($0) bpm" } ?? "—" }
+    var cadenceText: String { tracker.currentCadenceRPM.map { "\($0) rpm" } ?? "—" }
 
     // MARK: - Badges
 

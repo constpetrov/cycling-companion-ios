@@ -18,12 +18,14 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>CyclingCompanionBackendBaseURL</key>
 	<string>$(CC_BACKEND_BASE_URL)</string>
 	<key>CyclingCompanionDemoAccessToken</key>
 	<string>$(CC_DEMO_ACCESS_TOKEN)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Cycling Companion connects to your heart rate and cadence sensors to read them during your ride.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Cycling Companion uses your location in the background to keep tracking your ride while your phone is pocketed or mounted.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -31,6 +33,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>bluetooth-central</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
