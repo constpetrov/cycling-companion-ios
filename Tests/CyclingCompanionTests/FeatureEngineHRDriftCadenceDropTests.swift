@@ -113,49 +113,82 @@ final class FeatureEngineHRDriftCadenceDropTests: XCTestCase {
         XCTAssertNil(snapshot?.hrDrift, "a dropped-out current HR reading must not fall back to a stale value")
     }
 
-    // MARK: - cadenceDrop (AC-8/AC-12)
+    // MARK: - cadenceDrop (milestone 12, AC-42 to AC-48)
 
-    @MainActor
-    func testCadenceDropIsNonMissingOnceAFirstReadingExists() async throws {
-        let entries = [
-            sensorEntry(timestamp: 5, heartRateBPM: 140, cadenceRPM: 90),
-            locationEntry(timestamp: 10, fractionAlongRoute: 0.01, speed: 5),
-            sensorEntry(timestamp: 20, heartRateBPM: 140, cadenceRPM: 80),
-            locationEntry(timestamp: 30, fractionAlongRoute: 0.02, speed: 5),
+    /// A cadence reading followed by a location fix half a second later, so the fix carries it.
+    private func cadenceFix(_ timestamp: TimeInterval, _ cadenceRPM: Int?) -> [RideFixtureEntry] {
+        [
+            sensorEntry(timestamp: timestamp - 0.5, heartRateBPM: 140, cadenceRPM: cadenceRPM),
+            locationEntry(timestamp: timestamp, fractionAlongRoute: timestamp / 10_000, speed: 5),
         ]
-        let (_, engine) = try await replay(entries: entries)
-
-        let snapshot = await engine.snapshots.last
-        XCTAssertEqual(snapshot?.cadenceDrop, -10, "current (80) minus the ride's first reading (90)")
     }
 
     @MainActor
-    func testCadenceDropIsMissingDuringACadenceDropout() async throws {
-        let entries = [
-            sensorEntry(timestamp: 5, heartRateBPM: 140, cadenceRPM: 90),
-            locationEntry(timestamp: 10, fractionAlongRoute: 0.01, speed: 5),
-            sensorEntry(timestamp: 20, heartRateBPM: 140, cadenceRPM: nil), // dropout
-            locationEntry(timestamp: 30, fractionAlongRoute: 0.02, speed: 5),
-        ]
-        let (_, engine) = try await replay(entries: entries)
-
-        let snapshot = await engine.snapshots.last
-        XCTAssertNil(snapshot?.cadenceDrop)
+    private func cadenceDrop(_ fixes: [[RideFixtureEntry]]) async throws -> Int? {
+        let (_, engine) = try await replay(entries: fixes.flatMap { $0 })
+        return await engine.snapshots.last?.cadenceDrop
     }
 
+    /// AC-44: the baseline window (10 min from the first pedaling reading at 10 s) ends at 610 s.
     @MainActor
-    func testCadenceDropIsNonMissingAfterRecoveringFromADropout() async throws {
-        let entries = [
-            sensorEntry(timestamp: 5, heartRateBPM: 140, cadenceRPM: 90),
-            locationEntry(timestamp: 10, fractionAlongRoute: 0.01, speed: 5),
-            sensorEntry(timestamp: 20, heartRateBPM: 140, cadenceRPM: nil), // dropout
-            locationEntry(timestamp: 30, fractionAlongRoute: 0.02, speed: 5),
-            sensorEntry(timestamp: 40, heartRateBPM: 140, cadenceRPM: 95), // recovered
-            locationEntry(timestamp: 50, fractionAlongRoute: 0.03, speed: 5),
-        ]
-        let (_, engine) = try await replay(entries: entries)
+    func testCadenceDropIsMissingBeforeTheBaselineWindowEnds() async throws {
+        let drop = try await cadenceDrop([cadenceFix(10, 90), cadenceFix(300, 80), cadenceFix(609, 80)])
+        XCTAssertNil(drop)
+    }
 
-        let snapshot = await engine.snapshots.last
-        XCTAssertEqual(snapshot?.cadenceDrop, 5, "current (95) minus the ride's first reading (90), unaffected by the dropout in between")
+    /// AC-45, AC-42: at exactly 610 s it is computed. Baseline (90, 80, 80) = 83.33; the last 5 min
+    /// (310...610) hold 80, 80 → 80 − 83.33 = −3.33, rounded to −3.
+    @MainActor
+    func testCadenceDropIsComputedWhenTheBaselineWindowEndsExactly() async throws {
+        let drop = try await cadenceDrop([cadenceFix(10, 90), cadenceFix(500, 80), cadenceFix(610, 80)])
+        XCTAssertEqual(drop, -3)
+    }
+
+    /// AC-46: later readings never join the baseline. Baseline = 90 (10 s, 600 s); current
+    /// (700...1000) = 70 → −20.
+    @MainActor
+    func testBaselineUsesOnlyTheFirstTenMinutesOfPedaling() async throws {
+        let drop = try await cadenceDrop([
+            cadenceFix(10, 90), cadenceFix(600, 90), cadenceFix(700, 70), cadenceFix(900, 70), cadenceFix(1_000, 70),
+        ])
+        XCTAssertEqual(drop, -20)
+    }
+
+    /// AC-43: zeros at the start don't start the baseline, and zeros in either window are ignored.
+    /// First pedaling is at 60 s, so the baseline runs to 660 s.
+    @MainActor
+    func testZeroCadenceIsIgnoredInBothAverages() async throws {
+        let drop = try await cadenceDrop([
+            cadenceFix(10, 0), cadenceFix(60, 90), cadenceFix(400, 90), cadenceFix(550, 0), cadenceFix(660, 0),
+        ])
+        XCTAssertEqual(drop, 0, "baseline 90 (60 s, 400 s), current 90 (400 s); every 0 ignored")
+    }
+
+    /// AC-47: a long descent with no pedaling in the last 5 minutes.
+    @MainActor
+    func testCadenceDropIsMissingWithNoPedalingInTheLastFiveMinutes() async throws {
+        let drop = try await cadenceDrop([
+            cadenceFix(10, 90), cadenceFix(600, 90), cadenceFix(700, 0), cadenceFix(1_000, 0),
+        ])
+        XCTAssertNil(drop)
+    }
+
+    /// AC-48: at now = 1000 s a reading at 700 s (exactly 5 min old) counts and one at 699 s doesn't.
+    /// Baseline 90; current (60, 60) = 60 → −30. Including the 30 at 699 s would give −40.
+    @MainActor
+    func testCurrentWindowIncludesAReadingExactlyFiveMinutesOld() async throws {
+        let drop = try await cadenceDrop([
+            cadenceFix(10, 90), cadenceFix(699, 30), cadenceFix(700, 60), cadenceFix(1_000, 60),
+        ])
+        XCTAssertEqual(drop, -30)
+    }
+
+    /// A sensor dropout (nil) inside the current window is ignored like coasting.
+    @MainActor
+    func testCadenceDropoutInsideTheWindowIsIgnored() async throws {
+        let drop = try await cadenceDrop([
+            cadenceFix(10, 90), cadenceFix(700, 80), cadenceFix(800, nil), cadenceFix(1_000, nil),
+        ])
+        XCTAssertEqual(drop, -10)
     }
 }

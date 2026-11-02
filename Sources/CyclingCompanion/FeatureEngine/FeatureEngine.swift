@@ -24,6 +24,10 @@ actor FeatureEngine {
     /// AC-37/AC-38 (RULE-13): how long speed must stay at or below the moving threshold,
     /// continuously, to count as "a stop."
     private static let minimumStopDurationSeconds: TimeInterval = 3 * 60
+    /// Milestone 12 (RULE-14): cadence drop's baseline, from the first pedaling reading.
+    private static let cadenceBaselineWindowSeconds: TimeInterval = 10 * 60
+    /// Milestone 12 (RULE-14): cadence drop's current window, ending now.
+    private static let cadenceCurrentWindowSeconds: TimeInterval = 5 * 60
 
     private let rideTracker: RideTracker
     private let route: [ResampledPoint]
@@ -86,7 +90,6 @@ actor FeatureEngine {
         let totalRouteDistanceMeters = await rideTracker.totalRouteDistanceMeters
         let movingTimeSeconds = await rideTracker.movingTimeSeconds
         let currentHeartRateBPM = await rideTracker.currentHeartRateBPM
-        let currentCadenceRPM = await rideTracker.currentCadenceRPM
 
         let currentGradeAdjustedSpeed = gradeAdjustedSpeed(
             rawSpeed: latestFix.speedMetersPerSecond, distanceAlongRouteMeters: distanceAlongRouteMeters)
@@ -100,7 +103,7 @@ actor FeatureEngine {
             hrDrift: hrDrift(
                 track: track, currentHeartRateBPM: currentHeartRateBPM,
                 currentGradeAdjustedSpeed: currentGradeAdjustedSpeed, movingTimeSeconds: movingTimeSeconds),
-            cadenceDrop: cadenceDrop(track: track, currentCadenceRPM: currentCadenceRPM),
+            cadenceDrop: cadenceDrop(track: track, now: latestFix.timestamp),
             timeSinceLastStopSeconds: timeSinceLastStopSeconds(track: track, now: latestFix.timestamp),
             remainingEffortMeters: totalRouteDistanceMeters - distanceAlongRouteMeters)
     }
@@ -222,14 +225,29 @@ actor FeatureEngine {
         return currentRatio / baselineRatio - 1
     }
 
-    /// AC-8/AC-12 (RULE-11): `nil` on a cadence dropout; otherwise current cadence minus the
-    /// ride's first accepted cadence reading.
-    private func cadenceDrop(track: [PersistedRideSample], currentCadenceRPM: Int?) -> Int? {
-        guard let currentCadenceRPM, let firstCadenceRPM = track.first(where: { $0.cadenceRPM != nil })?.cadenceRPM
+    /// Milestone 12 (RULE-14, AC-42 to AC-48): the average pedaling cadence over the last 5 minutes
+    /// minus the average over the 10 minutes from the ride's first pedaling reading. A reading of 0
+    /// is coasting or standing and counts in neither average. `nil` until that baseline window has
+    /// passed, or when the last 5 minutes have no pedaling reading. Both window ends are inclusive.
+    private func cadenceDrop(track: [PersistedRideSample], now: Date) -> Int? {
+        let pedaling = track.filter { ($0.cadenceRPM ?? 0) > 0 }
+        guard let firstPedaling = pedaling.first?.timestamp else { return nil }
+        let baselineEnd = firstPedaling.addingTimeInterval(Self.cadenceBaselineWindowSeconds)
+        guard now >= baselineEnd else { return nil }
+        let currentStart = now.addingTimeInterval(-Self.cadenceCurrentWindowSeconds)
+        guard
+            let baseline = Self.averageCadence(pedaling.filter { $0.timestamp <= baselineEnd }),
+            let current = Self.averageCadence(pedaling.filter { $0.timestamp >= currentStart && $0.timestamp <= now })
         else {
             return nil
         }
-        return currentCadenceRPM - firstCadenceRPM
+        return Int((current - baseline).rounded(.toNearestOrAwayFromZero))
+    }
+
+    private static func averageCadence(_ samples: [PersistedRideSample]) -> Double? {
+        let values = samples.compactMap(\.cadenceRPM)
+        guard !values.isEmpty else { return nil }
+        return Double(values.reduce(0, +)) / Double(values.count)
     }
 
     /// The oldest sample in `track` whose timestamp still falls within `windowSeconds` of

@@ -2,8 +2,10 @@
 
 /// Production `LocationSource` (RULE-6/RULE-7 in spec/rules.md): `CLLocationManager`
 /// configured for the `.fitness` activity type — not `.automotiveNavigation`,
-/// `.otherNavigation`, or continuous best-accuracy — and requesting "Always" authorization,
-/// since reliable background recording while the phone is pocketed mid-ride needs it (AC-20).
+/// `.otherNavigation`, or continuous best-accuracy (the default when `desiredAccuracy` isn't set) —
+/// and requesting "Always" authorization, since reliable background recording while the phone is
+/// pocketed mid-ride needs it (AC-20). No `distanceFilter`: stop detection, moving time and the
+/// no-GPS badge all expect fixes to keep arriving while the rider stands still.
 /// `allowsBackgroundLocationUpdates` is a separate requirement from "Always" authorization and
 /// the `UIBackgroundModes: [location]` Info.plist key (both already in place) — without it,
 /// iOS silently pauses delivery the moment the app leaves the foreground, confirmed by manual
@@ -24,6 +26,7 @@ final class CoreLocationSource: NSObject, LocationSource, CLLocationManagerDeleg
         super.init()
         manager.delegate = self
         manager.activityType = .fitness
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
         manager.allowsBackgroundLocationUpdates = true
         manager.pausesLocationUpdatesAutomatically = false
         // Milestone 7 RULE-21: no permission prompt here — the pre-ride readiness check asks.

@@ -109,7 +109,7 @@ cp Config/Backend.local.xcconfig.example Config/Backend.local.xcconfig
    только если товарищ использует генерацию из `project.yml` по своему обычному процессу.
 4. В Xcode → Settings → Accounts добавьте Apple Account для Personal Team, если его ещё нет.
 5. Target CyclingCompanion → Signing & Capabilities: включите Automatically manage signing
-   и выберите Team. Если bundle identifier `com.cyclingcompanion.app` недоступен команде,
+   и выберите Team. Если bundle identifier `site.cyclecomp.app` недоступен команде,
    задайте уникальный идентификатор для этой тестовой сборки. Личные signing-настройки
    не включайте в общий коммит.
 6. Подключите разблокированный iPhone кабелем. Подтвердите Trust на телефоне и Mac.

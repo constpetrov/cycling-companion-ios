@@ -16,6 +16,8 @@ struct RideStarter {
     var advisorClient: AdvisorClient? = nil
     /// The stop types the rider turned off in Settings are never suggested.
     var stopTypeFilter: StopTypeFilter = .allEnabled
+    /// Milestone 12 (RULE-13): Bluetooth sensors when the rider has remembered any, otherwise none.
+    var makeSensorSource: @MainActor () -> SensorSource = { NoSensorSource() }
 
     func startRide() async {
         guard rideCoordinator.beginPreparingRide() else { return }
@@ -25,7 +27,7 @@ struct RideStarter {
         }
         let (tracker, session) = await makeTrackerAndSession(
             rideId: UUID().uuidString, routeId: routeId, startTime: Date(), route: route,
-            locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
+            locationSource: CoreLocationSource(), sensorSource: makeSensorSource(), clock: SystemClock(),
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
             advisorClient: advisorClient, stopTypeFilter: stopTypeFilter)
 

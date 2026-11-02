@@ -210,10 +210,10 @@ struct HomeView: View {
 
     private static let gpxContentType = UTType(filenameExtension: "gpx") ?? .xml
 
-    #if DEBUG
-    /// AC-20/AC-25 (RULE-14 in spec/rules.md): always true in a Debug build — the entry point
+    #if DEMO_MODE
+    /// AC-20/AC-25 (RULE-14 in spec/rules.md): always true in a Debug or Beta build — the entry point
     /// itself is unconditional; AC-25's Release exclusion comes entirely from this whole
-    /// property (and the `NavigationLink` below) being compiled out via `#if DEBUG`, not from
+    /// property (and the `NavigationLink` below) being compiled out via `#if DEMO_MODE`, not from
     /// any runtime check.
     var showsDemoModeEntryPoint: Bool { true }
     #endif
@@ -258,7 +258,7 @@ struct HomeView: View {
                 Label("Settings", systemImage: "gearshape")
             }
             .accessibilityIdentifier("settingsButton")
-            #if DEBUG
+            #if DEMO_MODE
             NavigationLink("Demo Mode", value: HomeRoute.demo)
             #endif
         }

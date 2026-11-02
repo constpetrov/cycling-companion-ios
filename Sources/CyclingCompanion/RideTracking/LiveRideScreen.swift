@@ -5,6 +5,7 @@ import SwiftUI
 /// Shown inside the ride cover while a ride is active.
 struct LiveRideScreen: View {
     @Environment(AppDependencies.self) private var dependencies
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel: LiveRideViewModel
     let onFinishRide: () -> Void
     /// Debug only: asks the advisor for a decision now instead of waiting out the cadence.
@@ -21,8 +22,11 @@ struct LiveRideScreen: View {
         LiveRideMapView(viewModel: viewModel)
             .safeAreaInset(edge: .top) { metricsStrip }
             .safeAreaInset(edge: .bottom) { controls }
-            .task {
-                await viewModel.loadRoute(from: dependencies.routeStore)
+            .task { await viewModel.loadRoute(from: dependencies.routeStore) }
+            // A SwiftUI `.task` keeps running while the phone is locked, so this one is tied to the scene:
+            // nothing on the dashboard can be seen then, and returning catches up at once.
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
                 await viewModel.monitorGPS()
             }
             .task { await viewModel.listenForSuggestions() }
@@ -48,6 +52,16 @@ struct LiveRideScreen: View {
                 MetricTile(label: "Remaining", value: viewModel.distanceRemainingText)
                 MetricTile(label: "Arrive", value: viewModel.arrivalTimeText ?? "—")
                 MetricTile(label: "Speed", value: viewModel.speedText ?? "—")
+            }
+            if viewModel.showsHeartRate || viewModel.showsCadence {
+                HStack(alignment: .top, spacing: 12) {
+                    if viewModel.showsHeartRate {
+                        MetricTile(label: "Heart rate", value: viewModel.heartRateText)
+                    }
+                    if viewModel.showsCadence {
+                        MetricTile(label: "Cadence", value: viewModel.cadenceText)
+                    }
+                }
             }
             HStack(spacing: 8) {
                 if viewModel.isOffRoute {

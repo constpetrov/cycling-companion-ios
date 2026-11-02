@@ -5,7 +5,7 @@ import SwiftUI
 /// Backs `DemoModeScreen`'s observable state (RULE-16 in spec/rules.md): the selected replay
 /// speed, always clamped through `DemoMode.clampSpeed` (AC-47 through AC-51, Milestone 3) so
 /// nothing downstream ever sees an out-of-range value.
-#if DEBUG
+#if DEMO_MODE
 @MainActor
 @Observable
 final class DemoModeViewModel {
@@ -24,9 +24,11 @@ final class DemoModeViewModel {
     /// waiting out the (speed-scaled) cadence — the same `RideSession.forceNextCheck()`
     /// mechanism task-1.3 already validated, exercised here through the screen's own action.
     /// A no-op if no demo ride is currently running.
+    #if DEBUG
     func forceNextCheck() async {
         await activeSession?.forceNextCheck()
     }
+    #endif
 }
 
 /// Constructs a Demo Mode `RideSession` — `DemoModeReplayDriver` substituted for both
@@ -34,7 +36,7 @@ final class DemoModeViewModel {
 /// (RULE-1/RULE-7/RULE-15 in spec/rules.md, AC-21/AC-22/AC-23/AC-25) — against the *current*
 /// route (dec-2 in tasks.yaml: Demo Mode reuses the same current-route pointer a live ride
 /// would, rather than a self-contained bundled fixture route). Only ever constructed from
-/// `DemoModeScreen`'s own `#if DEBUG` body (RULE-15): `DemoModeReplayDriver` doesn't exist in
+/// `DemoModeScreen`'s own `#if DEMO_MODE` body (RULE-15): `DemoModeReplayDriver` doesn't exist in
 /// Release, so this type must never move into a file compiled in every configuration.
 /// Replay positions are generated from that same route at the moment the demo starts.
 @MainActor
@@ -78,8 +80,8 @@ struct DemoRideStarter {
 }
 
 /// The Demo Mode screen (RULE-14 in spec/rules.md, AC-20/AC-25) — speed selection, starting a
-/// demo ride, and the debug-only force-check control (AC-24). `#if DEBUG`-gated along with
-/// everything else Demo Mode touches, so it compiles out of Release entirely. `onStart` is
+/// demo ride, and the debug-only force-check control (AC-24). `#if DEMO_MODE`-gated along with
+/// everything else Demo Mode touches, so it compiles out of Release entirely; Force Check is Debug only. `onStart` is
 /// `DemoRideStarter.startDemoRide` (or an equivalent); its returned `RideSession` is retained
 /// by `viewModel` so Force Check has something to call `forceNextCheck()` on.
 struct DemoModeScreen: View {
@@ -96,9 +98,11 @@ struct DemoModeScreen: View {
                     viewModel.setActiveSession(session)
                 }
             }
+            #if DEBUG
             Button("Force Check") {
                 Task { await viewModel.forceNextCheck() }
             }
+            #endif
         }
         .padding()
     }

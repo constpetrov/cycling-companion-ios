@@ -5,7 +5,7 @@ import Foundation
 enum HomeRoute: Hashable {
     case corridorMap(routeId: String)
     case settings
-    #if DEBUG
+    #if DEMO_MODE
     case demo
     #endif
 }

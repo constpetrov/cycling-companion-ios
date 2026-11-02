@@ -1,7 +1,7 @@
 import Foundation
 import RoutePersistence
 
-#if DEBUG
+#if DEMO_MODE
 enum DemoFixture {
     /// Simulates 18 km/h along the current route. Split long segments into at most
     /// five seconds of ride time, retaining every vertex so bends are never skipped.

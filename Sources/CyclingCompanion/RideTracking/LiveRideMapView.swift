@@ -42,7 +42,7 @@ struct LiveRideMapView: View {
                     coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude))
                 .tint(stop.osmId == viewModel.highlightedStopId ? .orange : .gray)
             }
-            if let rider = viewModel.riderCoordinate {
+            if let rider = viewModel.mapRiderCoordinate {
                 Annotation("You", coordinate: rider) {
                     Circle()
                         .fill(.blue)
@@ -61,9 +61,8 @@ struct LiveRideMapView: View {
                     .accessibilityIdentifier("mapStop")
             }
         }
-        .onChange(of: viewModel.cameraCenter?.latitude) { moveCamera() }
-        .onChange(of: viewModel.cameraCenter?.longitude) { moveCamera() }
-        // Recenter on a rider standing still sets the same centre, which the two above don't see.
+        .onChange(of: viewModel.cameraCenter.map { [$0.latitude, $0.longitude] }) { moveCamera() }
+        // Recenter on a rider standing still sets the same centre, which the one above doesn't see.
         .onChange(of: viewModel.isFollowingRider) { _, following in
             if following { moveCamera() }
         }

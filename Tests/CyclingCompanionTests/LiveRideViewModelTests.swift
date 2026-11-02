@@ -1,3 +1,4 @@
+import CoreLocation
 import RoutePersistence
 import XCTest
 
@@ -245,6 +246,36 @@ final class LiveRideMapStateTests: XCTestCase {
 
         XCTAssertTrue(viewModel.isFollowingRider)
         XCTAssertEqual(viewModel.cameraCenter?.longitude, 13.007)
+    }
+
+    @MainActor
+    func testASmallMoveDoesNotReachTheMapThresholds() {
+        let start = CLLocationCoordinate2D(latitude: 52.0, longitude: 13.0)
+        let thirtyMetersNorth = CLLocationCoordinate2D(latitude: 52.00027, longitude: 13.0)
+
+        XCTAssertFalse(
+            LiveRideViewModel.hasMoved(
+                from: start, to: thirtyMetersNorth, atLeast: LiveRideViewModel.cameraFollowStepMeters))
+        XCTAssertTrue(
+            LiveRideViewModel.hasMoved(
+                from: start, to: thirtyMetersNorth, atLeast: LiveRideViewModel.riderMarkerStepMeters))
+    }
+
+    @MainActor
+    func testAFirstPositionAlwaysCountsAsMoved() {
+        let start = CLLocationCoordinate2D(latitude: 52.0, longitude: 13.0)
+
+        XCTAssertTrue(LiveRideViewModel.hasMoved(from: nil, to: start, atLeast: LiveRideViewModel.cameraFollowStepMeters))
+    }
+
+    @MainActor
+    func testTheMapDrawsTheRiderAfterTheFirstCheck() async {
+        let viewModel = await viewModel(fixes: [fix(longitude: 13.005)], clock: ReplayClock())
+        XCTAssertNil(viewModel.mapRiderCoordinate)
+
+        await viewModel.refreshGPSState()
+
+        XCTAssertEqual(viewModel.mapRiderCoordinate?.longitude, 13.005)
     }
 
     @MainActor

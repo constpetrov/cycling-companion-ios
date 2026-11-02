@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Cycling Rest Companion</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -17,20 +19,25 @@
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CyclingCompanionBackendBaseURL</key>
 	<string>$(CC_BACKEND_BASE_URL)</string>
 	<key>CyclingCompanionDemoAccessToken</key>
 	<string>$(CC_DEMO_ACCESS_TOKEN)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Cycling Rest Companion connects to your heart rate and cadence sensors to read them during your ride.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Cycling Companion uses your location in the background to keep tracking your ride while your phone is pocketed or mounted.</string>
+	<string>Cycling Rest Companion uses your location in the background to keep tracking your ride while your phone is pocketed or mounted.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Cycling Companion uses your location to track your ride against the planned route.</string>
+	<string>Cycling Rest Companion uses your location to track your ride against the planned route.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>bluetooth-central</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>

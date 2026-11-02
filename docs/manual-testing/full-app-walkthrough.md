@@ -168,15 +168,15 @@ Avoid deleting the app as an initial troubleshooting step: that can remove local
 
 The app logs its own events (sign-in, Advisor decisions, ride ingest/retry, notifications,
 route import, ride resume) via Apple's unified logging (`os.Logger`, subsystem
-`com.cyclingcompanion.app`) — this persists in the system log store and survives after the
+`site.cyclecomp.app`) — this persists in the system log store and survives after the
 fact, unlike `print()`. Easiest: **Console.app**, select the Simulator or your connected device
-in the sidebar, filter by `com.cyclingcompanion.app`. From the terminal:
+in the sidebar, filter by `site.cyclecomp.app`. From the terminal:
 
 - **Simulator**: the plain `log`/`log stream` commands on your Mac do *not* see Simulator
   process logs (confirmed — they return nothing even while the app is actively logging). Use
   `xcrun simctl spawn <device-id> log show --last 5m --predicate 'subsystem ==
-  "com.cyclingcompanion.app"'` (or `log stream` for live tailing) instead.
-- **Real device**: plain `log stream --predicate 'subsystem == "com.cyclingcompanion.app"'` on
+  "site.cyclecomp.app"'` (or `log stream` for live tailing) instead.
+- **Real device**: plain `log stream --predicate 'subsystem == "site.cyclecomp.app"'` on
   your Mac works directly while the device is connected.
 
 ## Notes
@@ -186,8 +186,8 @@ in the sidebar, filter by `com.cyclingcompanion.app`. From the terminal:
   fired, check the backend's `advisor_trace.outcome`/`raw_response` for that call (nothing to
   check there at all if it never left the device), or just make sure `NEBIUS_API_KEY` is set so
   there's nothing to disambiguate.
-- Demo Mode is compiled out of Release builds entirely (`#if DEBUG`) — it won't appear if you
-  build/run a Release configuration.
+- Demo Mode is compiled into Debug and Beta (TestFlight) builds and out of Release entirely
+  (`#if DEMO_MODE`) — it won't appear if you build/run a Release configuration.
 - This doc stops at "install → generate data → confirm it's meaningful." For deeper
   CoreLocation/background-resume-specific testing, see
   `docs/manual-testing/milestone-2-location-and-resume.md` — older and predates real

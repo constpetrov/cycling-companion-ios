@@ -17,6 +17,8 @@ struct RideResumer {
     var advisorClient: AdvisorClient? = nil
     /// The stop types the rider turned off in Settings are never suggested.
     var stopTypeFilter: StopTypeFilter = .allEnabled
+    /// Milestone 12 (RULE-13): Bluetooth sensors when the rider has remembered any, otherwise none.
+    var makeSensorSource: @MainActor () -> SensorSource = { NoSensorSource() }
     /// Told about an unfinished ride whose route no longer exists (RULE-27 in milestone 7's rules.md).
     var onOrphanedRide: (@MainActor (String) -> Void)? = nil
 
@@ -36,7 +38,7 @@ struct RideResumer {
         }
         let (tracker, session) = await makeTrackerAndSession(
             rideId: checkpoint.id, routeId: checkpoint.routeId, startTime: checkpoint.startTime, route: route,
-            locationSource: CoreLocationSource(), sensorSource: NoSensorSource(), clock: SystemClock(),
+            locationSource: CoreLocationSource(), sensorSource: makeSensorSource(), clock: SystemClock(),
             rideStore: rideStore, routeStore: routeStore, decisionLog: decisionLog, notifier: notifier,
             advisorClient: advisorClient, stopTypeFilter: stopTypeFilter)
         try? await tracker.resumeIfNeeded(from: rideStore)

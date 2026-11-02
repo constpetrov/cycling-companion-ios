@@ -19,9 +19,9 @@ enum AdvisorCheckCadence {
 
 /// Internal demo/showcase harness (B-18/B-19/B-20 in spec/spec.md; RULE-27/RULE-28 in
 /// spec/rules.md): replays a recorded ride fixture at an adjustable speed and can force the
-/// next advisor check immediately. Compiled out of Release builds entirely via `#if DEBUG`
+/// next advisor check immediately. Compiled out of Release builds entirely via `#if DEMO_MODE`
 /// (RULE-28) so AC-53 holds unconditionally, not just behind a runtime flag.
-#if DEBUG
+#if DEMO_MODE
 enum DemoMode {
     static let speedRange: ClosedRange<Double> = 1...20
 

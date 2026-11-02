@@ -24,6 +24,36 @@ final class RideTrackerCheckpointingTests: XCTestCase {
         FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
     }
 
+    func testTheFirstFixCheckpointsAndLaterOnesWaitForTheInterval() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let interval = RideTracker.checkpointIntervalSeconds
+
+        XCTAssertTrue(RideTracker.isCheckpointDue(lastCheckpointFixAt: nil, fixAt: start))
+        XCTAssertFalse(RideTracker.isCheckpointDue(lastCheckpointFixAt: start, fixAt: start.addingTimeInterval(interval - 1)))
+        XCTAssertTrue(RideTracker.isCheckpointDue(lastCheckpointFixAt: start, fixAt: start.addingTimeInterval(interval)))
+    }
+
+    /// A resumed ride continues the stored track rather than writing it out again from the start.
+    @MainActor
+    func testAResumedRideKeepsItsCheckpointedSamples() async throws {
+        let store = RideStore(fileURL: tempStoreFileURL())
+        let first = RideTracker(
+            rideId: "ride-42", routeId: "route-7", startTime: Date(timeIntervalSince1970: 0), route: straightRoute(),
+            locationSource: ReplayLocationSource(fixes: [fix(fraction: 0.1, speed: 5, time: 1), fix(fraction: 0.2, speed: 5, time: 2)]),
+            sensorSource: ReplaySensorSource(samples: []), clock: ReplayClock(), rideStore: store)
+        await first.start()
+
+        let resumed = RideTracker(
+            rideId: "ride-42", routeId: "route-7", startTime: Date(timeIntervalSince1970: 0), route: straightRoute(),
+            locationSource: ReplayLocationSource(fixes: [fix(fraction: 0.3, speed: 5, time: 3)]),
+            sensorSource: ReplaySensorSource(samples: []), clock: ReplayClock(), rideStore: store)
+        try await resumed.resumeIfNeeded(from: store)
+        await resumed.start()
+
+        let stored = try await store.fetch(rideId: "ride-42")
+        XCTAssertEqual(stored?.track.map(\.timestamp.timeIntervalSince1970), [1, 2, 3])
+    }
+
     @MainActor
     func testEveryAcceptedLocationUpdateCheckpointsAnUnfinishedPersistedRide() async throws {
         let fileURL = tempStoreFileURL()

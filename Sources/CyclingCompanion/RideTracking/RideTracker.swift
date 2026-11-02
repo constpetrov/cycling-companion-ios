@@ -15,9 +15,9 @@ import RoutePersistence
 /// (data the injected `LocationSource` supplies, per RULE-15), not `clock` — `Clock` only
 /// exposes `sleep(for:)` (the `CorridorPollingService` precedent), which fits a polling loop,
 /// not this push-based consumer; `clock` stays a constructor dependency for later
-/// delay-based needs (e.g. dropout flagging). Checkpoints itself to `rideStore` after every
-/// accepted location update (RULE-12 in spec/rules.md), writing a `PersistedRide` with
-/// `endTime` left unset; the final write that sets `endTime` is `RideRecorder`'s alone
+/// delay-based needs (e.g. dropout flagging). Checkpoints itself to `rideStore` every
+/// `checkpointIntervalSeconds` of ride time (RULE-12 in spec/rules.md), so the ride stays
+/// unfinished in the store; the final write that sets `endTime` is `RideRecorder`'s alone
 /// (RULE-11) — this class never performs it.
 @MainActor
 @Observable
@@ -100,6 +100,7 @@ final class RideTracker {
         distanceAlongRouteMeters = checkpoint.totalDistanceMeters
         movingTimeSeconds = checkpoint.totalMovingTimeSeconds
         track = checkpoint.track
+        checkpointedSampleCount = track.count
         if let last = track.last {
             lastMatchedFix = LocationFix(
                 latitude: last.latitude, longitude: last.longitude,
@@ -145,8 +146,25 @@ final class RideTracker {
                     latitude: fix.latitude, longitude: fix.longitude, speedMetersPerSecond: fix.speedMetersPerSecond,
                     heartRateBPM: currentHeartRateBPM, cadenceRPM: currentCadenceRPM, timestamp: fix.timestamp))
 
+            if Self.isCheckpointDue(lastCheckpointFixAt: lastCheckpointFixAt, fixAt: fix.timestamp) {
+                lastCheckpointFixAt = fix.timestamp
+                await checkpoint()
+            }
+        }
+        // The stream ended: don't leave the last fixes waiting for a checkpoint that won't come.
+        if checkpointedSampleCount < track.count {
             await checkpoint()
         }
+    }
+
+    /// How much ride time a checkpoint can lag behind: if iOS kills the app, a resumed ride is
+    /// missing at most this much of its track. A rider's answer to a suggestion doesn't wait for it.
+    nonisolated static let checkpointIntervalSeconds: TimeInterval = 15
+
+    /// The ride's first fix checkpoints straight away, so even a very short ride can be resumed.
+    nonisolated static func isCheckpointDue(lastCheckpointFixAt: Date?, fixAt: Date) -> Bool {
+        guard let lastCheckpointFixAt else { return true }
+        return fixAt.timeIntervalSince(lastCheckpointFixAt) >= checkpointIntervalSeconds
     }
 
     /// Uses both elapsed GPS time and displacement, allowing sparse fixes and real
@@ -163,9 +181,9 @@ final class RideTracker {
         return max(0, progress - allowance)...min(totalRouteDistanceMeters, progress + allowance)
     }
 
-    /// RULE-12: persists the accumulated state so far with `endTime` left unset. A failed
+    /// RULE-12: appends the samples since the last checkpoint and the current totals. A failed
     /// write is swallowed rather than propagated — per RULE-11's reasoning, each checkpoint is
-    /// low-stakes and immediately superseded by the next one, so there's nothing a caller
+    /// low-stakes, and the next one carries the same samples again, so there's nothing a caller
     /// should do differently if one write fails.
     ///
     /// Checkpoints run one after another, chained through `latestCheckpoint`, so
@@ -180,11 +198,14 @@ final class RideTracker {
             let suggestionState = await suggestionStateProvider?()
             // Checked again right before the write: the ride may have finished while this waited.
             guard !checkpointingStopped else { return }
-            let snapshot = PersistedRide(
-                id: rideId, routeId: routeId, startTime: startTime, endTime: nil,
-                totalDistanceMeters: distanceAlongRouteMeters, totalMovingTimeSeconds: movingTimeSeconds, track: track,
-                suggestionState: suggestionState)
-            try? await rideStore.persist(snapshot)
+            let sampleCount = track.count
+            let checkpoint = RideCheckpoint(
+                id: rideId, routeId: routeId, startTime: startTime, totalDistanceMeters: distanceAlongRouteMeters,
+                totalMovingTimeSeconds: movingTimeSeconds, firstSampleIndex: checkpointedSampleCount,
+                samples: Array(track[checkpointedSampleCount...]), suggestionState: suggestionState)
+            if (try? await rideStore.appendCheckpoint(checkpoint)) != nil {
+                checkpointedSampleCount = sampleCount
+            }
         }
         latestCheckpoint = write
         await write.value
@@ -192,6 +213,9 @@ final class RideTracker {
 
     private var latestCheckpoint: Task<Void, Never>?
     private var checkpointingStopped = false
+    private var lastCheckpointFixAt: Date?
+    /// How much of `track` is already in `rideStore`.
+    private var checkpointedSampleCount = 0
 
     /// Called by `RideFinisher` before it finalizes: no checkpoint writes after this returns,
     /// including one from a suggestion answer that arrives while the ride is finishing.
