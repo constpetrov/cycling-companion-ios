@@ -4,8 +4,8 @@ import Foundation
 /// same combined, timestamp-ordered, kind-discriminated JSON shape the test target's
 /// `RideFixtureEntry` already uses (see `Tests/CyclingCompanionTests/Fixtures/`), promoted
 /// into the main target so Demo Mode has something real to replay without depending on the
-/// test target. `#if DEBUG`-gated along with everything else Demo Mode touches.
-#if DEBUG
+/// test target. `#if DEMO_MODE`-gated along with everything else Demo Mode touches.
+#if DEMO_MODE
 private struct DemoFixtureEntry: Decodable {
     let kind: String
     let timestamp: TimeInterval

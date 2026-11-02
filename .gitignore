@@ -1,3 +1,4 @@
 /Config/Backend.local.xcconfig
 **/xcuserdata/
 .DS_Store
+/build/

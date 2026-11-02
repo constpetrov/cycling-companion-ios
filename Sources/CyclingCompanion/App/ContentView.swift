@@ -93,7 +93,7 @@ struct ContentView: View {
                 onStartRide: { Task { await dependencies.rideStartFlow.requestStart() } })
         case .settings:
             SettingsView()
-        #if DEBUG
+        #if DEMO_MODE
         case .demo:
             DemoModeScreen(onStart: dependencies.startDemoRide(speed:))
         #endif
