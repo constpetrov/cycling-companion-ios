@@ -47,7 +47,7 @@ struct ReadinessDecision: Equatable {
         case .denied:
             items.append(ReadinessItem(
                 kind: .location, title: "Location is off",
-                detail: "Turn on location for Cycling Companion in Settings to start a ride.", action: .openSettings))
+                detail: "Turn on location for Cycling Rest Companion in Settings to start a ride.", action: .openSettings))
         case .whenInUse:
             items.append(ReadinessItem(
                 kind: .location, title: "Allow location Always",
