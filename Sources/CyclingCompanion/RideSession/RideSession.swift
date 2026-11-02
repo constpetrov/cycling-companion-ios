@@ -190,7 +190,14 @@ actor RideSession {
         // a well-formed suggest:false) is used as-is, without also asking Local Advisor. A call
         // that isn't due, or that the Guardrail Gate would reject anyway, isn't made, to save the
         // radio; that cycle suggests nothing rather than letting Local Advisor overrule the Advisor.
-        let lastStopTimestamp = snapshot.timeSinceLastStopSeconds.map { now.addingTimeInterval(-$0) }
+        var lastStopTimestamp = snapshot.timeSinceLastStopSeconds.map { now.addingTimeInterval(-$0) }
+        #if DEBUG
+        // UI tests only: the quiet period counts from the ride's start when there's been no stop, which would hold
+        // back the card for 10 minutes of ride time. The Guardrail Gate's own tests cover the quiet period.
+        if UITestFixtures.isEnabled {
+            lastStopTimestamp = nil
+        }
+        #endif
         var remoteDecision: AdvisorDecision?
         if triggerProceeds, !candidates.isEmpty, let advisorClient {
             let crossedFeature = LocalTrigger.crossedFeature(snapshot)

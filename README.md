@@ -96,3 +96,23 @@ open CyclingCompanion.xcodeproj
 Успешный health или локальное уведомление сами по себе не подтверждают, что приложение
 успело получить решение NVIDIA: отличайте `Remote Advisor decision` от local fallback
 по логам. Дальнейший сценарий — [full-app walkthrough](docs/manual-testing/full-app-walkthrough.md).
+
+## Тесты
+
+На GitHub обычные и UI-тесты идут двумя отдельными задачами. Локально их можно запускать так же
+(подставьте свой симулятор):
+
+```bash
+# Обычные тесты: выполняются за секунды после сборки
+xcodebuild -project CyclingCompanion.xcodeproj -scheme CyclingCompanion \
+  -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+  -only-testing:CyclingCompanionTests test
+
+# UI-тесты: около 4–5 минут
+xcodebuild -project CyclingCompanion.xcodeproj -scheme CyclingCompanion \
+  -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+  -only-testing:CyclingCompanionUITests test
+```
+
+Скриншоты для документации снимаются только по запросу: добавьте к команде UI-тестов
+`TEST_RUNNER_SCREENSHOTS_DIR=/путь/к/папке`.

@@ -23,6 +23,8 @@ struct CyclingCompanionApp: App {
         // UI tests run offline on a stub backend, so the real configuration doesn't matter.
         let dependencies: AppDependencies
         if UITestFixtures.isEnabled {
+            // Nothing to wait for between taps, and no audit measures a sheet mid-transition.
+            UIView.setAnimationsEnabled(false)
             dependencies = UITestFixtures.makeDependencies()
             configurationError = nil
         } else {

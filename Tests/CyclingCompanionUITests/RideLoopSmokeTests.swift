@@ -2,26 +2,9 @@ import XCTest
 
 /// task-7.3 (RULE-30): end-to-end smoke flows on the offline `-uiTestFixtures` build, plus Xcode's
 /// accessibility audit and a largest-Dynamic-Type pass over the milestone's screens (AC-131).
-final class RideLoopSmokeTests: XCTestCase {
-
-    private var app: XCUIApplication!
-
-    override func setUp() {
-        continueAfterFailure = false
-        app = XCUIApplication()
-        app.launchArguments += ["-uiTestFixtures"]
-    }
+final class RideLoopSmokeTests: AppUITestCase {
 
     private var startRide: XCUIElement { app.buttons["Start Ride"] }
-
-    private func dismissSystemAlerts() {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        for _ in 0..<3 where springboard.alerts.firstMatch.waitForExistence(timeout: 1) {
-            let alert = springboard.alerts.firstMatch
-            let button = ["Allow While Using App", "Allow", "OK"].map { alert.buttons[$0] }.first { $0.exists }
-            (button ?? alert.buttons.firstMatch).tap()
-        }
-    }
 
     private func launchHome() {
         app.launch()
@@ -29,12 +12,11 @@ final class RideLoopSmokeTests: XCTestCase {
         dismissSystemAlerts()
     }
 
-    /// Starts a 20x demo ride and waits for the stub backend's suggestion card.
+    /// Starts a demo ride and waits for the stub backend's suggestion card.
     @discardableResult
     private func startDemoRideAndWaitForTheCard() -> XCUIElement {
         app.buttons["Demo Mode"].tap()
         XCTAssertTrue(app.buttons["Start Demo Ride"].waitForExistence(timeout: 5))
-        app.sliders.firstMatch.adjust(toNormalizedSliderPosition: 1.0)
         app.buttons["Start Demo Ride"].tap()
         XCTAssertTrue(app.buttons["Hold to finish"].waitForExistence(timeout: 10))
         let card = app.waitForSuggestionCard()
@@ -75,7 +57,7 @@ final class RideLoopSmokeTests: XCTestCase {
         XCTAssertFalse(app.buttons["Decline"].waitForExistence(timeout: 2), "the sheet closes")
         XCTAssertFalse(card.waitForExistence(timeout: 2), "the card is gone")
         app.buttons["dashboard.forceCheck"].tap()
-        sleep(3)
+        sleep(2)
         XCTAssertFalse(card.exists, "the declined café is not suggested again")
     }
 
@@ -84,7 +66,7 @@ final class RideLoopSmokeTests: XCTestCase {
         app.launchArguments += ["-uiTestStaleStopLink"]
         launchHome()
 
-        sleep(2)
+        sleep(1)
         XCTAssertTrue(startRide.isHittable, "still on Home")
         XCTAssertFalse(app.buttons["Hold to finish"].exists, "no ride cover")
         XCTAssertFalse(app.activityIndicators.firstMatch.exists, "no loading placeholder")
@@ -119,6 +101,7 @@ final class RideLoopSmokeTests: XCTestCase {
 
         startRide.tap()
         XCTAssertTrue(app.buttons["Start without suggestions"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Open Settings"].exists, "denied notifications point to Settings")
         try audit("Readiness check")
         app.buttons["Cancel"].tap()
 
@@ -136,7 +119,7 @@ final class RideLoopSmokeTests: XCTestCase {
         let directions = app.buttons["Directions"]
         directions.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: -4))
             .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.05)))
-        sleep(2)
+        sleep(1)
         try audit("Stop sheet")
         app.swipeDown(velocity: .fast)
 
