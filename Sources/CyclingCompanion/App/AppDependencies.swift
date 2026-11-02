@@ -167,10 +167,9 @@ final class AppDependencies {
     /// this construction site, itself `#if DEMO_MODE`, does. Returns `nil` in Release.
     func startDemoRide(speed: Double) async -> RideSession? {
         #if DEMO_MODE
-        let fixture = DemoFixture.loadBundled()
         let starter = DemoRideStarter(
             routeStore: routeStore, rideStore: rideStore, pointer: pointer, rideCoordinator: rideCoordinator, decisionLog: decisionLog,
-            notifier: notifier, locationFixes: fixture.locationFixes, sensorSamples: fixture.sensorSamples,
+            notifier: notifier,
             advisorClient: advisorClient, stopTypeFilter: stopTypeSettings.filter)
         return await starter.startDemoRide(speed: speed)
         #else

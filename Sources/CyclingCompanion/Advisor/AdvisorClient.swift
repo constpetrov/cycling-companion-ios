@@ -76,8 +76,10 @@ actor AdvisorClient {
     private let clock: Clock
     private let deadlineSeconds: TimeInterval
 
+    // Allow time for backend history retrieval plus inference; observed successful calls
+    // take about 19 seconds. Keep a bounded wait before using the local advisor.
     init(
-        baseURL: URL, session: AuthSession, clock: Clock = SystemClock(), deadlineSeconds: TimeInterval = 8.0
+        baseURL: URL, session: AuthSession, clock: Clock = SystemClock(), deadlineSeconds: TimeInterval = 30.0
     ) {
         self.baseURL = baseURL
         self.session = session
