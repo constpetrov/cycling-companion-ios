@@ -3,24 +3,11 @@ import XCTest
 /// Settings: the rider turns stop types off from Home's toolbar, and the screen passes the
 /// accessibility audit at the largest text size. (Persistence is covered by the unit tests; the UI
 /// test fixtures use a fresh defaults suite per launch.)
-final class StopTypeSettingsUITests: XCTestCase {
-
-    private var app: XCUIApplication!
-
-    override func setUp() {
-        continueAfterFailure = false
-        app = XCUIApplication()
-        app.launchArguments += ["-uiTestFixtures"]
-    }
+final class StopTypeSettingsUITests: AppUITestCase {
 
     private func openSettings() {
         app.launch()
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        for _ in 0..<3 where springboard.alerts.firstMatch.waitForExistence(timeout: 1) {
-            let alert = springboard.alerts.firstMatch
-            let button = ["Allow While Using App", "Allow", "OK"].map { alert.buttons[$0] }.first { $0.exists }
-            (button ?? alert.buttons.firstMatch).tap()
-        }
+        dismissSystemAlerts()
         let settingsButton = app.buttons["settingsButton"]
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 10))
         settingsButton.tap()

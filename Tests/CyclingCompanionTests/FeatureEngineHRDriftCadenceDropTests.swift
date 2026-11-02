@@ -5,15 +5,18 @@ import XCTest
 
 /// task-2.4 validation (RULE-9/RULE-10/RULE-11 in spec/rules.md, AC-7/AC-8/AC-11/AC-12/AC-56).
 ///
-/// Uses the Clock-paced `RideFixtureReplayDriver` (task-3.2, Milestone 2), not the plain
-/// `ReplayLocationSource`/`ReplaySensorSource` — `hrDrift`/`cadenceDrop` depend on `track[]`'s
-/// *historical* sensor tagging, which the plain fakes can't guarantee relative ordering for
-/// (each yields its whole array synchronously, with no shared timeline between the two
-/// streams). The paced driver walks both streams through the identical combined,
-/// timestamp-ordered entry list in lockstep, so a sensor entry nominally before a location
-/// entry reliably lands before it. A `ScaledRealClock` with a tiny scale keeps this fast in
-/// real wall-clock terms even though some fixtures span a full nominal hour.
+/// Feeds the fixture's entries one at a time, waiting for `RideTracker` to take each before sending the
+/// next. `hrDrift`/`cadenceDrop` depend on which sensor reading each `track[]` sample was tagged with, and
+/// the tracker reads its two streams independently, so anything looser lets a location overtake the
+/// sensor reading before it on a slow machine.
 final class FeatureEngineHRDriftCadenceDropTests: XCTestCase {
+
+    private struct FedStreams: LocationSource, SensorSource {
+        let locations: AsyncStream<LocationFix>
+        let sensors: AsyncStream<SensorSample>
+        func locationUpdates() -> AsyncStream<LocationFix> { locations }
+        func sensorUpdates() -> AsyncStream<SensorSample> { sensors }
+    }
 
     /// Flat (0% grade) so grade-adjusted speed equals raw speed exactly — keeps the
     /// hand-computed expected values simple.
@@ -39,13 +42,30 @@ final class FeatureEngineHRDriftCadenceDropTests: XCTestCase {
     @MainActor
     private func replay(entries: [RideFixtureEntry]) async throws -> (RideTracker, FeatureEngine) {
         let clock = ScaledRealClock(scale: 0.0001)
-        let driver = RideFixtureReplayDriver(entries: entries, clock: clock)
+        let (locations, locationFeed) = AsyncStream.makeStream(of: LocationFix.self)
+        let (sensors, sensorFeed) = AsyncStream.makeStream(of: SensorSample.self)
+        let streams = FedStreams(locations: locations, sensors: sensors)
         let rideStore = RideStore(
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json"))
         let tracker = RideTracker(
             rideId: "ride-1", routeId: "route-1", startTime: Date(timeIntervalSince1970: 0), route: flatRoute(),
-            locationSource: driver, sensorSource: driver, clock: clock, rideStore: rideStore)
-        await tracker.start()
+            locationSource: streams, sensorSource: streams, clock: clock, rideStore: rideStore)
+        let running = Task { await tracker.start() }
+        for entry in entries {
+            if let fix = entry.asLocationFix {
+                let taken = tracker.track.count + 1
+                locationFeed.yield(fix)
+                while tracker.track.count < taken { await Task.yield() }
+            } else if let sample = entry.asSensorSample {
+                sensorFeed.yield(sample)
+                while tracker.currentHeartRateBPM != sample.heartRateBPM || tracker.currentCadenceRPM != sample.cadenceRPM {
+                    await Task.yield()
+                }
+            }
+        }
+        locationFeed.finish()
+        sensorFeed.finish()
+        await running.value
         let engine = FeatureEngine(rideTracker: tracker, route: flatRoute(), clock: clock)
         try await engine.tick()
         return (tracker, engine)

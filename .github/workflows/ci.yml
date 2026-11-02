@@ -6,10 +6,26 @@ on:
   pull_request:
 
 jobs:
-  build-and-test:
+  test:
     # AC-47 in spec/criteria.md: unit and simulator E2E suites via xcodebuild test on
-    # GitHub-hosted macOS runners.
+    # GitHub-hosted macOS runners. Unit tests report in a few minutes; UI tests take longer.
+    name: ${{ matrix.suite }} tests
     runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: unit
+            target: CyclingCompanionTests
+            options: ""
+          # A simulator on a CI runner can miss a step on an unchanged screen, so a failed UI test gets one more
+          # try and a stuck one is stopped after 4 minutes. A test that fails twice still fails the job.
+          - suite: ui
+            target: CyclingCompanionUITests
+            options: >-
+              -retry-tests-on-failure -test-iterations 2
+              -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240
     steps:
       - uses: actions/checkout@v4
 
@@ -64,6 +80,9 @@ jobs:
             -scheme CyclingCompanion \
             -destination "platform=iOS Simulator,name=${{ steps.destination.outputs.device }},OS=${{ steps.destination.outputs.os_version }}" \
             -resultBundlePath TestResults.xcresult \
+            -only-testing:${{ matrix.target }} \
+            ${{ matrix.options }} \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             test
 
       # The result bundle holds each UI test's screenshots and the screen state at a failure, which the
@@ -72,6 +91,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults-${{ github.run_id }}
+          name: TestResults-${{ matrix.suite }}-${{ github.run_id }}
           path: TestResults.xcresult
           retention-days: 7

@@ -4,7 +4,7 @@ import RoutePersistence
 
 /// The `-uiTestFixtures` launch mode (RULE-30/RULE-31 in milestone 7's rules.md), compiled only in
 /// Debug: a fresh, isolated data directory, a seeded current route that matches the bundled Demo
-/// Mode replay, and a stub transport so UI tests never reach the shared backend.
+/// Mode replay, a stub transport so UI tests never reach the shared backend, and no animations.
 enum UITestFixtures {
     static let launchArgument = "-uiTestFixtures"
     static let routeId = "ui-test-route"
@@ -63,8 +63,6 @@ enum UITestFixtures {
                 cumulativeDistanceMeters: (latitude - 52.0) * metersPerDegreeLatitude)
         }
         let pois = [
-            // Late along the replay: the advisor's 10-minute quiet period (ride time) ends with the
-            // rider about 1.3 km in, so stops must still be ahead then for a suggestion to pass.
             PersistedPoiInput(
                 osmId: 1_001, type: "CAFE", name: "Café am Kanal", latitude: 52.0207, longitude: 13.0015,
                 kmMarkMeters: 0.0207 * metersPerDegreeLatitude, detourMeters: 110, openingHours: nil),

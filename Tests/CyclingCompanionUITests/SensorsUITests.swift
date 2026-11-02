@@ -2,24 +2,7 @@ import XCTest
 
 /// Milestone 12 (RULE-16): the Sensors screen and the dashboard's values, over the scripted Bluetooth in
 /// `-uiTestFixtures`: a "Polar H10" strap at 128 bpm and a "Wahoo CADENCE" sensor at 90 rpm in range.
-final class SensorsUITests: XCTestCase {
-
-    private var app: XCUIApplication!
-
-    override func setUp() {
-        continueAfterFailure = false
-        app = XCUIApplication()
-        app.launchArguments += ["-uiTestFixtures"]
-    }
-
-    private func dismissSystemAlerts() {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        for _ in 0..<3 where springboard.alerts.firstMatch.waitForExistence(timeout: 1) {
-            let alert = springboard.alerts.firstMatch
-            let button = ["Allow While Using App", "Allow", "OK"].map { alert.buttons[$0] }.first { $0.exists }
-            (button ?? alert.buttons.firstMatch).tap()
-        }
-    }
+final class SensorsUITests: AppUITestCase {
 
     private func openSensors() {
         app.launch()

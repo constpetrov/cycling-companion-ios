@@ -2,26 +2,19 @@ import XCTest
 
 /// Milestone 8 task-5.2 (AC-58, RULE-21): the coverage message on Home and the corridor map, audited
 /// at the largest accessibility text size; plus screenshots for the docs at the default size.
-final class CoverageAccessibilityTests: XCTestCase {
+final class CoverageAccessibilityTests: AppUITestCase {
 
-    private var app: XCUIApplication!
     private static let coverageText = "Stops are only available in the Netherlands — 1 km of this route are outside"
 
     override func setUp() {
-        continueAfterFailure = false
-        app = XCUIApplication()
-        app.launchArguments += ["-uiTestFixtures", "-uiTestPartlyOutside"]
+        super.setUp()
+        app.launchArguments += ["-uiTestPartlyOutside"]
     }
 
     private func launchHome() {
         app.launch()
         XCTAssertTrue(app.buttons["Start Ride"].waitForExistence(timeout: 10), "the seeded route shows on Home")
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        for _ in 0..<3 where springboard.alerts.firstMatch.waitForExistence(timeout: 1) {
-            let alert = springboard.alerts.firstMatch
-            let button = ["Allow While Using App", "Allow", "OK"].map { alert.buttons[$0] }.first { $0.exists }
-            (button ?? alert.buttons.firstMatch).tap()
-        }
+        dismissSystemAlerts()
     }
 
     private var coverageMessage: XCUIElement {
@@ -44,7 +37,8 @@ final class CoverageAccessibilityTests: XCTestCase {
         try audit("Corridor map")
     }
 
-    func testScreenshots() {
+    func testScreenshots() throws {
+        try skipUnlessSavingScreenshots()
         launchHome()
         XCTAssertTrue(coverageMessage.waitForExistence(timeout: 5))
         snapshot("01-home-partly-outside")
@@ -82,19 +76,6 @@ final class CoverageAccessibilityTests: XCTestCase {
             }
             print("Accessibility issue on \(screen): \(issue.auditType) — \(issue.compactDescription) — element: \(issue.element?.label ?? "?")")
             return false
-        }
-    }
-
-    private func snapshot(_ name: String) {
-        let screenshot = XCUIScreen.main.screenshot()
-        let attachment = XCTAttachment(screenshot: screenshot)
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
-        if let directory = ProcessInfo.processInfo.environment["SCREENSHOTS_DIR"], !directory.isEmpty {
-            let url = URL(fileURLWithPath: directory).appendingPathComponent("\(name).png")
-            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try? screenshot.pngRepresentation.write(to: url)
         }
     }
 }
