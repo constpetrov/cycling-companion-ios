@@ -3,8 +3,8 @@ import Foundation
 import RoutePersistence
 
 /// The `-uiTestFixtures` launch mode (RULE-30/RULE-31 in milestone 7's rules.md), compiled only in
-/// Debug: a fresh, isolated data directory, a seeded current route that matches the bundled Demo
-/// Mode replay, a stub transport so UI tests never reach the shared backend, and no animations.
+/// Debug: a fresh, isolated data directory, a seeded current route for Demo Mode to
+/// ride, a stub transport so UI tests never reach the shared backend, and no animations.
 enum UITestFixtures {
     static let launchArgument = "-uiTestFixtures"
     static let routeId = "ui-test-route"
@@ -51,7 +51,7 @@ enum UITestFixtures {
             makeBluetoothCentral: { ScriptedBluetoothCentral(availability: scriptedBluetoothAvailability) })
     }
 
-    /// Seeds a ready route running north along the Demo Mode replay (52.0°N → 52.03°N at 13.0°E),
+    /// Seeds a ready route running north (52.0°N → 52.03°N at 13.0°E),
     /// with a café and a bakery beside it, and makes it the current route.
     @MainActor
     static func seed(_ dependencies: AppDependencies) async {

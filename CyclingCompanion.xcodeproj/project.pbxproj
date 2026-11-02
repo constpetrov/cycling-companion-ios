@@ -191,7 +191,6 @@
 		D32D934CD729ED12F2A27CFA /* AuthFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5281408774E7E66C6E7EDCA /* AuthFlowModel.swift */; };
 		D33887DFB7D20E403DEDE2BE /* AuthSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0EA95238DAB5ECDCA51FE4 /* AuthSessionTests.swift */; };
 		D42957A529A740F76A10BC04 /* LocalTriggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 449B68D27D68AB48CC8A1251 /* LocalTriggerTests.swift */; };
-		D5C980E507EBA42270A82C0F /* demo_ride.json in Resources */ = {isa = PBXBuildFile; fileRef = 95A72978AC29E643FED7E7ED /* demo_ride.json */; };
 		D78CB7CF796D0D5BF7368F0C /* simple_ride.json in Resources */ = {isa = PBXBuildFile; fileRef = A5804762F03CB6D4F56B741B /* simple_ride.json */; };
 		D7A19EF431AF768079D7C23D /* FeatureEngineHRDriftCadenceDropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC52593CB0B185B5326EFBC /* FeatureEngineHRDriftCadenceDropTests.swift */; };
 		D8EA0B1C11AAC26948DA901D /* WarningLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D806067C319EF21C93B76B0 /* WarningLabel.swift */; };
@@ -370,7 +369,6 @@
 		8D806738E1693289872CB13B /* CrankCadenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrankCadenceTests.swift; sourceTree = "<group>"; };
 		9278FDEB0C27EA3D0218518B /* SuggestionLedgerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestionLedgerTests.swift; sourceTree = "<group>"; };
 		94CF24EC2734A19A73D1B86F /* RideProgressViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideProgressViewTests.swift; sourceTree = "<group>"; };
-		95A72978AC29E643FED7E7ED /* demo_ride.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = demo_ride.json; sourceTree = "<group>"; };
 		95C29CCE7D1A880516F8346D /* RideTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideTracker.swift; sourceTree = "<group>"; };
 		9644BBB1AA25233C7033B52B /* FakeBluetoothCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeBluetoothCentral.swift; sourceTree = "<group>"; };
 		9797E4C259E02E6414A8240A /* RideFinisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RideFinisher.swift; sourceTree = "<group>"; };
@@ -490,7 +488,6 @@
 		00938509AEB095A0044662F2 /* DemoMode */ = {
 			isa = PBXGroup;
 			children = (
-				95A72978AC29E643FED7E7ED /* demo_ride.json */,
 				750874F3FF8CCE60CE37917F /* DemoFixture.swift */,
 				CB8A13BD850522A556CF6C4E /* DemoMode.swift */,
 				474A2AD9CD932626DB08AB90 /* DemoModeScreen.swift */,
@@ -1044,7 +1041,6 @@
 			files = (
 				59847C6153DB597C0C350E48 /* Assets.xcassets in Resources */,
 				1FF16C03218A9E2C00072707 /* PrivacyInfo.xcprivacy in Resources */,
-				D5C980E507EBA42270A82C0F /* demo_ride.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -71,10 +71,11 @@ route finds nothing.
 ## 4. Generate meaningful data fast — Demo Mode
 
 A single real ride (§5) validates the real GPS/background path, but it's slow and only gives
-one data point. **Demo Mode** replays one bundled ~20-minute fixture ride against your current
-route at up to 20x speed, through the exact same pipeline a live ride uses: tracking, feature
-computation, Advisor calls, notifications, and ride upload. At 20x, the whole fixture plays out
-in about a minute.
+one data point. **Demo Mode** rides your current route at a steady 18 km/h, sped up to 20x, through the
+same pipeline a live ride uses: tracking, feature computation, Advisor calls, notifications, and
+ride upload. At 20x, 10 km takes about 100 seconds. It sends no heart rate or cadence, so it can't
+trigger on those. Suggestions are held back for the first 10 ride minutes (3 km), so use a route
+with stops further along.
 
 This is the fast way to get the volume two things actually need:
 
@@ -88,10 +89,9 @@ Steps:
 1. Home → **Demo Mode**.
 2. Set speed to **20x**.
 3. **Start Demo Ride** — you land on the live ride screen with progress moving fast.
-4. Tap **Force Check** once or twice during the replay. This forces an Advisor decision
-   immediately instead of waiting out the (also speed-scaled) 45-minute check cadence — at 20x
-   over a ~1-minute replay, relying on that cadence to fire naturally is mostly luck; Force
-   Check is the reliable way to actually see a decision.
+4. In a Debug build, tap **Force Check** once or twice during the replay. This forces an Advisor
+   decision immediately instead of waiting out the (also speed-scaled) 45-minute check cadence.
+   Beta builds have no Force Check.
 5. Tap **Finish Ride** whenever you're satisfied — nothing requires waiting for the exact end
    of the replay, and this button is always a manual tap, live or demo.
 6. **Repeat 5 times total** (back into Demo Mode, go again) to clear the personal-baseline
@@ -140,7 +140,7 @@ The icon catalog includes explicit iPhone notification sizes (20pt at 2x and 3x)
    po Bundle.main.url(forResource: "Assets", withExtension: "car")
    ```
 
-   Expect `com.cyclingcompanion.app`, a `CFBundlePrimaryIcon` dictionary with
+   Expect `site.cyclecomp.app`, a `CFBundlePrimaryIcon` dictionary with
    `CFBundleIconName = AppIcon` and nonempty `CFBundleIconFiles`, and a URL to `Assets.car`.
    Xcode adds the icon metadata during the build; its absence from the source `Info.plist`
    alone does not indicate a problem. If it is missing in the installed bundle, inspect the
