@@ -17,11 +17,13 @@
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>CyclingCompanionBackendBaseURL</key>
 	<string>$(CC_BACKEND_BASE_URL)</string>
 	<key>CyclingCompanionDemoAccessToken</key>
 	<string>$(CC_DEMO_ACCESS_TOKEN)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
