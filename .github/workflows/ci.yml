@@ -27,7 +27,7 @@ jobs:
               -retry-tests-on-failure -test-iterations 2
               -test-timeouts-enabled YES -maximum-test-execution-time-allowance 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install xcodegen
         run: brew install xcodegen
@@ -89,7 +89,7 @@ jobs:
       # log doesn't (an intermittent ride-loop failure couldn't be diagnosed from the log alone).
       - name: Upload test results on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TestResults-${{ matrix.suite }}-${{ github.run_id }}
           path: TestResults.xcresult
